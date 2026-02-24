@@ -1,0 +1,6 @@
+node_modules/
+dist/
+storybook-static/
+custom-elements.json
+*.tsbuildinfo
+.DS_Store

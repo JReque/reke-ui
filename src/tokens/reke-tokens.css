@@ -1,0 +1,50 @@
+:root {
+  /* Colors */
+  --reke-color-primary: #22C55E;
+  --reke-color-on-primary: #0A0A0B;
+  --reke-color-secondary: #3B82F6;
+  --reke-color-danger: #EF4444;
+  --reke-color-warning: #F59E0B;
+  --reke-color-bg: #0A0A0B;
+  --reke-color-bg-section: #0F0F10;
+  --reke-color-surface: #1A1A1A;
+  --reke-color-surface-elevated: #151515;
+  --reke-color-border: #252525;
+  --reke-color-border-subtle: #1F1F1F;
+  --reke-color-text: #E5E5E5;
+  --reke-color-text-muted: #525252;
+  --reke-color-text-ghost: #737373;
+  --reke-color-text-disabled: #3B3B3B;
+
+  /* Typography */
+  --reke-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --reke-font-size-2xs: 11px;
+  --reke-font-size-xs: 12px;
+  --reke-font-size-sm: 13px;
+  --reke-font-size-md: 14px;
+  --reke-font-size-lg: 18px;
+  --reke-font-size-xl: 36px;
+  --reke-font-size-2xl: 48px;
+  --reke-font-weight-normal: 400;
+  --reke-font-weight-medium: 500;
+  --reke-font-weight-semibold: 600;
+
+  /* Spacing */
+  --reke-space-2xs: 6px;
+  --reke-space-xs: 8px;
+  --reke-space-sm: 12px;
+  --reke-space-md: 16px;
+  --reke-space-lg: 20px;
+  --reke-space-xl: 24px;
+  --reke-space-2xl: 28px;
+  --reke-space-3xl: 48px;
+  --reke-space-4xl: 64px;
+  --reke-space-5xl: 80px;
+
+  /* Radii */
+  --reke-radius: 4px;
+
+  /* Shadows */
+  --reke-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --reke-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
