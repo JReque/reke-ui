@@ -22,7 +22,7 @@
   ],
   "scripts": {
     "dev": "storybook dev -p 6006",
-    "build": "tsc -p tsconfig.build.json && mkdir -p dist/tokens && cp src/tokens/reke-tokens.css dist/tokens/",
+    "build": "vite build && tsc -p tsconfig.build.json --emitDeclarationOnly && mkdir -p dist/tokens && cp src/tokens/reke-tokens.css dist/tokens/",
     "build:storybook": "storybook build",
     "test": "vitest",
     "test:run": "vitest run",
@@ -44,11 +44,13 @@
     "@custom-elements-manifest/analyzer": "^0.11.0",
     "@storybook/addon-a11y": "^10.2.11",
     "@storybook/web-components-vite": "^10.2.11",
+    "@tailwindcss/vite": "^4.2.1",
     "@vitest/browser": "^4.0.18",
     "@vitest/browser-playwright": "^4.0.18",
     "axe-core": "^4.11.1",
     "playwright": "^1.58.2",
     "storybook": "^10.2.11",
+    "tailwindcss": "^4.2.1",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
     "vitest": "^4.0.18"
