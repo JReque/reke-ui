@@ -15,4 +15,6 @@ export type { TooltipPosition } from './components/reke-tooltip/reke-tooltip.js'
 export { RekeDialog } from './components/reke-dialog/reke-dialog.js';
 export { RekeSelect } from './components/reke-select/reke-select.js';
 export type { SelectSize } from './components/reke-select/reke-select.js';
+export { RekeTable } from './components/reke-table/reke-table.js';
+export type { TableColumn, TableRow } from './components/reke-table/reke-table.js';
 export { RekeElement } from './shared/base-element.js';
