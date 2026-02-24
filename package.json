@@ -50,6 +50,10 @@
       "types": "./dist/components/reke-select/reke-select.d.ts",
       "default": "./dist/components/reke-select/reke-select.js"
     },
+    "./table": {
+      "types": "./dist/components/reke-table/reke-table.d.ts",
+      "default": "./dist/components/reke-table/reke-table.js"
+    },
     "./tokens/css": "./dist/tokens/reke-tokens.css"
   },
   "files": [
