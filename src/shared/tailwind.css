@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: var(--reke-color-primary, #22C55E);
+  --color-on-primary: var(--reke-color-on-primary, #0A0A0B);
+  --color-surface: var(--reke-color-surface, #1A1A1A);
+  --color-danger: var(--reke-color-danger, #EF4444);
+  --color-border: var(--reke-color-border, #252525);
+  --color-text: var(--reke-color-text, #E5E5E5);
+  --color-text-muted: var(--reke-color-text-muted, #525252);
+  --font-family-mono: var(--reke-font-mono, 'JetBrains Mono', ui-monospace, monospace);
+  --radius: var(--reke-radius, 4px);
+}
