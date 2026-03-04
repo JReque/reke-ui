@@ -1,6 +1,6 @@
 # reke-ui
 
-A Web Component library built with [Lit 3](https://lit.dev) and a dark terminal-inspired theme. Framework-agnostic — works with Vue, React, Angular, Svelte, or vanilla JS.
+A Web Component library built with [Lit 3](https://lit.dev). Ships with dark and light themes. Framework-agnostic — works with Vue, React, Angular, Svelte, or vanilla JS.
 
 ## Components
 
@@ -120,15 +120,23 @@ function App() {
 
 ## Theming
 
-reke-ui uses CSS Custom Properties for theming. Override tokens to customize:
+reke-ui ships with **dark** (default) and **light** themes, plus an **auto** mode that follows OS preference.
+
+```html
+<html>                          <!-- Dark (default) -->
+<html data-reke-theme="dark">   <!-- Dark (explicit) -->
+<html data-reke-theme="light">  <!-- Light -->
+<html data-reke-theme="auto">   <!-- Follows OS preference -->
+```
+
+### Customizing tokens
+
+Override any CSS custom property to match your brand:
 
 ```css
 :root {
   --reke-color-primary: #8B5CF6;
-  --reke-color-bg: #1E1E2E;
-  --reke-color-surface: #313244;
-  --reke-color-text: #CDD6F4;
-  --reke-color-border: #45475A;
+  --reke-color-secondary: #EC4899;
   --reke-radius: 8px;
   --reke-font-mono: 'Fira Code', monospace;
 }

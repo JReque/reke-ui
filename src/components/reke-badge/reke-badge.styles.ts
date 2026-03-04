@@ -47,9 +47,9 @@ export const styles = [
     }
 
     .badge--secondary {
-      background-color: color-mix(in srgb, #3B82F6 15%, transparent);
-      color: #3B82F6;
-      border-color: color-mix(in srgb, #3B82F6 30%, transparent);
+      background-color: color-mix(in srgb, var(--reke-color-secondary, #3B82F6) 15%, transparent);
+      color: var(--reke-color-secondary, #3B82F6);
+      border-color: color-mix(in srgb, var(--reke-color-secondary, #3B82F6) 30%, transparent);
     }
 
     .badge--danger {
@@ -59,9 +59,9 @@ export const styles = [
     }
 
     .badge--warning {
-      background-color: color-mix(in srgb, #F59E0B 15%, transparent);
-      color: #F59E0B;
-      border-color: color-mix(in srgb, #F59E0B 30%, transparent);
+      background-color: color-mix(in srgb, var(--reke-color-warning, #F59E0B) 15%, transparent);
+      color: var(--reke-color-warning, #F59E0B);
+      border-color: color-mix(in srgb, var(--reke-color-warning, #F59E0B) 30%, transparent);
     }
 
     .badge--success {

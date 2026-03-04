@@ -1,20 +1,24 @@
+/* ================================================================
+   reke-ui Design Tokens
+
+   Usage:
+     <html>                          → Dark (default)
+     <html data-reke-theme="dark">   → Dark (explicit)
+     <html data-reke-theme="light">  → Light
+     <html data-reke-theme="auto">   → Follows OS preference
+
+   Override tokens in your project:
+     :root { --reke-color-primary: #6366F1; }
+   ================================================================ */
+
+/* ===== Shared tokens (theme-independent) ===== */
+
 :root {
-  /* Colors */
+  /* Accent colors */
   --reke-color-primary: #22C55E;
-  --reke-color-on-primary: #0A0A0B;
   --reke-color-secondary: #3B82F6;
   --reke-color-danger: #EF4444;
   --reke-color-warning: #F59E0B;
-  --reke-color-bg: #0A0A0B;
-  --reke-color-bg-section: #0F0F10;
-  --reke-color-surface: #1A1A1A;
-  --reke-color-surface-elevated: #151515;
-  --reke-color-border: #252525;
-  --reke-color-border-subtle: #1F1F1F;
-  --reke-color-text: #E5E5E5;
-  --reke-color-text-muted: #525252;
-  --reke-color-text-ghost: #737373;
-  --reke-color-text-disabled: #3B3B3B;
 
   /* Typography */
   --reke-font-mono: 'JetBrains Mono', ui-monospace, monospace;
@@ -43,8 +47,61 @@
 
   /* Radii */
   --reke-radius: 4px;
+}
 
-  /* Shadows */
+/* ===== Dark theme (default) ===== */
+
+:root,
+[data-reke-theme="dark"] {
+  --reke-color-on-primary: #0A0A0B;
+  --reke-color-bg: #0A0A0B;
+  --reke-color-bg-section: #0F0F10;
+  --reke-color-surface: #1A1A1A;
+  --reke-color-surface-elevated: #151515;
+  --reke-color-border: #252525;
+  --reke-color-border-subtle: #1F1F1F;
+  --reke-color-text: #E5E5E5;
+  --reke-color-text-muted: #525252;
+  --reke-color-text-ghost: #737373;
+  --reke-color-text-disabled: #3B3B3B;
   --reke-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --reke-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* ===== Light theme ===== */
+
+[data-reke-theme="light"] {
+  --reke-color-on-primary: #FFFFFF;
+  --reke-color-bg: #FFFFFF;
+  --reke-color-bg-section: #F8F8F8;
+  --reke-color-surface: #FFFFFF;
+  --reke-color-surface-elevated: #F0F0F0;
+  --reke-color-border: #E0E0E0;
+  --reke-color-border-subtle: #EBEBEB;
+  --reke-color-text: #1A1A1A;
+  --reke-color-text-muted: #8A8A8A;
+  --reke-color-text-ghost: #9A9A9A;
+  --reke-color-text-disabled: #C0C0C0;
+  --reke-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --reke-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* ===== Auto-detect OS preference (opt-in) ===== */
+
+@media (prefers-color-scheme: light) {
+  [data-reke-theme="auto"] {
+    --reke-color-on-primary: #FFFFFF;
+    --reke-color-bg: #FFFFFF;
+    --reke-color-bg-section: #F8F8F8;
+    --reke-color-surface: #FFFFFF;
+    --reke-color-surface-elevated: #F0F0F0;
+    --reke-color-border: #E0E0E0;
+    --reke-color-border-subtle: #EBEBEB;
+    --reke-color-text: #1A1A1A;
+    --reke-color-text-muted: #8A8A8A;
+    --reke-color-text-ghost: #9A9A9A;
+    --reke-color-text-disabled: #C0C0C0;
+    --reke-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+    --reke-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
 }
