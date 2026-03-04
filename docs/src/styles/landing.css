@@ -1,107 +1,308 @@
-/* Landing: single viewport, centered hero, 3 cards in a row, no scroll */
+/* Landing: reke-ui Single Screen — faithful to Pencil design */
 
-/* ── 1. No scroll ── */
+/* ── 0. Starlight accent → reke-ui green ── */
+:root {
+	--sl-color-accent-low: #22C55E20;
+	--sl-color-accent: #22C55E;
+	--sl-color-accent-high: #4ADE80;
+	--sl-color-text-accent: #22C55E;
+}
+
+/* ── 1. No scroll + background ── */
 [data-has-hero] {
 	overflow: hidden;
 	height: 100vh;
+	background: radial-gradient(ellipse 140% 120% at 30% 40%, #15122B 0%, #0E0C1A 50%, #09090B 100%);
 }
 
 [data-has-hero] .page {
 	height: 100vh;
 	overflow: hidden;
+	background: transparent;
 }
 
 [data-has-hero] main {
 	padding: 0;
+	background: transparent;
 }
 
 [data-has-hero] .content-panel {
 	padding: 0;
 	overflow: hidden;
+	background: transparent;
 }
 
-/* ── 2. Layout: hero centered, cards at bottom ── */
+[data-has-hero] .main-frame {
+	background: transparent;
+}
+
+/* ── 2. Two-column layout ── */
 [data-has-hero] .sl-container {
-	max-width: 64rem;
-	display: flex;
-	flex-direction: column;
+	max-width: 100%;
+	display: grid;
+	grid-template-columns: 1fr 560px;
 	align-items: center;
-	height: calc(100vh - var(--sl-nav-height));
+	height: calc(100vh - var(--sl-nav-height) - 48px);
 	overflow: hidden;
+	padding: 0 48px;
+	gap: 48px;
 }
 
+/* ── 3. Hero left column ── */
 [data-has-hero] .hero {
-	flex: 1;
-	display: flex;
-	align-items: center;
-	justify-content: center;
 	border-bottom: none;
 	padding: 0;
 	width: 100%;
+	display: flex;
+	grid-template-columns: none;
 }
 
-/* ── 3. Center hero text ── */
 [data-has-hero] .hero .stack {
-	align-items: center;
-	text-align: center;
-	gap: 1rem;
+	align-items: flex-start;
+	text-align: left;
+	gap: 28px;
+	width: 100%;
 }
 
 [data-has-hero] .hero .copy {
-	align-items: center;
-	text-align: center;
+	align-items: flex-start;
+	text-align: left;
+	width: 100%;
+	gap: 0;
 }
 
+/* "Build faster with" before title */
+[data-has-hero] .hero h1::before {
+	content: "Build faster with";
+	display: block;
+	font-size: 48px;
+	font-weight: 700;
+	letter-spacing: -2px;
+	color: #FAFAFA;
+	background: none;
+	-webkit-background-clip: unset;
+	background-clip: unset;
+	-webkit-text-fill-color: #FAFAFA;
+	margin-bottom: 4px;
+}
+
+/* Gradient title "reke-ui" */
 [data-has-hero] .hero h1 {
-	font-size: clamp(2.5rem, 5vw, 4rem);
-	text-align: center;
+	font-size: 72px;
+	font-weight: 800;
+	letter-spacing: -3px;
+	text-align: left;
+	line-height: 1;
+	background: linear-gradient(180deg, #4ADE80 0%, #22C55E 100%);
+	-webkit-background-clip: text;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
 }
 
+/* Subtitle */
 [data-has-hero] .hero .tagline {
-	max-width: 42ch;
-	margin: 0 auto;
-	text-align: center;
+	max-width: 460px;
+	text-align: left;
+	font-size: 17px;
+	line-height: 1.6;
+	color: #71717A;
+	margin-top: 24px;
 }
 
+/* Buttons row */
 [data-has-hero] .hero .actions {
-	justify-content: center;
+	justify-content: flex-start;
+	gap: 12px;
 }
 
-/* ── 4. Cards: 3 columns, full width ── */
+[data-has-hero] .hero .actions a.primary {
+	background: linear-gradient(180deg, #4ADE80, #22C55E);
+	border: none;
+	border-radius: 12px;
+	box-shadow: 0 4px 20px #22C55E30;
+	color: #09090B;
+	padding: 13px 24px;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+[data-has-hero] .hero .actions a.secondary {
+	border: 1px solid #FFFFFF15;
+	border-radius: 12px;
+	background: transparent;
+	color: #A1A1AA;
+	padding: 13px 24px;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+[data-has-hero] .hero .actions a.minimal {
+	color: #52525B;
+	font-size: 14px;
+	font-weight: 500;
+	padding: 13px 8px;
+}
+
+/* ── 4. Right column ── */
 [data-has-hero] .sl-markdown-content {
 	width: 100%;
 	max-width: 100%;
-	margin: 0 auto;
-	padding: 0 1rem 5.5rem;
-	flex-shrink: 0;
+	margin: 0;
+	padding: 0;
 }
 
-[data-has-hero] .card-grid {
+[data-has-hero] .landing-right {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	justify-content: center;
+	height: 100%;
+}
+
+/* Cards 2x2 grid */
+[data-has-hero] .sl-markdown-content .landing-cards {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
-	gap: 1.5rem;
+	grid-template-columns: 1fr 1fr;
+	gap: 12px;
+	margin: 0;
 }
 
-[data-has-hero] .card {
-	padding: 2.5rem;
+[data-has-hero] .sl-markdown-content .card {
+	padding: 20px;
+	background: #0F0F12;
+	border: 1px solid #FFFFFF0A;
+	border-radius: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin: 0;
 }
 
-[data-has-hero] .card .title {
-	font-size: var(--sl-text-lg);
+/* ── Card icon badges ── */
+[data-has-hero] .sl-markdown-content .card-icon {
+	width: 32px;
+	height: 32px;
+	border-radius: 8px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	margin: 0;
 }
 
-[data-has-hero] .card .body {
-	font-size: var(--sl-text-base);
+[data-has-hero] .card-icon--orange {
+	background: linear-gradient(180deg, #F97316 0%, #F9731630 100%);
+}
+[data-has-hero] .card-icon--pink {
+	background: linear-gradient(180deg, #EC4899 0%, #EC489930 100%);
+}
+[data-has-hero] .card-icon--green {
+	background: linear-gradient(180deg, #10B981 0%, #10B98130 100%);
+}
+[data-has-hero] .card-icon--purple {
+	background: linear-gradient(180deg, #8B5CF6 0%, #8B5CF630 100%);
 }
 
-/* ── 5. Hide footer and pagination ── */
-[data-has-hero] footer,
+[data-has-hero] .sl-markdown-content .card-title {
+	font-size: 14px;
+	font-weight: 600;
+	color: #FAFAFA;
+	margin: 0;
+	line-height: 1.2;
+}
+
+[data-has-hero] .sl-markdown-content .card-desc {
+	font-size: 12px;
+	line-height: 1.5;
+	color: #52525B;
+	margin: 0;
+}
+
+/* Kill all Starlight spacing inside cards */
+[data-has-hero] .sl-markdown-content .card * {
+	margin-block: 0;
+}
+
+/* ── 5. Install box ── */
+[data-has-hero] .install-row [role="tablist"] {
+	gap: 0;
+	border-bottom: 1px solid #FFFFFF10;
+}
+
+[data-has-hero] .install-row [role="tab"] {
+	padding: 10px 16px;
+	font-size: 13px;
+}
+
+[data-has-hero] .install-row [role="tabpanel"] {
+	padding: 0;
+}
+
+[data-has-hero] .install-row pre {
+	margin: 0;
+	border-radius: 0 0 10px 10px;
+	background: #0F0F12;
+}
+
+[data-has-hero] .install-row .expressive-code {
+	margin: 0;
+}
+
+[data-has-hero] .install-row .expressive-code .frame {
+	border-radius: 0 0 10px 10px;
+}
+
+/* ── 6. Footer ── */
+[data-has-hero] footer.landing-footer {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	height: 48px;
+	padding: 0 48px;
+	border-top: 1px solid #FFFFFF08;
+	z-index: 1;
+}
+
+[data-has-hero] .landing-footer-left {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+[data-has-hero] .landing-footer-logo {
+	font-size: 12px;
+	font-weight: 600;
+	color: #3F3F46;
+}
+
+[data-has-hero] .landing-footer-copy {
+	font-size: 11px;
+	color: #27272A;
+}
+
+[data-has-hero] .landing-footer-right {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+}
+
+[data-has-hero] .landing-footer-right a {
+	display: flex;
+	color: #27272A;
+}
+
+/* Hide Starlight's default footer */
+[data-has-hero] footer:not(.landing-footer),
 [data-has-hero] .pagination-links,
 [data-has-hero] .meta {
 	display: none;
 }
 
-/* ── 6. Mobile: allow scroll, stack cards ── */
+/* ── 7. Mobile ── */
 @media (max-width: 50rem) {
 	[data-has-hero] {
 		overflow: auto;
@@ -112,13 +313,38 @@
 		overflow: auto;
 	}
 	[data-has-hero] .sl-container {
+		grid-template-columns: 1fr;
 		height: auto;
 		overflow: visible;
+		padding: 2rem 1.5rem;
+		gap: 2rem;
 	}
-	[data-has-hero] .hero {
-		flex: none;
+	[data-has-hero] .hero h1::before {
+		font-size: 28px;
+		text-align: center;
 	}
-	[data-has-hero] .card-grid {
+	[data-has-hero] .hero h1 {
+		font-size: 48px;
+		text-align: center;
+	}
+	[data-has-hero] .hero .stack {
+		align-items: center;
+		text-align: center;
+	}
+	[data-has-hero] .hero .copy {
+		align-items: center;
+		text-align: center;
+	}
+	[data-has-hero] .hero .tagline {
+		text-align: center;
+	}
+	[data-has-hero] .hero .actions {
+		justify-content: center;
+	}
+	[data-has-hero] .landing-cards {
 		grid-template-columns: 1fr;
+	}
+	[data-has-hero] footer.landing-footer {
+		padding: 0 1.5rem;
 	}
 }

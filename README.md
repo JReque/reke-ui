@@ -2,6 +2,8 @@
 
 A Web Component library built with [Lit 3](https://lit.dev). Ships with dark and light themes. Framework-agnostic — works with Vue, React, Angular, Svelte, or vanilla JS.
 
+**[Documentation](https://jreque.github.io/reke-ui/)** · **[Storybook](https://jreque.github.io/reke-ui/storybook/)**
+
 ## Components
 
 | Component | Tag | Description |
