@@ -9,12 +9,10 @@ export default defineConfig({
 		starlight({
 			title: 'reke-ui',
 			description: 'Web Component library built with Lit 3 — dark & light themes',
+			customCss: ['./src/styles/landing.css'],
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/JReque/reke-ui' },
 			],
-			editLink: {
-				baseUrl: 'https://github.com/JReque/reke-ui/edit/main/docs/',
-			},
 			sidebar: [
 				{
 					label: 'Getting Started',

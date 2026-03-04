@@ -9,7 +9,11 @@ hero:
       link: /reke-ui/getting-started/installation/
       icon: right-arrow
       variant: primary
-    - text: View on GitHub
+    - text: Demo
+      link: /reke-ui/storybook/
+      icon: rocket
+      variant: secondary
+    - text: GitHub
       link: https://github.com/JReque/reke-ui
       icon: external
       variant: minimal
@@ -17,17 +21,14 @@ hero:
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-<CardGrid stagger>
+<CardGrid>
   <Card title="Framework-agnostic" icon="puzzle">
-    Standard Web Components that work everywhere — Vue, React, Angular, Svelte, or plain HTML.
+    Works with Vue, React, Angular, Svelte, or plain HTML.
   </Card>
   <Card title="Dark & Light themes" icon="sun">
-    Ships with dark (default) and light themes, plus auto mode that follows OS preference.
-  </Card>
-  <Card title="16 Components" icon="open-book">
-    Buttons, inputs, tables, dialogs, date pickers, file uploads, toasts, and more.
+    Dark, light, and auto mode that follows OS preference.
   </Card>
   <Card title="Design Tokens" icon="setting">
-    Fully customizable via CSS custom properties. Override any token to match your brand.
+    Fully customizable via CSS custom properties.
   </Card>
 </CardGrid>

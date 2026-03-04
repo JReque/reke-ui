@@ -1,0 +1,124 @@
+/* Landing: single viewport, centered hero, 3 cards in a row, no scroll */
+
+/* ── 1. No scroll ── */
+[data-has-hero] {
+	overflow: hidden;
+	height: 100vh;
+}
+
+[data-has-hero] .page {
+	height: 100vh;
+	overflow: hidden;
+}
+
+[data-has-hero] main {
+	padding: 0;
+}
+
+[data-has-hero] .content-panel {
+	padding: 0;
+	overflow: hidden;
+}
+
+/* ── 2. Layout: hero centered, cards at bottom ── */
+[data-has-hero] .sl-container {
+	max-width: 64rem;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	height: calc(100vh - var(--sl-nav-height));
+	overflow: hidden;
+}
+
+[data-has-hero] .hero {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-bottom: none;
+	padding: 0;
+	width: 100%;
+}
+
+/* ── 3. Center hero text ── */
+[data-has-hero] .hero .stack {
+	align-items: center;
+	text-align: center;
+	gap: 1rem;
+}
+
+[data-has-hero] .hero .copy {
+	align-items: center;
+	text-align: center;
+}
+
+[data-has-hero] .hero h1 {
+	font-size: clamp(2.5rem, 5vw, 4rem);
+	text-align: center;
+}
+
+[data-has-hero] .hero .tagline {
+	max-width: 42ch;
+	margin: 0 auto;
+	text-align: center;
+}
+
+[data-has-hero] .hero .actions {
+	justify-content: center;
+}
+
+/* ── 4. Cards: 3 columns, full width ── */
+[data-has-hero] .sl-markdown-content {
+	width: 100%;
+	max-width: 100%;
+	margin: 0 auto;
+	padding: 0 1rem 5.5rem;
+	flex-shrink: 0;
+}
+
+[data-has-hero] .card-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 1.5rem;
+}
+
+[data-has-hero] .card {
+	padding: 2.5rem;
+}
+
+[data-has-hero] .card .title {
+	font-size: var(--sl-text-lg);
+}
+
+[data-has-hero] .card .body {
+	font-size: var(--sl-text-base);
+}
+
+/* ── 5. Hide footer and pagination ── */
+[data-has-hero] footer,
+[data-has-hero] .pagination-links,
+[data-has-hero] .meta {
+	display: none;
+}
+
+/* ── 6. Mobile: allow scroll, stack cards ── */
+@media (max-width: 50rem) {
+	[data-has-hero] {
+		overflow: auto;
+		height: auto;
+	}
+	[data-has-hero] .page {
+		height: auto;
+		overflow: auto;
+	}
+	[data-has-hero] .sl-container {
+		height: auto;
+		overflow: visible;
+	}
+	[data-has-hero] .hero {
+		flex: none;
+	}
+	[data-has-hero] .card-grid {
+		grid-template-columns: 1fr;
+	}
+}
