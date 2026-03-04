@@ -2,9 +2,9 @@
 
 /* ── 0. Starlight accent → reke-ui green ── */
 :root {
-	--sl-color-accent-low: #22C55E20;
+	--sl-color-accent-low: #0D1F14;
 	--sl-color-accent: #22C55E;
-	--sl-color-accent-high: #4ADE80;
+	--sl-color-accent-high: #FAFAFA;
 	--sl-color-text-accent: #22C55E;
 }
 
