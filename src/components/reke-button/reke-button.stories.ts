@@ -27,7 +27,7 @@ const meta: Meta<ButtonArgs> = {
     },
     size: {
       control: 'select',
-      options: ['sm', 'md', 'lg'],
+      options: ['xs', 'sm', 'md', 'lg'],
     },
     disabled: { control: 'boolean' },
     loading: { control: 'boolean' },
@@ -117,6 +117,7 @@ export const AllVariants: Story = {
 export const AllSizes: Story = {
   render: () => html`
     <div style="display: flex; gap: 12px; align-items: center;">
+      <reke-button size="xs">Extra Small</reke-button>
       <reke-button size="sm">Small</reke-button>
       <reke-button size="md">Medium</reke-button>
       <reke-button size="lg">Large</reke-button>

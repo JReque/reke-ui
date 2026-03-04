@@ -12,7 +12,7 @@ export type ButtonVariant =
   | 'danger-outline'
   | 'icon-only';
 
-export type ButtonSize = 'sm' | 'md' | 'lg';
+export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg';
 
 /**
  * @tag reke-button

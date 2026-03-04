@@ -79,6 +79,17 @@ describe('reke-button', () => {
     }
   });
 
+  it('renders xs size class', async () => {
+    const wrapper = createElement('<reke-button size="xs">Tiny</reke-button>');
+    const el = wrapper.querySelector('reke-button')! as RekeButton;
+    await waitForUpdate(el);
+
+    const button = el.shadowRoot!.querySelector('button')!;
+    expect(button.classList.contains('button--xs')).toBe(true);
+
+    wrapper.remove();
+  });
+
   it('renders prefix and suffix slots', async () => {
     const wrapper = createElement(`
       <reke-button>

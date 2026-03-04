@@ -37,6 +37,11 @@ export const styles = [
 
     /* === Sizes === */
 
+    .button--xs {
+      padding: var(--reke-space-2xs, 6px) var(--reke-space-xs, 8px);
+      font-size: var(--reke-font-size-2xs, 11px);
+    }
+
     .button--sm {
       padding: var(--reke-space-xs, 8px) var(--reke-space-md, 16px);
       font-size: var(--reke-font-size-xs, 12px);
@@ -115,6 +120,10 @@ export const styles = [
 
     .button--icon-only:hover {
       border-color: var(--reke-color-text-muted, #525252);
+    }
+
+    .button--icon-only.button--xs {
+      padding: var(--reke-space-2xs, 6px);
     }
 
     .button--icon-only.button--sm {
