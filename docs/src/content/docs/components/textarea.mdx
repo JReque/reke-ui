@@ -1,0 +1,39 @@
+---
+title: Textarea
+description: Multi-line text input with rows control.
+sidebar:
+  order: 3
+---
+
+Textarea with rows control, label, sizes, error, and disabled states.
+
+## Usage
+
+```html
+<reke-textarea label="Description" rows="6" placeholder="Enter text..."></reke-textarea>
+```
+
+## Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `value` | `string` | `''` | Current value |
+| `placeholder` | `string` | `''` | Placeholder text |
+| `rows` | `number` | `4` | Number of visible rows |
+| `size` | `'sm' \| 'md' \| 'lg'` | `'md'` | Size |
+| `disabled` | `boolean` | `false` | Disables the textarea |
+| `error` | `boolean` | `false` | Error state |
+| `label` | `string` | `''` | Label text |
+
+## Events
+
+| Event | Detail | Description |
+|-------|--------|-------------|
+| `reke-input` | `{ value }` | Fired on every keystroke |
+| `reke-change` | `{ value }` | Fired on blur |
+
+## CSS Parts
+
+| Part | Description |
+|------|-------------|
+| `textarea` | The native textarea element |

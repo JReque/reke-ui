@@ -1,0 +1,58 @@
+---
+title: Input
+description: Text input with label, sizes, error, and disabled states.
+sidebar:
+  order: 2
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Text input with label, helper text, and validation.
+
+## Usage
+
+<Tabs>
+  <TabItem label="HTML">
+    ```html
+    <reke-input label="Email" type="email" placeholder="you@example.com"></reke-input>
+    <reke-input size="xs" placeholder="Search..." style="width: 90px;"></reke-input>
+    ```
+  </TabItem>
+  <TabItem label="React">
+    ```tsx
+    import { Input } from 'reke-ui/react';
+    <Input label="Email" type="email" onRekeChange={(e) => console.log(e.detail.value)} />
+    ```
+  </TabItem>
+</Tabs>
+
+## Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `value` | `string` | `''` | Current value |
+| `placeholder` | `string` | `''` | Placeholder text |
+| `type` | `'text' \| 'password' \| 'email' \| 'number' \| 'search' \| 'url'` | `'text'` | Input type |
+| `size` | `'xs' \| 'sm' \| 'md' \| 'lg'` | `'md'` | Size |
+| `disabled` | `boolean` | `false` | Disables the input |
+| `error` | `boolean` | `false` | Error state |
+| `label` | `string` | `''` | Label text |
+
+## Events
+
+| Event | Detail | Description |
+|-------|--------|-------------|
+| `reke-input` | `{ value }` | Fired on every keystroke |
+| `reke-change` | `{ value }` | Fired on blur |
+
+## CSS Parts
+
+| Part | Description |
+|------|-------------|
+| `input` | The native input element |
+
+Use `::part(input)` to customize the input styling, e.g. `::part(input) { border-style: dashed; }`.
+
+## Interactive Demo
+
+See all variants in the [Storybook playground](/reke-ui/storybook/?path=/docs/components-input--docs).

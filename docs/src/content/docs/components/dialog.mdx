@@ -1,0 +1,55 @@
+---
+title: Dialog
+description: Modal and drawer dialog with backdrop.
+sidebar:
+  order: 10
+---
+
+Modal and drawer dialog with backdrop, Escape key close, and footer slot.
+
+## Usage
+
+```html
+<!-- Modal -->
+<reke-dialog heading="Confirm" open>
+  <p>Are you sure?</p>
+  <div slot="footer">
+    <reke-button variant="ghost">Cancel</reke-button>
+    <reke-button variant="primary">OK</reke-button>
+  </div>
+</reke-dialog>
+
+<!-- Drawer -->
+<reke-dialog heading="Settings" variant="drawer" position="right" open>
+  <p>Drawer content</p>
+</reke-dialog>
+```
+
+## Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `open` | `boolean` | `false` | Open/close state |
+| `heading` | `string` | `''` | Dialog title |
+| `variant` | `'modal' \| 'drawer'` | `'modal'` | Display mode |
+| `position` | `'right' \| 'left'` | `'right'` | Drawer position |
+
+## Slots
+
+| Slot | Description |
+|------|-------------|
+| default | Dialog body content |
+| `footer` | Footer with action buttons |
+
+## Events
+
+| Event | Detail | Description |
+|-------|--------|-------------|
+| `reke-close` | `{}` | Fired when dialog closes |
+
+## Methods
+
+| Method | Description |
+|--------|-------------|
+| `show()` | Opens the dialog |
+| `close()` | Closes the dialog |

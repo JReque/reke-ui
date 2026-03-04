@@ -1,0 +1,38 @@
+---
+title: Checkbox
+description: Checkbox with checked, indeterminate, and disabled states.
+sidebar:
+  order: 4
+---
+
+Checkbox with label, checked, indeterminate, and disabled states.
+
+## Usage
+
+```html
+<reke-checkbox label="Accept terms" checked></reke-checkbox>
+<reke-checkbox label="Select all" indeterminate></reke-checkbox>
+```
+
+## Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `checked` | `boolean` | `false` | Checked state |
+| `indeterminate` | `boolean` | `false` | Indeterminate state |
+| `disabled` | `boolean` | `false` | Disables the checkbox |
+| `label` | `string` | `''` | Label text |
+
+## Events
+
+| Event | Detail | Description |
+|-------|--------|-------------|
+| `reke-change` | `{ checked }` | Fired when state changes |
+
+## CSS Parts
+
+| Part | Description |
+|------|-------------|
+| `container` | Outer wrapper |
+| `box` | The checkbox box |
+| `label` | The label text |

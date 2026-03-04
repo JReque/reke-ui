@@ -1,0 +1,55 @@
+---
+title: Vue
+description: Using reke-ui with Vue.
+---
+
+Vue supports Web Components natively. Just import and use:
+
+```vue
+<script setup>
+import 'reke-ui/button';
+import 'reke-ui/input';
+</script>
+
+<template>
+  <reke-button variant="primary" @reke-click="handleClick">
+    Submit
+  </reke-button>
+  <reke-input label="Name" @reke-change="handleChange" />
+</template>
+```
+
+## Vite configuration
+
+Tell Vue to skip resolving `reke-*` tags as Vue components:
+
+```ts
+// vite.config.ts
+import vue from '@vitejs/plugin-vue';
+
+export default defineConfig({
+  plugins: [
+    vue({
+      template: {
+        compilerOptions: {
+          isCustomElement: (tag) => tag.startsWith('reke-'),
+        },
+      },
+    }),
+  ],
+});
+```
+
+## Two-way binding
+
+Use `.prop` modifier for property binding and listen to custom events:
+
+```vue
+<template>
+  <reke-input
+    :value.prop="name"
+    label="Name"
+    @reke-change="name = $event.detail.value"
+  />
+</template>
+```

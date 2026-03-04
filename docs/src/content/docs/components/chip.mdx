@@ -1,0 +1,50 @@
+---
+title: Chip
+description: Toggleable chip/pill for filters and tags.
+sidebar:
+  order: 13
+---
+
+Toggleable chip/pill for filters, tags, and selections. Supports color themes, active state, and optional dismiss button.
+
+## Usage
+
+```html
+<!-- Filter chips -->
+<reke-chip color="secondary" active>All</reke-chip>
+<reke-chip color="secondary">Binance</reke-chip>
+<reke-chip color="secondary">MEXC</reke-chip>
+
+<!-- Dismissible chips -->
+<reke-chip color="primary" active dismissible>All trades</reke-chip>
+<reke-chip color="primary" dismissible>Saved view</reke-chip>
+```
+
+## Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `color` | `'primary' \| 'secondary' \| 'danger' \| 'warning'` | `'primary'` | Color theme |
+| `active` | `boolean` | `false` | Active/selected state |
+| `dismissible` | `boolean` | `false` | Show dismiss button |
+| `disabled` | `boolean` | `false` | Disables the chip |
+
+## Slots
+
+| Slot | Description |
+|------|-------------|
+| default | Chip label text |
+
+## Events
+
+| Event | Detail | Description |
+|-------|--------|-------------|
+| `reke-click` | `{}` | Chip body clicked |
+| `reke-dismiss` | `{}` | Dismiss button clicked |
+
+## CSS Parts
+
+| Part | Description |
+|------|-------------|
+| `chip` | The chip element |
+| `dismiss` | The dismiss button |

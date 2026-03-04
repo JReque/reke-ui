@@ -1,0 +1,55 @@
+---
+title: Date Range
+description: Date picker with calendar dropdown, single and range modes.
+sidebar:
+  order: 7
+---
+
+Date picker with custom calendar dropdown. Supports single date and range selection modes.
+
+## Usage
+
+```html
+<!-- Single date -->
+<reke-date-range mode="single" label="Date" value="2026-02-25"></reke-date-range>
+
+<!-- Date range (default) -->
+<reke-date-range label="Period" from="2026-01-01" to="2026-02-25"></reke-date-range>
+
+<!-- With min/max constraints -->
+<reke-date-range mode="single" min="2026-01-01" max="2026-12-31"></reke-date-range>
+```
+
+## Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `mode` | `'single' \| 'range'` | `'range'` | Selection mode |
+| `value` | `string` | `''` | Selected date (single mode) |
+| `from` | `string` | `''` | Start date (range mode) |
+| `to` | `string` | `''` | End date (range mode) |
+| `label` | `string` | `''` | Label text |
+| `placeholder` | `string` | `''` | Placeholder text |
+| `min` | `string` | `''` | Minimum selectable date |
+| `max` | `string` | `''` | Maximum selectable date |
+| `disabled` | `boolean` | `false` | Disables the picker |
+| `error` | `boolean` | `false` | Error state |
+
+## Range mode behavior
+
+- First click selects `from`, second click selects `to` (auto-swaps if `to < from`)
+- Clicking outside or pressing Escape after selecting only `from` auto-completes by setting `to = from`
+- Calendar navigation includes month arrows and year arrows
+
+## Events
+
+| Event | Detail | Description |
+|-------|--------|-------------|
+| `reke-change` | Single: `{ value }`, Range: `{ from, to }` | Fired when date changes |
+
+## CSS Parts
+
+| Part | Description |
+|------|-------------|
+| `trigger` | The date display/input |
+| `calendar` | The calendar dropdown |

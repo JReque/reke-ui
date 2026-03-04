@@ -1,0 +1,45 @@
+---
+title: File Upload
+description: Drag & drop file upload zone.
+sidebar:
+  order: 8
+---
+
+Drag-and-drop file upload zone with click-to-browse.
+
+## Usage
+
+```html
+<reke-file-upload accept=".csv,.xlsx" hint="Max 10MB"></reke-file-upload>
+<reke-file-upload compact accept="image/*"></reke-file-upload>
+```
+
+## Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `accept` | `string` | `''` | Accepted file types |
+| `hint` | `string` | `''` | Helper text below the dropzone |
+| `disabled` | `boolean` | `false` | Disables the upload |
+| `error` | `boolean` | `false` | Error state |
+| `errorMessage` | `string` | `''` | Error message text |
+| `compact` | `boolean` | `false` | Compact mode |
+
+## Events
+
+| Event | Detail | Description |
+|-------|--------|-------------|
+| `reke-file-select` | `{ file: File }` | Fired when a file is selected |
+| `reke-file-clear` | `{}` | Fired when file is cleared |
+
+## Methods
+
+| Method | Description |
+|--------|-------------|
+| `clear()` | Clears the selected file |
+
+## CSS Parts
+
+| Part | Description |
+|------|-------------|
+| `dropzone` | The drop area |

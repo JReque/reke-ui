@@ -1,0 +1,60 @@
+---
+title: React
+description: Using reke-ui with React.
+---
+
+React needs wrappers for proper custom event handling. reke-ui ships with built-in React bindings:
+
+```tsx
+import { Button, Input } from 'reke-ui/react';
+
+function App() {
+  return (
+    <>
+      <Button variant="primary" onRekeClick={() => console.log('clicked')}>
+        Submit
+      </Button>
+      <Input
+        label="Name"
+        onRekeChange={(e) => console.log(e.detail.value)}
+      />
+    </>
+  );
+}
+```
+
+## Available React wrappers
+
+Every component has a React wrapper exported from `reke-ui/react`:
+
+```tsx
+import {
+  Button,
+  Input,
+  Textarea,
+  Checkbox,
+  Toggle,
+  Select,
+  DateRange,
+  FileUpload,
+  Table,
+  Dialog,
+  Card,
+  Badge,
+  Chip,
+  Tooltip,
+  Alert,
+  Toast,
+} from 'reke-ui/react';
+```
+
+## Event naming
+
+React events follow the `onReke{EventName}` convention:
+
+| Web Component event | React prop |
+|-------------------|-----------|
+| `reke-click` | `onRekeClick` |
+| `reke-change` | `onRekeChange` |
+| `reke-close` | `onRekeClose` |
+| `reke-input` | `onRekeInput` |

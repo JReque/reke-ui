@@ -1,0 +1,36 @@
+---
+title: Toggle
+description: On/off toggle switch.
+sidebar:
+  order: 5
+---
+
+Toggle switch for boolean on/off states.
+
+## Usage
+
+```html
+<reke-toggle label="Dark mode" checked></reke-toggle>
+<reke-toggle label="Notifications"></reke-toggle>
+```
+
+## Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `checked` | `boolean` | `false` | On/off state |
+| `disabled` | `boolean` | `false` | Disables the toggle |
+| `label` | `string` | `''` | Label text |
+
+## Events
+
+| Event | Detail | Description |
+|-------|--------|-------------|
+| `reke-change` | `{ checked }` | Fired when toggled |
+
+## CSS Parts
+
+| Part | Description |
+|------|-------------|
+| `track` | The toggle track |
+| `thumb` | The toggle thumb |

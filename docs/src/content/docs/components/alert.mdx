@@ -1,0 +1,53 @@
+---
+title: Alert
+description: Inline alert message with color variants.
+sidebar:
+  order: 15
+---
+
+Inline alert with color variants. Content entirely via slot.
+
+## Usage
+
+```html
+<reke-alert variant="success" dismissible>
+  Operation completed successfully.
+</reke-alert>
+
+<reke-alert variant="error">
+  Something went wrong. Please try again.
+</reke-alert>
+
+<reke-alert variant="warning">
+  Your session will expire in 5 minutes.
+</reke-alert>
+
+<reke-alert variant="info">
+  A new version is available.
+</reke-alert>
+```
+
+## Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `variant` | `'success' \| 'error' \| 'warning' \| 'info'` | `'info'` | Color variant |
+| `dismissible` | `boolean` | `false` | Show dismiss button |
+
+## Slots
+
+| Slot | Description |
+|------|-------------|
+| default | Alert content (icons, text, anything) |
+
+## Events
+
+| Event | Detail | Description |
+|-------|--------|-------------|
+| `reke-close` | `{}` | Fired on dismiss (also removes element from DOM) |
+
+## CSS Parts
+
+| Part | Description |
+|------|-------------|
+| `alert` | The alert container |

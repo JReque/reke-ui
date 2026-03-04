@@ -1,0 +1,57 @@
+---
+title: Select
+description: Dropdown select with options.
+sidebar:
+  order: 6
+---
+
+Dropdown select with options, sizes, label, error, and disabled states.
+
+## Usage
+
+```html
+<reke-select label="Language" placeholder="Choose..."></reke-select>
+
+<script>
+  const select = document.querySelector('reke-select');
+  select.options = [
+    { value: 'js', label: 'JavaScript' },
+    { value: 'ts', label: 'TypeScript' },
+    { value: 'rs', label: 'Rust' },
+  ];
+</script>
+```
+
+## Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `value` | `string` | `''` | Selected value |
+| `placeholder` | `string` | `'Select...'` | Placeholder text |
+| `options` | `SelectOption[]` | `[]` | Array of options (JS only) |
+| `disabled` | `boolean` | `false` | Disables the select |
+| `error` | `boolean` | `false` | Error state |
+| `label` | `string` | `''` | Label text |
+| `size` | `'sm' \| 'md' \| 'lg'` | `'md'` | Size |
+
+### SelectOption type
+
+```ts
+interface SelectOption {
+  value: string;
+  label: string;
+}
+```
+
+## Events
+
+| Event | Detail | Description |
+|-------|--------|-------------|
+| `reke-change` | `{ value }` | Fired when selection changes |
+
+## CSS Parts
+
+| Part | Description |
+|------|-------------|
+| `trigger` | The select trigger button |
+| `dropdown` | The dropdown panel |

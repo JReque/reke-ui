@@ -1,0 +1,61 @@
+---
+title: Button
+description: Buttons with variants — primary, secondary, danger, ghost, outline.
+sidebar:
+  order: 1
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+A button with multiple variants, sizes, and loading state.
+
+## Usage
+
+<Tabs>
+  <TabItem label="HTML">
+    ```html
+    <reke-button variant="primary">Save</reke-button>
+    <reke-button variant="danger" loading>Deleting...</reke-button>
+    <reke-button variant="icon-only" aria-label="Edit">&#9998;</reke-button>
+    ```
+  </TabItem>
+  <TabItem label="React">
+    ```tsx
+    import { Button } from 'reke-ui/react';
+    <Button variant="primary" onRekeClick={handler}>Save</Button>
+    ```
+  </TabItem>
+</Tabs>
+
+## Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `variant` | `'primary' \| 'secondary' \| 'ghost' \| 'danger' \| 'danger-outline' \| 'icon-only'` | `'primary'` | Visual variant |
+| `size` | `'xs' \| 'sm' \| 'md' \| 'lg'` | `'md'` | Button size |
+| `disabled` | `boolean` | `false` | Disables the button |
+| `loading` | `boolean` | `false` | Shows loading spinner |
+
+## Slots
+
+| Slot | Description |
+|------|-------------|
+| default | Button label |
+| `prefix` | Content before the label |
+| `suffix` | Content after the label |
+
+## Events
+
+| Event | Detail | Description |
+|-------|--------|-------------|
+| `reke-click` | `{}` | Fired on button click |
+
+## CSS Parts
+
+| Part | Description |
+|------|-------------|
+| `button` | The native button element |
+
+## Interactive Demo
+
+See all variants in the [Storybook playground](/reke-ui/storybook/?path=/docs/components-button--docs).

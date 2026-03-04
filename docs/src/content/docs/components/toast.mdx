@@ -1,0 +1,65 @@
+---
+title: Toast
+description: Toast notification with auto-dismiss.
+sidebar:
+  order: 16
+---
+
+Compact notification toast with icon, optional action button, and auto-dismiss.
+
+## Usage
+
+```html
+<reke-toast variant="success" message="File saved" duration="3000"></reke-toast>
+<reke-toast variant="error" message="Upload failed" action="Retry"></reke-toast>
+```
+
+### React example
+
+```tsx
+import { Toast } from 'reke-ui/react';
+
+function Toasts({ toasts, onDismiss }) {
+  return (
+    <div style={{ position: 'fixed', bottom: 16, right: 16 }}>
+      {toasts.map(t => (
+        <Toast
+          key={t.id}
+          message={t.message}
+          variant={t.variant}
+          duration={3000}
+          onRekeClose={() => onDismiss(t.id)}
+        />
+      ))}
+    </div>
+  );
+}
+```
+
+## Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `variant` | `'success' \| 'error' \| 'warning' \| 'info'` | `'success'` | Color variant |
+| `message` | `string` | `''` | Toast message |
+| `action` | `string` | `''` | Action button label |
+| `duration` | `number` | `0` | Auto-dismiss in ms (0 = manual) |
+
+## Events
+
+| Event | Detail | Description |
+|-------|--------|-------------|
+| `reke-close` | `{}` | Fired on dismiss |
+| `reke-action` | `{}` | Action button clicked |
+
+## Methods
+
+| Method | Description |
+|--------|-------------|
+| `dismiss()` | Programmatically dismiss |
+
+## CSS Parts
+
+| Part | Description |
+|------|-------------|
+| `toast` | The toast container |

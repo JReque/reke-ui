@@ -1,0 +1,35 @@
+---
+title: Badge
+description: Inline badge for labels and statuses.
+sidebar:
+  order: 12
+---
+
+Inline badge for labels, statuses, and counts.
+
+## Usage
+
+```html
+<reke-badge variant="success">Active</reke-badge>
+<reke-badge variant="danger" size="sm">3</reke-badge>
+<reke-badge variant="warning">Pending</reke-badge>
+```
+
+## Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `variant` | `'default' \| 'primary' \| 'secondary' \| 'danger' \| 'warning' \| 'success'` | `'default'` | Color variant |
+| `size` | `'sm' \| 'md'` | `'md'` | Size |
+
+## Slots
+
+| Slot | Description |
+|------|-------------|
+| default | Badge text |
+
+## CSS Parts
+
+| Part | Description |
+|------|-------------|
+| `badge` | The badge element |

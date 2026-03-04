@@ -1,0 +1,44 @@
+---
+title: Theming
+description: Dark and light themes, auto mode, and token customization.
+---
+
+reke-ui ships with **dark** (default) and **light** themes, plus an **auto** mode that follows OS preference.
+
+## Setting the theme
+
+Add the `data-reke-theme` attribute to your `<html>` tag:
+
+```html
+<html>                          <!-- Dark (default) -->
+<html data-reke-theme="dark">   <!-- Dark (explicit) -->
+<html data-reke-theme="light">  <!-- Light -->
+<html data-reke-theme="auto">   <!-- Follows OS preference -->
+```
+
+## Switching themes at runtime
+
+```js
+// Toggle between dark and light
+document.documentElement.setAttribute('data-reke-theme', 'light');
+
+// Follow OS preference
+document.documentElement.setAttribute('data-reke-theme', 'auto');
+```
+
+## Customizing tokens
+
+Override any CSS custom property to match your brand:
+
+```css
+:root {
+  --reke-color-primary: #8B5CF6;
+  --reke-color-secondary: #EC4899;
+  --reke-radius: 8px;
+  --reke-font-mono: 'Fira Code', monospace;
+}
+```
+
+Every component uses tokens with fallback values, so partial overrides work fine.
+
+See the full list of available tokens in the [Token Reference](/reke-ui/tokens/reference/).
