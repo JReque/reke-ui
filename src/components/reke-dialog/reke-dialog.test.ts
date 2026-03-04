@@ -113,6 +113,57 @@ describe('reke-dialog', () => {
     wrapper.remove();
   });
 
+  // --- DRAWER ---
+
+  it('renders as drawer when variant="drawer"', async () => {
+    const wrapper = createElement(
+      '<reke-dialog heading="Drawer" variant="drawer" open><p>Content</p></reke-dialog>',
+    );
+    const el = wrapper.querySelector('reke-dialog')! as RekeDialog;
+    await waitForUpdate(el);
+
+    const drawer = el.shadowRoot!.querySelector('.drawer');
+    expect(drawer).toBeTruthy();
+    expect(drawer!.classList.contains('drawer--right')).toBe(true);
+
+    const backdrop = el.shadowRoot!.querySelector('.backdrop--drawer');
+    expect(backdrop).toBeTruthy();
+
+    wrapper.remove();
+  });
+
+  it('renders drawer on left side', async () => {
+    const wrapper = createElement(
+      '<reke-dialog heading="Left" variant="drawer" position="left" open><p>Content</p></reke-dialog>',
+    );
+    const el = wrapper.querySelector('reke-dialog')! as RekeDialog;
+    await waitForUpdate(el);
+
+    const drawer = el.shadowRoot!.querySelector('.drawer--left');
+    expect(drawer).toBeTruthy();
+
+    const backdrop = el.shadowRoot!.querySelector('.backdrop--left');
+    expect(backdrop).toBeTruthy();
+
+    wrapper.remove();
+  });
+
+  it('drawer closes on backdrop click', async () => {
+    const wrapper = createElement(
+      '<reke-dialog heading="Drawer" variant="drawer" open><p>Content</p></reke-dialog>',
+    );
+    const el = wrapper.querySelector('reke-dialog')! as RekeDialog;
+    await waitForUpdate(el);
+
+    const backdrop = el.shadowRoot!.querySelector('.backdrop')! as HTMLElement;
+    backdrop.click();
+    await waitForUpdate(el);
+
+    expect(el.open).toBe(false);
+
+    wrapper.remove();
+  });
+
   // --- ACCESSIBILITY ---
 
   it('passes axe-core a11y audit when open', async () => {
