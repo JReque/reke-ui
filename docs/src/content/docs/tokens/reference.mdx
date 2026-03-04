@@ -1,0 +1,83 @@
+---
+title: Token Reference
+description: All available CSS custom properties (design tokens).
+---
+
+All tokens are defined in `src/tokens/reke-tokens.css`. Override any token in your project:
+
+```css
+:root {
+  --reke-color-primary: #8B5CF6;
+}
+```
+
+## Colors
+
+### Accent colors (shared across themes)
+
+| Token | Default | Usage |
+|-------|---------|-------|
+| `--reke-color-primary` | `#22C55E` | Primary actions, focus rings |
+| `--reke-color-secondary` | `#3B82F6` | Info accent |
+| `--reke-color-danger` | `#EF4444` | Error/danger states |
+| `--reke-color-warning` | `#F59E0B` | Warning states |
+
+### Theme-dependent colors
+
+| Token | Dark | Light |
+|-------|------|-------|
+| `--reke-color-on-primary` | `#0A0A0B` | `#FFFFFF` |
+| `--reke-color-bg` | `#0A0A0B` | `#FFFFFF` |
+| `--reke-color-bg-section` | `#0F0F10` | `#F8F8F8` |
+| `--reke-color-surface` | `#1A1A1A` | `#FFFFFF` |
+| `--reke-color-surface-elevated` | `#151515` | `#F0F0F0` |
+| `--reke-color-border` | `#252525` | `#E0E0E0` |
+| `--reke-color-border-subtle` | `#1F1F1F` | `#EBEBEB` |
+| `--reke-color-text` | `#E5E5E5` | `#1A1A1A` |
+| `--reke-color-text-muted` | `#525252` | `#8A8A8A` |
+| `--reke-color-text-ghost` | `#737373` | `#9A9A9A` |
+| `--reke-color-text-disabled` | `#3B3B3B` | `#C0C0C0` |
+
+### Shadows
+
+| Token | Dark | Light |
+|-------|------|-------|
+| `--reke-shadow-sm` | `0 1px 2px rgba(0,0,0,0.3)` | `0 1px 2px rgba(0,0,0,0.08)` |
+| `--reke-shadow-md` | `0 4px 6px rgba(0,0,0,0.3)` | `0 4px 6px rgba(0,0,0,0.1)` |
+
+## Typography
+
+| Token | Default |
+|-------|---------|
+| `--reke-font-mono` | `'JetBrains Mono', ui-monospace, monospace` |
+| `--reke-font-size-2xs` | `11px` |
+| `--reke-font-size-xs` | `12px` |
+| `--reke-font-size-sm` | `13px` |
+| `--reke-font-size-md` | `14px` |
+| `--reke-font-size-lg` | `18px` |
+| `--reke-font-size-xl` | `36px` |
+| `--reke-font-size-2xl` | `48px` |
+| `--reke-font-weight-normal` | `400` |
+| `--reke-font-weight-medium` | `500` |
+| `--reke-font-weight-semibold` | `600` |
+
+## Spacing
+
+| Token | Default |
+|-------|---------|
+| `--reke-space-2xs` | `6px` |
+| `--reke-space-xs` | `8px` |
+| `--reke-space-sm` | `12px` |
+| `--reke-space-md` | `16px` |
+| `--reke-space-lg` | `20px` |
+| `--reke-space-xl` | `24px` |
+| `--reke-space-2xl` | `28px` |
+| `--reke-space-3xl` | `48px` |
+| `--reke-space-4xl` | `64px` |
+| `--reke-space-5xl` | `80px` |
+
+## Radius
+
+| Token | Default |
+|-------|---------|
+| `--reke-radius` | `4px` |

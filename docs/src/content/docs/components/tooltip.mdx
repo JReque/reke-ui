@@ -1,0 +1,34 @@
+---
+title: Tooltip
+description: Tooltip on hover with configurable position.
+sidebar:
+  order: 14
+---
+
+Tooltip that displays on hover/focus with configurable position and delay.
+
+## Usage
+
+```html
+<reke-tooltip text="Copy to clipboard" position="top">
+  <reke-button variant="icon-only">&#128203;</reke-button>
+</reke-tooltip>
+
+<reke-tooltip text="More info" position="right">
+  <span>Hover me</span>
+</reke-tooltip>
+```
+
+## Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `text` | `string` | `''` | Tooltip content |
+| `position` | `'top' \| 'bottom' \| 'left' \| 'right'` | `'top'` | Position relative to trigger |
+| `delay` | `number` | `200` | Show delay in ms |
+
+## Slots
+
+| Slot | Description |
+|------|-------------|
+| default | The trigger element |

@@ -1,0 +1,46 @@
+---
+title: Introduction
+description: What is reke-ui and why use it.
+---
+
+**reke-ui** is a Web Component library built with [Lit 3](https://lit.dev). It ships with dark and light themes and is completely framework-agnostic — use it with Vue, React, Angular, Svelte, or vanilla JS.
+
+## Features
+
+- **16 production-ready components** — buttons, inputs, tables, dialogs, date pickers, file uploads, toasts, and more
+- **Shadow DOM encapsulation** — styles never leak in or out
+- **Dark & light themes** — plus auto mode that follows OS preference
+- **Design tokens** — fully customizable via CSS custom properties
+- **Accessible** — every component tested with axe-core
+- **Tiny footprint** — tree-shakeable individual imports
+
+## Architecture
+
+| Layer | Tech | Purpose |
+|-------|------|---------|
+| Components | Lit 3 (Shadow DOM) | UI elements as custom elements |
+| Styles | Tailwind CSS + CSS Custom Properties | Layout utilities + themeable tokens |
+| Tokens | CSS variables | `--reke-{category}-{name}` convention |
+| Tests | Vitest + Playwright + axe-core | Real browser testing |
+| Docs | Storybook 10 | Interactive playground |
+
+## Component list
+
+| Component | Tag | Category |
+|-----------|-----|----------|
+| Button | `<reke-button>` | Action |
+| Input | `<reke-input>` | Form |
+| Textarea | `<reke-textarea>` | Form |
+| Checkbox | `<reke-checkbox>` | Form |
+| Toggle | `<reke-toggle>` | Form |
+| Select | `<reke-select>` | Form |
+| Date Range | `<reke-date-range>` | Form |
+| File Upload | `<reke-file-upload>` | Form |
+| Table | `<reke-table>` | Data |
+| Dialog | `<reke-dialog>` | Overlay |
+| Card | `<reke-card>` | Layout |
+| Badge | `<reke-badge>` | Display |
+| Chip | `<reke-chip>` | Selection |
+| Tooltip | `<reke-tooltip>` | Overlay |
+| Alert | `<reke-alert>` | Feedback |
+| Toast | `<reke-toast>` | Feedback |

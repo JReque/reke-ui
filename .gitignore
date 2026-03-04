@@ -7,3 +7,6 @@ custom-elements.json
 CLAUDE.md
 .claude/
 README-DOC.md
+docs/dist/
+docs/node_modules/
+docs/.astro/

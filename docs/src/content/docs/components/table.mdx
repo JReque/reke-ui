@@ -1,0 +1,119 @@
+---
+title: Table
+description: Data table with sorting, custom cells, and expandable rows.
+sidebar:
+  order: 9
+---
+
+Data table with custom cell rendering, expandable rows, sorting, and toolbar/footer slots.
+
+## Usage
+
+```html
+<reke-table striped hoverable></reke-table>
+
+<script>
+  const table = document.querySelector('reke-table');
+  table.columns = [
+    { key: 'name', header: 'Name' },
+    { key: 'email', header: 'Email' },
+    { key: 'role', header: 'Role' },
+  ];
+  table.rows = [
+    { name: 'Alice', email: 'alice@example.com', role: 'Admin' },
+    { name: 'Bob', email: 'bob@example.com', role: 'User' },
+  ];
+</script>
+```
+
+## Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `columns` | `TableColumn[]` | `[]` | Column definitions (JS only) |
+| `rows` | `TableRow[]` | `[]` | Row data (JS only) |
+| `striped` | `boolean` | `false` | Alternating row colors |
+| `dense` | `boolean` | `false` | Compact row height |
+| `hoverable` | `boolean` | `false` | Highlight rows on hover |
+| `bordered` | `boolean` | `false` | Add cell borders |
+| `borderless` | `boolean` | `false` | Remove all borders |
+| `sortKey` | `string` | `''` | Current sort column |
+| `sortDirection` | `'asc' \| 'desc'` | `'asc'` | Sort direction |
+| `expandedRowRender` | `Function \| null` | `null` | Render function for expanded content |
+
+### TableColumn type
+
+```ts
+interface TableColumn {
+  key: string;
+  header: string;
+  width?: string;
+  align?: 'left' | 'center' | 'right';
+  sortable?: boolean;
+  render?: (value: unknown, row: TableRow, index: number) => TemplateResult | string;
+}
+```
+
+## Custom cell rendering
+
+```js
+table.columns = [
+  { key: 'name', header: 'Name' },
+  {
+    key: 'status',
+    header: 'Status',
+    render: (val) => html`<reke-badge variant="success">${val}</reke-badge>`
+  },
+];
+```
+
+## Expandable rows
+
+The consumer controls the expand chevron placement via `column.render`:
+
+```js
+table.columns = [
+  { key: 'name', header: 'Name' },
+  {
+    key: 'expand',
+    header: '',
+    sortable: false,
+    render: (_, row, i) => html`
+      <button @click=${(e) => { e.stopPropagation(); table.toggleExpand(i); }}>
+        ${table.isRowExpanded(i) ? '&#9650;' : '&#9660;'}
+      </button>
+    `
+  },
+];
+
+table.expandedRowRender = (row) => html`
+  <div style="padding: 16px;">Details for ${row.name}</div>
+`;
+```
+
+## Slots
+
+| Slot | Description |
+|------|-------------|
+| `toolbar` | Content above the table |
+| `footer` | Content below the table |
+| `empty` | Shown when no rows |
+
+## Events
+
+| Event | Detail | Description |
+|-------|--------|-------------|
+| `reke-row-click` | `{ row, index }` | Row clicked |
+| `reke-sort` | `{ key, direction }` | Sort changed |
+| `reke-row-expand` | `{ row, index, expanded }` | Row expand toggled |
+
+## Methods
+
+| Method | Description |
+|--------|-------------|
+| `toggleExpand(index)` | Toggle row expand state |
+| `isRowExpanded(index)` | Check if row is expanded |
+
+## CSS Parts
+
+`table`, `header`, `body`, `row`, `cell`, `header-cell`, `toolbar`, `footer`, `expand-row`, `expand-content`

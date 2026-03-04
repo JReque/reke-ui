@@ -1,0 +1,43 @@
+---
+title: Card
+description: Content card container with header/footer slots.
+sidebar:
+  order: 11
+---
+
+Card container with optional header and footer slots.
+
+## Usage
+
+```html
+<reke-card variant="elevated">
+  <div slot="header">Title</div>
+  <p>Card body content</p>
+  <div slot="footer">
+    <reke-button>Action</reke-button>
+  </div>
+</reke-card>
+```
+
+### As table wrapper
+
+```html
+<reke-card variant="default" padding="none">
+  <reke-table .columns=${columns} .rows=${rows}></reke-table>
+</reke-card>
+```
+
+## Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `variant` | `'default' \| 'elevated' \| 'outlined'` | `'default'` | Visual style |
+| `padding` | `'none' \| 'sm' \| 'md' \| 'lg'` | `'md'` | Inner padding |
+
+## Slots
+
+| Slot | Description |
+|------|-------------|
+| default | Card body |
+| `header` | Card header |
+| `footer` | Card footer |

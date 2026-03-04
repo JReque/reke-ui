@@ -1,0 +1,55 @@
+---
+title: Installation
+description: How to install and start using reke-ui.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+## Install
+
+```bash
+npm install reke-ui
+```
+
+## Import tokens (recommended)
+
+Import the design tokens CSS to get consistent theming across all components:
+
+```css
+@import 'reke-ui/tokens/css';
+```
+
+## Use a component
+
+<Tabs>
+  <TabItem label="Individual import">
+    ```html
+    <script type="module">
+      import 'reke-ui/button';
+    </script>
+
+    <reke-button variant="primary">Click me</reke-button>
+    ```
+  </TabItem>
+  <TabItem label="Full bundle">
+    ```ts
+    import 'reke-ui';
+    ```
+    This registers all 16 components at once.
+  </TabItem>
+  <TabItem label="Named import">
+    ```ts
+    import { RekeButton, RekeInput } from 'reke-ui';
+    ```
+    Import classes for type checking.
+  </TabItem>
+</Tabs>
+
+## Import paths
+
+| Path | What it does |
+|------|-------------|
+| `reke-ui` | Full bundle — registers all elements |
+| `reke-ui/button` | Individual component (tree-shakeable) |
+| `reke-ui/react` | React wrappers with proper event handling |
+| `reke-ui/tokens/css` | Design tokens stylesheet |

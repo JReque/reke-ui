@@ -1,0 +1,33 @@
+---
+title: reke-ui
+description: Web Component library built with Lit 3 — dark & light themes. Framework-agnostic.
+template: splash
+hero:
+  tagline: 16 Web Components built with Lit 3. Dark & light themes. Works with Vue, React, Angular, Svelte, or vanilla JS.
+  actions:
+    - text: Get Started
+      link: /reke-ui/getting-started/installation/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/JReque/reke-ui
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid stagger>
+  <Card title="Framework-agnostic" icon="puzzle">
+    Standard Web Components that work everywhere — Vue, React, Angular, Svelte, or plain HTML.
+  </Card>
+  <Card title="Dark & Light themes" icon="sun">
+    Ships with dark (default) and light themes, plus auto mode that follows OS preference.
+  </Card>
+  <Card title="16 Components" icon="open-book">
+    Buttons, inputs, tables, dialogs, date pickers, file uploads, toasts, and more.
+  </Card>
+  <Card title="Design Tokens" icon="setting">
+    Fully customizable via CSS custom properties. Override any token to match your brand.
+  </Card>
+</CardGrid>

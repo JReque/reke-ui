@@ -1,0 +1,55 @@
+---
+title: Vanilla JS
+description: Using reke-ui without a framework.
+---
+
+reke-ui works directly in any HTML page with no framework required.
+
+## With a bundler
+
+```html
+<script type="module">
+  import 'reke-ui/button';
+  import 'reke-ui/input';
+</script>
+
+<reke-button variant="primary">Click me</reke-button>
+<reke-input label="Email" type="email"></reke-input>
+```
+
+## From CDN / node_modules
+
+```html
+<link rel="stylesheet" href="node_modules/reke-ui/dist/tokens/reke-tokens.css" />
+<script type="module" src="node_modules/reke-ui/dist/reke-ui.js"></script>
+
+<reke-button variant="primary">Click me</reke-button>
+```
+
+## Listening to events
+
+All reke-ui events use the standard `addEventListener` API:
+
+```js
+const button = document.querySelector('reke-button');
+button.addEventListener('reke-click', () => {
+  console.log('Button clicked!');
+});
+
+const input = document.querySelector('reke-input');
+input.addEventListener('reke-change', (e) => {
+  console.log('Value:', e.detail.value);
+});
+```
+
+## Setting properties
+
+For properties that accept objects or arrays (like `reke-table` or `reke-select`), set them via JavaScript:
+
+```js
+const select = document.querySelector('reke-select');
+select.options = [
+  { value: 'js', label: 'JavaScript' },
+  { value: 'ts', label: 'TypeScript' },
+];
+```
