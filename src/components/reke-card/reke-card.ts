@@ -1,5 +1,5 @@
 import { html } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { customElement, property, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { RekeElement } from '../../shared/base-element.js';
 import { styles } from './reke-card.styles.js';
@@ -30,6 +30,16 @@ export class RekeCard extends RekeElement {
   @property({ reflect: true })
   padding: CardPadding = 'md';
 
+  @state() private _hasHeader = false;
+  @state() private _hasFooter = false;
+
+  private _onSlotChange(slot: 'header' | 'footer', e: Event) {
+    const el = e.target as HTMLSlotElement;
+    const hasContent = el.assignedNodes({ flatten: true }).length > 0;
+    if (slot === 'header') this._hasHeader = hasContent;
+    else this._hasFooter = hasContent;
+  }
+
   override render() {
     const classes = {
       card: true,
@@ -39,15 +49,19 @@ export class RekeCard extends RekeElement {
 
     return html`
       <div class=${classMap(classes)}>
-        <div class="card-header">
-          <slot name="header"></slot>
-        </div>
+        ${this._hasHeader ? html`
+          <div class="card-header">
+            <slot name="header" @slotchange=${(e: Event) => this._onSlotChange('header', e)}></slot>
+          </div>
+        ` : html`<slot name="header" @slotchange=${(e: Event) => this._onSlotChange('header', e)} style="display:none"></slot>`}
         <div class="card-body">
           <slot></slot>
         </div>
-        <div class="card-footer">
-          <slot name="footer"></slot>
-        </div>
+        ${this._hasFooter ? html`
+          <div class="card-footer">
+            <slot name="footer" @slotchange=${(e: Event) => this._onSlotChange('footer', e)}></slot>
+          </div>
+        ` : html`<slot name="footer" @slotchange=${(e: Event) => this._onSlotChange('footer', e)} style="display:none"></slot>`}
       </div>
     `;
   }
