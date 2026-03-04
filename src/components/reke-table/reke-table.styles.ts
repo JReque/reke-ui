@@ -8,10 +8,16 @@ export const styles = [
       display: block;
     }
 
-    .table-wrapper {
-      overflow-x: auto;
+    /* === Container (wraps toolbar + table + footer) === */
+
+    .table-container {
       border: 1px solid var(--reke-color-border, #252525);
       border-radius: var(--reke-radius, 4px);
+      overflow: hidden;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
     }
 
     .table {
@@ -21,6 +27,30 @@ export const styles = [
       font-size: 13px;
       color: var(--reke-color-text, #E5E5E5);
       background: var(--reke-color-surface, #1A1A1A);
+    }
+
+    /* === Toolbar === */
+
+    .table-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--reke-color-border, #252525);
+      background: var(--reke-color-surface, #1A1A1A);
+    }
+
+    /* === Footer === */
+
+    .table-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-top: 1px solid var(--reke-color-border, #252525);
+      background: var(--reke-color-surface, #1A1A1A);
+      font-size: 12px;
+      color: var(--reke-color-text-muted, #525252);
     }
 
     /* === Header === */
@@ -42,6 +72,10 @@ export const styles = [
       white-space: nowrap;
     }
 
+    .header-cell--no-sort {
+      cursor: default;
+    }
+
     .header-cell[data-align='left'] {
       text-align: left;
     }
@@ -56,6 +90,10 @@ export const styles = [
 
     .header-cell:hover {
       color: var(--reke-color-text, #E5E5E5);
+    }
+
+    .header-cell--no-sort:hover {
+      color: var(--reke-color-text-muted, #525252);
     }
 
     .header-cell--sorted {
@@ -82,6 +120,10 @@ export const styles = [
       border-bottom: none;
     }
 
+    .row--expanded {
+      border-bottom: none;
+    }
+
     .cell {
       padding: 12px 16px;
     }
@@ -104,9 +146,24 @@ export const styles = [
       padding: 24px 16px;
     }
 
+    /* === Expanded row === */
+
+    .expand-row {
+      background: var(--reke-color-surface, #1A1A1A);
+      border-bottom: 1px solid var(--reke-color-border, #252525);
+    }
+
+    .expand-row:last-child {
+      border-bottom: none;
+    }
+
+    .expand-content {
+      padding: 0 16px 16px 16px;
+    }
+
     /* === Modifiers === */
 
-    .table--striped .row:nth-child(even) {
+    .table--striped .row--even {
       background: color-mix(in srgb, var(--reke-color-surface, #1A1A1A) 85%, var(--reke-color-border, #252525));
     }
 
@@ -124,6 +181,10 @@ export const styles = [
       font-size: 12px;
     }
 
+    .table--dense .expand-content {
+      padding: 0 12px 12px 12px;
+    }
+
     .table--bordered .cell,
     .table--bordered .header-cell {
       border-right: 1px solid var(--reke-color-border, #252525);
@@ -132,6 +193,13 @@ export const styles = [
     .table--bordered .cell:last-child,
     .table--bordered .header-cell:last-child {
       border-right: none;
+    }
+
+    /* === Borderless (for embedding inside cards/containers) === */
+
+    :host([borderless]) .table-container {
+      border: none;
+      border-radius: 0;
     }
   `,
 ];
