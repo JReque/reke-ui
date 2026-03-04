@@ -17,7 +17,7 @@ const meta: Meta<InputArgs> = {
   argTypes: {
     size: {
       control: 'select',
-      options: ['sm', 'md', 'lg'],
+      options: ['xs', 'sm', 'md', 'lg'],
     },
     disabled: { control: 'boolean' },
     error: { control: 'boolean' },
@@ -51,6 +51,7 @@ export const Default: Story = {
 export const AllSizes: Story = {
   render: () => html`
     <div style="display: flex; flex-direction: column; gap: 12px; width: 300px;">
+      <reke-input size="xs" placeholder="Extra Small" label="Extra Small"></reke-input>
       <reke-input size="sm" placeholder="Small" label="Small"></reke-input>
       <reke-input size="md" placeholder="Medium" label="Medium"></reke-input>
       <reke-input size="lg" placeholder="Large" label="Large"></reke-input>

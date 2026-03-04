@@ -4,7 +4,7 @@ import { classMap } from 'lit/directives/class-map.js';
 import { RekeElement } from '../../shared/base-element.js';
 import { styles } from './reke-input.styles.js';
 
-export type InputSize = 'sm' | 'md' | 'lg';
+export type InputSize = 'xs' | 'sm' | 'md' | 'lg';
 
 /**
  * @tag reke-input

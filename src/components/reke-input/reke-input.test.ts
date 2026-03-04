@@ -69,6 +69,17 @@ describe('reke-input', () => {
     wrapper.remove();
   });
 
+  it('renders xs size class', async () => {
+    const wrapper = createElement('<reke-input size="xs" label="Tiny"></reke-input>');
+    const el = wrapper.querySelector('reke-input')! as RekeInput;
+    await waitForUpdate(el);
+
+    const input = el.shadowRoot!.querySelector('input')!;
+    expect(input.classList.contains('input--xs')).toBe(true);
+
+    wrapper.remove();
+  });
+
   it('applies error class', async () => {
     const wrapper = createElement('<reke-input error></reke-input>');
     const el = wrapper.querySelector('reke-input')! as RekeInput;
