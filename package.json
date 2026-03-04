@@ -3,12 +3,16 @@
   "version": "0.1.0",
   "description": "Component library built with Lit Element — dark terminal theme",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/reke-ui.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "default": "./dist/reke-ui.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "default": "./dist/react.js"
     },
     "./button": {
       "types": "./dist/components/reke-button/reke-button.d.ts",
@@ -54,6 +58,26 @@
       "types": "./dist/components/reke-table/reke-table.d.ts",
       "default": "./dist/components/reke-table/reke-table.js"
     },
+    "./date-range": {
+      "types": "./dist/components/reke-date-range/reke-date-range.d.ts",
+      "default": "./dist/components/reke-date-range/reke-date-range.js"
+    },
+    "./file-upload": {
+      "types": "./dist/components/reke-file-upload/reke-file-upload.d.ts",
+      "default": "./dist/components/reke-file-upload/reke-file-upload.js"
+    },
+    "./alert": {
+      "types": "./dist/components/reke-alert/reke-alert.d.ts",
+      "default": "./dist/components/reke-alert/reke-alert.js"
+    },
+    "./toast": {
+      "types": "./dist/components/reke-toast/reke-toast.d.ts",
+      "default": "./dist/components/reke-toast/reke-toast.js"
+    },
+    "./chip": {
+      "types": "./dist/components/reke-chip/reke-chip.d.ts",
+      "default": "./dist/components/reke-chip/reke-chip.js"
+    },
     "./tokens/css": "./dist/tokens/reke-tokens.css"
   },
   "files": [
@@ -78,17 +102,28 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@lit/react": "^1.0.8",
     "lit": "^3.3.2"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@custom-elements-manifest/analyzer": "^0.11.0",
     "@storybook/addon-a11y": "^10.2.11",
     "@storybook/web-components-vite": "^10.2.11",
     "@tailwindcss/vite": "^4.2.1",
+    "@types/react": "^18.3.28",
     "@vitest/browser": "^4.0.18",
     "@vitest/browser-playwright": "^4.0.18",
     "axe-core": "^4.11.1",
     "playwright": "^1.58.2",
+    "react": "^19.2.4",
     "storybook": "^10.2.11",
     "tailwindcss": "^4.2.1",
     "typescript": "^5.9.3",
