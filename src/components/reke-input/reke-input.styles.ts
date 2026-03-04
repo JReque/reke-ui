@@ -55,6 +55,11 @@ export const styles = [
 
     /* === Sizes === */
 
+    .input--xs {
+      padding: var(--reke-space-2xs, 6px) var(--reke-space-xs, 8px);
+      font-size: var(--reke-font-size-2xs, 11px);
+    }
+
     .input--sm {
       padding: var(--reke-space-xs, 8px) var(--reke-space-sm, 12px);
       font-size: var(--reke-font-size-xs, 12px);
