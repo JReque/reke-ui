@@ -6,7 +6,7 @@ export default defineConfig({
   build: {
     lib: {
       entry: {
-        'reke-ui': 'src/index.ts',
+        'index': 'src/index.ts',
         'react': 'src/react.ts',
       },
       formats: ['es'],
@@ -19,6 +19,11 @@ export default defineConfig({
         'react',
         '@lit/react',
       ],
+      output: {
+        preserveModules: true,
+        preserveModulesRoot: 'src',
+        entryFileNames: '[name].js',
+      },
     },
     outDir: 'dist',
   },

@@ -3,13 +3,13 @@
   "version": "0.1.1",
   "description": "Web Component library built with Lit 3 — dark & light themes",
   "type": "module",
-  "main": "./dist/reke-ui.js",
-  "module": "./dist/reke-ui.js",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "default": "./dist/reke-ui.js"
+      "default": "./dist/index.js"
     },
     "./react": {
       "types": "./dist/react.d.ts",
