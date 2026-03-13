@@ -19,7 +19,7 @@ export const styles = [
       margin-bottom: var(--reke-space-2xs, 6px);
       font-family: var(--reke-font-mono, 'JetBrains Mono', ui-monospace, monospace);
       font-size: var(--reke-font-size-xs, 12px);
-      color: var(--reke-color-text-label, #8a8a8a);
+      color: var(--reke-color-text-label, #8A8A8A);
     }
 
     .trigger {
@@ -27,8 +27,8 @@ export const styles = [
       align-items: center;
       justify-content: space-between;
       width: 100%;
-      background-color: var(--reke-color-surface, #1a1a1a);
-      color: var(--reke-color-text, #e5e5e5);
+      background-color: var(--reke-color-surface, #1A1A1A);
+      color: var(--reke-color-text, #E5E5E5);
       border: 1px solid var(--reke-color-border, #252525);
       border-radius: var(--reke-radius, 4px);
       font-family: var(--reke-font-mono, 'JetBrains Mono', ui-monospace, monospace);
@@ -66,18 +66,18 @@ export const styles = [
     }
 
     .trigger:focus-visible {
-      border-color: var(--reke-color-primary, #22c55e);
-      outline: 2px solid var(--reke-color-primary, #22c55e);
+      border-color: var(--reke-color-primary, #22C55E);
+      outline: 2px solid var(--reke-color-primary, #22C55E);
       outline-offset: -1px;
     }
 
     .trigger--error {
-      border-color: var(--reke-color-danger, #ef4444);
+      border-color: var(--reke-color-danger, #EF4444);
     }
 
     .trigger--error:focus-visible {
-      border-color: var(--reke-color-danger, #ef4444);
-      outline-color: var(--reke-color-danger, #ef4444);
+      border-color: var(--reke-color-danger, #EF4444);
+      outline-color: var(--reke-color-danger, #EF4444);
     }
 
     /* === Dropdown === */
@@ -91,7 +91,7 @@ export const styles = [
       margin-top: 4px;
       padding: 0;
       list-style: none;
-      background-color: var(--reke-color-surface, #1a1a1a);
+      background-color: var(--reke-color-surface, #1A1A1A);
       border: 1px solid var(--reke-color-border, #252525);
       border-radius: var(--reke-radius, 4px);
       max-height: 200px;
@@ -105,7 +105,7 @@ export const styles = [
       padding: var(--reke-space-xs, 8px) var(--reke-space-md, 16px);
       font-family: var(--reke-font-mono, 'JetBrains Mono', ui-monospace, monospace);
       font-size: var(--reke-font-size-sm, 13px);
-      color: var(--reke-color-text, #e5e5e5);
+      color: var(--reke-color-text, #E5E5E5);
       cursor: pointer;
     }
 
@@ -114,7 +114,7 @@ export const styles = [
     }
 
     .option--selected {
-      color: var(--reke-color-primary, #22c55e);
+      color: var(--reke-color-primary, #22C55E);
     }
   `,
 ];

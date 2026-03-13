@@ -16,7 +16,7 @@ export const styles = [
       padding: var(--reke-space-sm, 14px) var(--reke-space-lg, 20px);
       border-radius: var(--reke-radius, 4px);
       border: 1px solid var(--reke-color-border, #252525);
-      background-color: var(--reke-color-surface, #1a1a1a);
+      background-color: var(--reke-color-surface, #1A1A1A);
       font-family: var(--reke-font-mono, 'JetBrains Mono', ui-monospace, monospace);
       font-size: var(--reke-font-size-sm, 13px);
       box-sizing: border-box;
@@ -85,7 +85,7 @@ export const styles = [
     }
 
     .toast__message {
-      color: var(--reke-color-text, #e5e5e5);
+      color: var(--reke-color-text, #E5E5E5);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -153,11 +153,11 @@ export const styles = [
     }
 
     .toast__close:hover {
-      color: var(--reke-color-text, #e5e5e5);
+      color: var(--reke-color-text, #E5E5E5);
     }
 
     .toast__close:focus-visible {
-      outline: 2px solid var(--reke-color-primary, #22c55e);
+      outline: 2px solid var(--reke-color-primary, #22C55E);
       outline-offset: 2px;
     }
   `,
