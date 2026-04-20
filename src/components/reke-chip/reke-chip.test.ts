@@ -164,6 +164,7 @@ describe('reke-chip', () => {
 
   it('passes a11y audit with dismissible active chip', async () => {
     const wrapper = createElement('<reke-chip active dismissible>Tag</reke-chip>');
+    wrapper.style.background = '#0A0A0A';
     const el = wrapper.querySelector('reke-chip')! as RekeChip;
     await waitForUpdate(el);
 
