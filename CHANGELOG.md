@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.1.2](https://github.com/JReque/reke-ui/compare/v0.1.1...v0.1.2) (2026-04-20)
+
+
+### Bug Fixes
+
+* update color values for consistency across components ([cc07b16](https://github.com/JReque/reke-ui/commit/cc07b16459352f79ceb05fab2b775594c7c3907a))
+* update package.json and vite.config.ts for consistent entry points ([1302d1e](https://github.com/JReque/reke-ui/commit/1302d1ea30c67e613a9e66259fc623228d84433f))
+
 ## 0.1.1 (2026-03-04)
 
 
