@@ -1,0 +1,1969 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>reke-ui — Design Showcase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<style>
+/* ─── TOKENS ─────────────────────────────────────────────────────── */
+:root {
+  --p:  #22C55E;
+  --s:  #3B82F6;
+  --d:  #EF4444;
+  --w:  #F59E0B;
+
+  --font: 'JetBrains Mono', ui-monospace, monospace;
+  --r: 4px;
+
+  --tr-fast:   0.12s ease;
+  --tr-normal: 0.2s ease;
+}
+
+[data-theme="dark"] {
+  --bg:          #0A0A0B;
+  --bg-sec:      #0F0F10;
+  --surface:     #1A1A1A;
+  --surface-el:  #151515;
+  --surface-hov: #202020;
+  --border:      #252525;
+  --border-sub:  #1F1F1F;
+  --border-hov:  #3A3A3A;
+  --text:        #E5E5E5;
+  --text-muted:  #525252;
+  --text-ghost:  #737373;
+  --text-dis:    #3B3B3B;
+  --text-label:  #8A8A8A;
+  --on-p:        #0A0A0B;
+  --shadow-sm:   0 1px 2px rgba(0,0,0,.3);
+  --shadow-md:   0 4px 6px rgba(0,0,0,.3);
+  --shadow-lift: 0 8px 32px rgba(0,0,0,.4), 0 2px 8px rgba(0,0,0,.2);
+}
+
+[data-theme="light"] {
+  --bg:          #FFFFFF;
+  --bg-sec:      #F8F8F8;
+  --surface:     #FFFFFF;
+  --surface-el:  #F0F0F0;
+  --surface-hov: #F5F5F5;
+  --border:      #E0E0E0;
+  --border-sub:  #EBEBEB;
+  --border-hov:  #CCCCCC;
+  --text:        #1A1A1A;
+  --text-muted:  #8A8A8A;
+  --text-ghost:  #9A9A9A;
+  --text-dis:    #C0C0C0;
+  --text-label:  #666666;
+  --on-p:        #FFFFFF;
+  --shadow-sm:   0 1px 2px rgba(0,0,0,.08);
+  --shadow-md:   0 4px 6px rgba(0,0,0,.1);
+  --shadow-lift: 0 8px 32px rgba(0,0,0,.12), 0 2px 8px rgba(0,0,0,.06);
+}
+
+/* ─── RESET & BASE ───────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ─── LAYOUT ─────────────────────────────────────────────────────── */
+.sidebar {
+  position: fixed;
+  top: 0; left: 0;
+  width: 200px;
+  height: 100vh;
+  background: var(--bg-sec);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 24px 0;
+  z-index: 10;
+}
+
+.sidebar-logo {
+  padding: 0 20px 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.sidebar-logo span {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.sidebar-logo em {
+  color: var(--p);
+  font-style: normal;
+}
+
+.sidebar-logo small {
+  display: block;
+  font-size: 10px;
+  color: var(--text-ghost);
+  margin-top: 2px;
+}
+
+.nav-section {
+  padding: 0 12px;
+  margin-bottom: 4px;
+}
+
+.nav-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  padding: 8px 8px 4px;
+}
+
+.nav-item {
+  display: block;
+  padding: 6px 8px;
+  border-radius: var(--r);
+  color: var(--text-ghost);
+  font-size: 12px;
+  font-family: var(--font);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--tr-fast), color var(--tr-fast);
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+.nav-item:hover { background: var(--surface); color: var(--text); }
+.nav-item.active { background: var(--surface); color: var(--p); }
+
+.main {
+  margin-left: 200px;
+  width: calc(100vw - 200px);
+  max-width: 920px;
+  padding: 48px 56px;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.section-inner {
+  max-width: 800px;
+}
+
+/* Constrain new-section content to match earlier sections' visual width */
+#checkbox > *:not(.section-title),
+#select > *:not(.section-title),
+#textarea > *:not(.section-title),
+#table > *:not(.section-title),
+#toast > *:not(.section-title),
+#dialog > *:not(.section-title),
+#tooltip > *:not(.section-title),
+#fileupload > *:not(.section-title) {
+  max-width: 100%;
+}
+
+.table-container {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.inputs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  width: 100%;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+
+.page-header {
+  margin-bottom: 56px;
+}
+
+.page-header h1 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.page-header p {
+  color: var(--text-ghost);
+  font-size: 12px;
+}
+
+/* ─── SECTION ────────────────────────────────────────────────────── */
+.section {
+  margin-bottom: 64px;
+  scroll-margin-top: 32px;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.row-label {
+  width: 100%;
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: -4px;
+}
+
+/* ─── BUTTON ─────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--r);
+  font-family: var(--font);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background var(--tr-fast),
+    border-color var(--tr-fast),
+    color var(--tr-fast),
+    box-shadow var(--tr-normal),
+    transform var(--tr-normal);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.btn:focus-visible { outline: 2px solid var(--p); outline-offset: 2px; }
+
+/* sizes */
+.btn-xs { padding: 6px 8px;  font-size: 11px; }
+.btn-sm { padding: 8px 16px; font-size: 12px; }
+.btn-md { padding: 12px 24px; font-size: 13px; }
+.btn-lg { padding: 16px 28px; font-size: 14px; }
+
+/* variants */
+.btn-primary {
+  background: var(--p); color: var(--on-p); border-color: var(--p);
+}
+.btn-primary:hover {
+  background: color-mix(in srgb, var(--p) 88%, black);
+  border-color: color-mix(in srgb, var(--p) 88%, black);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--p) 35%, transparent);
+  transform: translateY(-1px);
+}
+.btn-primary:active { transform: translateY(0); box-shadow: none; }
+
+.btn-secondary {
+  background: var(--surface); color: var(--text); border-color: var(--border);
+}
+.btn-secondary:hover {
+  background: var(--surface-hov); border-color: var(--border-hov);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0,0,0,.35);
+}
+.btn-secondary:active { transform: translateY(0); box-shadow: none; }
+
+.btn-ghost {
+  background: transparent; color: var(--text-ghost); border-color: transparent;
+}
+.btn-ghost:hover {
+  background: var(--surface); color: var(--text); border-color: var(--border-sub);
+}
+
+.btn-danger {
+  background: var(--d); color: #fff; border-color: var(--d);
+}
+.btn-danger:hover {
+  background: color-mix(in srgb, var(--d) 88%, black);
+  border-color: color-mix(in srgb, var(--d) 88%, black);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--d) 35%, transparent);
+  transform: translateY(-1px);
+}
+.btn-danger:active { transform: translateY(0); box-shadow: none; }
+
+.btn-danger-outline {
+  background: transparent; color: var(--d); border-color: var(--d);
+}
+.btn-danger-outline:hover {
+  background: color-mix(in srgb, var(--d) 10%, transparent);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--d) 35%, transparent);
+  transform: translateY(-1px);
+}
+
+.btn-icon {
+  background: var(--surface); color: var(--text); border-color: var(--border);
+}
+.btn-icon:hover {
+  background: var(--surface-hov); border-color: var(--border-hov);
+}
+.btn-icon.btn-xs { padding: 6px; }
+.btn-icon.btn-sm { padding: 8px; }
+.btn-icon.btn-md { padding: 12px; }
+.btn-icon.btn-lg { padding: 16px; }
+
+/* loading */
+.btn-loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+}
+.btn-loading::after {
+  content: '';
+  position: absolute;
+  width: 1em; height: 1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+  color: var(--text-ghost);
+}
+.btn-loading.btn-primary::after { color: var(--on-p); }
+.btn-loading.btn-danger::after  { color: #fff; }
+
+.btn-disabled { opacity: .5; pointer-events: none; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── BADGE ──────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font);
+  font-weight: 500;
+  border: 1px solid transparent;
+  line-height: 1;
+  white-space: nowrap;
+}
+.badge-pill   { border-radius: 9999px; }
+.badge-square { border-radius: var(--r); }
+.badge-sm { padding: 2px 8px;  font-size: 11px; }
+.badge-md { padding: 4px 10px; font-size: 12px; }
+.badge-lg { padding: 5px 14px; font-size: 13px; }
+
+.badge-default   { background: var(--surface);  color: var(--text);  border-color: var(--border); }
+.badge-primary   { background: color-mix(in srgb, var(--p) 15%, transparent); color: var(--p); border-color: color-mix(in srgb, var(--p) 30%, transparent); }
+.badge-secondary { background: color-mix(in srgb, var(--s) 15%, transparent); color: var(--s); border-color: color-mix(in srgb, var(--s) 30%, transparent); }
+.badge-danger    { background: color-mix(in srgb, var(--d) 15%, transparent); color: var(--d); border-color: color-mix(in srgb, var(--d) 30%, transparent); }
+.badge-warning   { background: color-mix(in srgb, var(--w) 15%, transparent); color: var(--w); border-color: color-mix(in srgb, var(--w) 30%, transparent); }
+.badge-outline   { background: transparent; color: var(--text-ghost); border-color: var(--border); }
+
+/* ─── INPUT ──────────────────────────────────────────────────────── */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field-label {
+  font-family: var(--font); font-size: 12px; color: var(--text-label);
+}
+.input {
+  display: block;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  font-family: var(--font);
+  outline: none;
+  transition: border-color .15s ease;
+  width: 100%;
+}
+.input::placeholder { color: var(--text-muted); }
+.input:focus { border-color: var(--p); outline: 2px solid var(--p); outline-offset: -1px; }
+.input.input-error { border-color: var(--d); }
+.input.input-error:focus { outline-color: var(--d); }
+.input.input-disabled { opacity: .5; pointer-events: none; }
+
+.input-xs { padding: 6px 8px;   font-size: 11px; }
+.input-sm { padding: 8px 12px;  font-size: 12px; }
+.input-md { padding: 12px 16px; font-size: 13px; }
+.input-lg { padding: 16px 20px; font-size: 14px; }
+
+/* ─── CARD ───────────────────────────────────────────────────────── */
+.card {
+  border-radius: var(--r);
+  font-family: var(--font);
+  overflow: hidden;
+  transition: border-color var(--tr-normal), box-shadow var(--tr-normal), transform var(--tr-normal);
+}
+.card-default  { background: var(--surface);  border: 1px solid var(--border); }
+.card-elevated { background: var(--surface);  border: 1px solid var(--border); box-shadow: var(--shadow-md); }
+.card-outlined { background: transparent;     border: 1px solid var(--border); }
+.card-header   { border-bottom: 1px solid var(--border); padding: 16px; }
+.card-body     { padding: 16px; }
+.card-footer   { border-top: 1px solid var(--border); padding: 16px; }
+.card-title    { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.card-desc     { font-size: 12px; color: var(--text-ghost); }
+
+.card-interactive { cursor: pointer; }
+.card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+  border-color: var(--border-hov);
+}
+.card-interactive:active { transform: translateY(0); box-shadow: var(--shadow-md); }
+
+.card-accent-primary:hover {
+  border-color: color-mix(in srgb, var(--p) 50%, transparent) !important;
+  box-shadow: var(--shadow-lift), 0 0 20px color-mix(in srgb, var(--p) 15%, transparent) !important;
+}
+
+/* ─── ALERT ──────────────────────────────────────────────────────── */
+.alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: var(--r);
+  border: none;
+  border-left: 3px solid;
+  font-size: 12px;
+}
+.alert-success { background: color-mix(in srgb, var(--p) 10%, transparent); border-color: var(--p); color: var(--p); }
+.alert-error   { background: color-mix(in srgb, var(--d) 10%, transparent); border-color: var(--d); color: var(--d); }
+.alert-warning { background: color-mix(in srgb, var(--w) 10%, transparent); border-color: var(--w); color: var(--w); }
+.alert-info    { background: color-mix(in srgb, var(--s) 10%, transparent); border-color: var(--s); color: var(--s); }
+
+.alert-content { color: var(--text); }
+.alert-content strong { color: inherit; }
+
+.alert-close {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-ghost); font-size: 18px; line-height: 1;
+  padding: 0 2px;
+  transition: color var(--tr-fast);
+}
+.alert-close:hover { color: var(--text); }
+
+/* ─── TOGGLE ─────────────────────────────────────────────────────── */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.toggle-track {
+  width: 36px; height: 20px;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  position: relative;
+  transition: background var(--tr-fast), border-color var(--tr-fast);
+  flex-shrink: 0;
+}
+.toggle-thumb {
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: transform var(--tr-fast), background var(--tr-fast);
+}
+.toggle.on .toggle-track {
+  background: var(--p); border-color: var(--p);
+}
+.toggle.on .toggle-thumb {
+  background: var(--on-p);
+  transform: translateX(16px);
+}
+.toggle-label { font-size: 12px; color: var(--text); }
+.toggle-disabled { opacity: .5; pointer-events: none; }
+
+/* ─── CHIP ───────────────────────────────────────────────────────── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--r);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border-sub);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--tr-fast), border-color var(--tr-fast), color var(--tr-fast);
+}
+.chip:hover { background: var(--surface); color: var(--text); border-color: var(--border); }
+
+.chip.chip-active.chip-p {
+  background: color-mix(in srgb, var(--p) 15%, transparent);
+  color: var(--p);
+  border-color: color-mix(in srgb, var(--p) 40%, transparent);
+}
+.chip.chip-active.chip-s {
+  background: color-mix(in srgb, var(--s) 15%, transparent);
+  color: var(--s);
+  border-color: color-mix(in srgb, var(--s) 40%, transparent);
+}
+.chip.chip-active.chip-d {
+  background: color-mix(in srgb, var(--d) 15%, transparent);
+  color: var(--d);
+  border-color: color-mix(in srgb, var(--d) 40%, transparent);
+}
+.chip-dismiss {
+  display: inline-flex;
+  align-items: center;
+  color: inherit;
+  opacity: .6;
+  cursor: pointer;
+  transition: opacity var(--tr-fast);
+}
+.chip-dismiss:hover { opacity: 1; }
+.chip-dismiss svg { width: 12px; height: 12px; stroke: currentColor; stroke-width: 2.5; fill: none; }
+
+/* ─── TOKEN GRID ─────────────────────────────────────────────────── */
+.token-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+.token-swatch {
+  border-radius: var(--r);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.token-color {
+  height: 48px;
+}
+.token-info {
+  padding: 8px;
+  background: var(--surface);
+}
+.token-name  { font-size: 10px; color: var(--text); font-weight: 500; }
+.token-value { font-size: 10px; color: var(--text-ghost); margin-top: 1px; }
+
+/* ─── SVG ICONS (inline, minimal) ───────────────────────────────── */
+.icon { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ─── CHECKBOX ───────────────────────────────────────────────────── */
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+.checkbox-box {
+  width: 16px; height: 16px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--tr-fast), border-color var(--tr-fast);
+  flex-shrink: 0;
+}
+.checkbox.checked .checkbox-box,
+.checkbox.indeterminate .checkbox-box {
+  background: var(--p);
+  border-color: var(--p);
+}
+.checkbox-box svg { width: 10px; height: 10px; stroke: var(--on-p); stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.checkbox-label { font-size: 12px; color: var(--text); }
+.checkbox-disabled { opacity: .5; pointer-events: none; }
+
+/* ─── SELECT ─────────────────────────────────────────────────────── */
+.select-wrapper { position: relative; display: inline-block; min-width: 200px; }
+.select-trigger {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  font-family: var(--font);
+  font-size: 13px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: border-color .15s ease;
+}
+.select-trigger:focus { border-color: var(--p); outline: 2px solid var(--p); outline-offset: -1px; }
+.select-trigger.placeholder { color: var(--text-muted); }
+.select-trigger.open { border-color: var(--p); }
+.select-chevron { font-size: 10px; color: var(--text-ghost); transition: transform var(--tr-fast); }
+.select-trigger.open .select-chevron { transform: rotate(180deg); }
+.select-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-lift);
+  z-index: 50;
+  overflow: hidden;
+  animation: fadeIn .1s ease;
+}
+@keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+.select-option {
+  padding: 8px 14px;
+  font-family: var(--font);
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background var(--tr-fast);
+}
+.select-option:hover { background: var(--surface-hov); }
+.select-option.selected { color: var(--p); }
+.select-error .select-trigger { border-color: var(--d); }
+
+/* ─── TEXTAREA ───────────────────────────────────────────────────── */
+.textarea {
+  display: block;
+  width: 100%;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  font-family: var(--font);
+  font-size: 13px;
+  padding: 12px 16px;
+  resize: vertical;
+  outline: none;
+  transition: border-color .15s ease;
+  min-height: 96px;
+  line-height: 1.6;
+}
+.textarea::placeholder { color: var(--text-muted); }
+.textarea:focus { border-color: var(--p); outline: 2px solid var(--p); outline-offset: -1px; }
+.textarea.textarea-error { border-color: var(--d); }
+.textarea.textarea-disabled { opacity: .5; pointer-events: none; }
+
+/* ─── TABLE ──────────────────────────────────────────────────────── */
+.table-container {
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.table-toolbar {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--bg-sec);
+}
+.table-footer {
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--bg-sec);
+  font-size: 11px; color: var(--text-ghost);
+}
+.rk-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font);
+  font-size: 12px;
+}
+.rk-table thead { background: var(--bg-sec); }
+.rk-table th {
+  padding: 10px 16px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.rk-table th:hover { color: var(--text); }
+.rk-table th.sorted { color: var(--p); }
+.rk-table td {
+  padding: 11px 16px;
+  color: var(--text);
+  border-bottom: 1px solid var(--border-sub);
+  vertical-align: middle;
+}
+.rk-table tbody tr:last-child td { border-bottom: none; }
+.rk-table tbody tr:hover td { background: var(--surface-hov); }
+.sort-arrow { margin-left: 4px; font-size: 10px; }
+
+/* ─── TOAST ──────────────────────────────────────────────────────── */
+.toast-stack { display: flex; flex-direction: column; gap: 8px; max-width: 360px; }
+.toast {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-lift);
+  font-size: 12px;
+  animation: slideIn .2s ease;
+  border-left-width: 3px;
+}
+@keyframes slideIn { from { opacity:0; transform:translateX(12px); } to { opacity:1; transform:translateX(0); } }
+.toast-left { display: flex; align-items: center; gap: 10px; }
+.toast-icon { width: 16px; height: 16px; flex-shrink: 0; }
+.toast-icon svg { width: 100%; height: 100%; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+.toast-success .toast-icon { stroke: var(--p); }
+.toast-error   .toast-icon { stroke: var(--d); }
+.toast-warning .toast-icon { stroke: var(--w); }
+.toast-info    .toast-icon { stroke: var(--s); }
+.toast-success { border-left: 3px solid var(--p); }
+.toast-error   { border-left: 3px solid var(--d); }
+.toast-warning { border-left: 3px solid var(--w); }
+.toast-info    { border-left: 3px solid var(--s); }
+.toast-msg { color: var(--text); }
+.toast-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.toast-action {
+  font-family: var(--font); font-size: 11px; color: var(--p);
+  background: none; border: none; cursor: pointer; padding: 0;
+  transition: opacity var(--tr-fast);
+}
+.toast-action:hover { opacity: .7; }
+.toast-close {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-ghost); font-size: 16px; line-height: 1; padding: 0 2px;
+}
+.toast-close:hover { color: var(--text); }
+
+/* ─── DIALOG ─────────────────────────────────────────────────────── */
+.dialog-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.6);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200;
+  backdrop-filter: blur(2px);
+  animation: backdropIn .15s ease;
+}
+@keyframes backdropIn { from { opacity:0; } to { opacity:1; } }
+.dialog-panel {
+  background: var(--bg-sec);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--r) * 1.5);
+  width: 480px; max-width: calc(100vw - 48px);
+  box-shadow: var(--shadow-lift);
+  animation: dialogIn .18s ease;
+}
+@keyframes dialogIn { from { opacity:0; transform:scale(.96) translateY(8px); } to { opacity:1; transform:scale(1) translateY(0); } }
+.dialog-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.dialog-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.dialog-close {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-ghost); font-size: 20px; line-height: 1; padding: 0 4px;
+}
+.dialog-close:hover { color: var(--text); }
+.dialog-body { padding: 20px; font-size: 12px; color: var(--text-ghost); line-height: 1.7; }
+.dialog-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: flex-end; gap: 8px;
+}
+
+/* Drawer */
+.drawer-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 200;
+  backdrop-filter: blur(2px);
+  animation: backdropIn .15s ease;
+}
+.drawer-panel {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: 360px;
+  background: var(--bg-sec);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-lift);
+  display: flex; flex-direction: column;
+  animation: drawerIn .2s ease;
+  z-index: 201;
+}
+@keyframes drawerIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+.drawer-body { flex: 1; padding: 20px; font-size: 12px; color: var(--text-ghost); line-height: 1.7; overflow-y: auto; }
+.drawer-footer { padding: 16px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+/* ─── TOOLTIP ────────────────────────────────────────────────────── */
+.tooltip-wrap { position: relative; display: inline-block; }
+.tooltip-bubble {
+  position: absolute;
+  background: var(--surface-el, #151515);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  font-size: 11px;
+  padding: 5px 10px;
+  white-space: nowrap;
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .15s ease, transform .15s ease;
+  z-index: 100;
+}
+.tooltip-wrap:hover .tooltip-bubble,
+.tooltip-wrap:focus-within .tooltip-bubble { opacity: 1; transform: translateY(0) !important; }
+
+.tooltip-top    { bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%) translateY(4px); }
+.tooltip-bottom { top: calc(100% + 6px);    left: 50%; transform: translateX(-50%) translateY(-4px); }
+.tooltip-left   { right: calc(100% + 6px);  top: 50%;  transform: translateY(-50%) translateX(4px); }
+.tooltip-right  { left: calc(100% + 6px);   top: 50%;  transform: translateY(-50%) translateX(-4px); }
+
+/* ─── FILE UPLOAD ────────────────────────────────────────────────── */
+.dropzone {
+  border: 1.5px dashed var(--border-hov);
+  border-radius: var(--r);
+  background: var(--surface);
+  padding: 32px 24px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  cursor: pointer;
+  transition: border-color var(--tr-fast), background var(--tr-fast);
+  text-align: center;
+}
+.dropzone:hover, .dropzone.dragging {
+  border-color: var(--p);
+  background: color-mix(in srgb, var(--p) 5%, transparent);
+}
+.dropzone-error { border-color: var(--d); }
+.dropzone-icon {
+  width: 32px; height: 32px;
+  background: color-mix(in srgb, var(--p) 15%, transparent);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.dropzone-icon svg { width: 16px; height: 16px; stroke: var(--p); stroke-width: 2; fill: none; }
+.dropzone-primary { font-size: 13px; color: var(--text); font-weight: 500; }
+.dropzone-hint { font-size: 11px; color: var(--text-ghost); }
+.dropzone-file { font-size: 12px; color: var(--p); font-weight: 500; }
+.dropzone-err-msg { font-size: 11px; color: var(--d); }
+
+/* compact variant */
+.dropzone-compact {
+  flex-direction: row; padding: 12px 16px; justify-content: flex-start; gap: 12px; text-align: left;
+}
+.dropzone-compact .dropzone-icon { width: 28px; height: 28px; flex-shrink: 0; }
+
+/* ─── TWEAKS PANEL ───────────────────────────────────────────────── */
+.tweaks-panel {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  width: 240px;
+  background: var(--surface-el);
+  border: 1px solid var(--border-hov);
+  border-radius: 6px;
+  padding: 16px;
+  box-shadow: var(--shadow-lift);
+  z-index: 100;
+  display: none;
+  font-size: 12px;
+}
+.tweaks-panel.visible { display: block; }
+.tweaks-title { font-size: 11px; font-weight: 600; color: var(--text); margin-bottom: 14px; text-transform: uppercase; letter-spacing: .08em; }
+.tweaks-row { margin-bottom: 12px; }
+.tweaks-label { color: var(--text-ghost); font-size: 11px; margin-bottom: 6px; display: block; }
+
+.tw-toggle {
+  display: flex;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.tw-btn {
+  flex: 1; padding: 5px 8px; font-family: var(--font); font-size: 11px;
+  border: none; background: none; cursor: pointer; color: var(--text-ghost);
+  transition: background var(--tr-fast), color var(--tr-fast);
+}
+.tw-btn.active { background: var(--p); color: var(--on-p); }
+
+.tw-color-row {
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.tw-color {
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color var(--tr-fast), transform var(--tr-fast);
+}
+.tw-color:hover { transform: scale(1.1); }
+.tw-color.active { border-color: var(--text); }
+
+/* ─── DATE RANGE ─────────────────────────────────────────────────── */
+.dr-wrap { position: relative; display: inline-block; font-family: var(--font); }
+.dr-trigger {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 16px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); color: var(--text); font-family: var(--font);
+  font-size: 13px; cursor: pointer; min-width: 200px; box-sizing: border-box;
+  transition: border-color .15s ease;
+}
+.dr-trigger:hover { border-color: var(--text-muted); }
+.dr-trigger.open  { border-color: var(--p); }
+.dr-trigger.error { border-color: var(--d); }
+.dr-trigger.placeholder { color: var(--text-muted); }
+.dr-icon { width: 16px; height: 16px; stroke: var(--text-muted); stroke-width: 2; fill: none; flex-shrink: 0; stroke-linecap: round; stroke-linejoin: round; }
+.dr-trigger.open .dr-icon { stroke: var(--p); }
+.dr-text { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dr-sep { color: var(--text-dis); }
+.dr-chevron { width: 16px; height: 16px; stroke: var(--text-muted); stroke-width: 2; fill: none; transition: transform .15s ease, stroke .15s ease; }
+.dr-trigger.open .dr-chevron { transform: rotate(180deg); stroke: var(--p); }
+
+.dr-calendar {
+  position: absolute; top: calc(100% + 4px); left: 0; z-index: 50;
+  padding: 16px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px -4px rgba(0,0,0,.6);
+  min-width: 280px;
+  animation: fadeIn .1s ease;
+}
+.dr-cal-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+}
+.dr-cal-title { font-size: 12px; font-weight: 600; color: var(--text); }
+.dr-nav { display: flex; gap: 4px; }
+.dr-nav-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; padding: 0;
+  border: none; border-radius: var(--r); background: transparent;
+  color: var(--text-muted); cursor: pointer;
+}
+.dr-nav-btn:hover { color: var(--text); background: color-mix(in srgb, var(--surface) 75%, var(--border)); }
+.dr-nav-btn svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.dr-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 4px; }
+.dr-weekday { text-align: center; font-size: 9px; font-weight: 600; color: var(--text-dis); padding: 4px 0; text-transform: uppercase; }
+.dr-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.dr-day {
+  display: flex; align-items: center; justify-content: center;
+  height: 28px; font-size: 11px; border: none; border-radius: var(--r);
+  background: transparent; color: var(--text); cursor: pointer; padding: 0;
+  font-family: var(--font); transition: background .1s ease;
+}
+.dr-day:hover { background: color-mix(in srgb, var(--surface) 70%, var(--border)); }
+.dr-day.other { color: var(--text-dis); }
+.dr-day.today { font-weight: 600; color: var(--p); }
+.dr-day.selected { background: var(--p); color: var(--on-p); font-weight: 600; border-radius: 14px; }
+.dr-day.in-range { background: color-mix(in srgb, var(--p) 10%, transparent); }
+.dr-day.range-start { background: var(--p); color: var(--on-p); font-weight: 600; border-radius: 14px 4px 4px 14px; }
+.dr-day.range-end   { background: var(--p); color: var(--on-p); font-weight: 600; border-radius: 4px 14px 14px 4px; }
+.dr-cal-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 8px; padding-top: 8px;
+  border-top: 1px solid var(--border-sub);
+}
+.dr-action { font-family: var(--font); font-size: 11px; font-weight: 600; border: none; background: none; cursor: pointer; padding: 0; }
+.dr-action-today { color: var(--p); }
+.dr-action-today:hover { text-decoration: underline; }
+.dr-action-clear { color: var(--text-muted); font-weight: 400; }
+.dr-action-clear:hover { color: var(--text); }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <span><em>reke</em>-ui</span>
+    <small>Design Showcase</small>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Fundamentos</div>
+    <button class="nav-item active" onclick="scrollTo('tokens')">Tokens</button>
+    <button class="nav-item" onclick="scrollTo('typography')">Tipografía</button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Componentes</div>
+    <button class="nav-item" onclick="scrollTo('buttons')">Button</button>
+    <button class="nav-item" onclick="scrollTo('badges')">Badge</button>
+    <button class="nav-item" onclick="scrollTo('inputs')">Input</button>
+    <button class="nav-item" onclick="scrollTo('cards')">Card</button>
+    <button class="nav-item" onclick="scrollTo('alerts')">Alert</button>
+    <button class="nav-item" onclick="scrollTo('toggles')">Toggle</button>
+    <button class="nav-item" onclick="scrollTo('chips')">Chip</button>
+    <button class="nav-item" onclick="scrollTo('checkbox')">Checkbox</button>
+    <button class="nav-item" onclick="scrollTo('select')">Select</button>
+    <button class="nav-item" onclick="scrollTo('daterange')">Date Range</button>
+    <button class="nav-item" onclick="scrollTo('textarea')">Textarea</button>
+    <button class="nav-item" onclick="scrollTo('table')">Table</button>
+    <button class="nav-item" onclick="scrollTo('toast')">Toast</button>
+    <button class="nav-item" onclick="scrollTo('dialog')">Dialog</button>
+    <button class="nav-item" onclick="scrollTo('tooltip')">Tooltip</button>
+    <button class="nav-item" onclick="scrollTo('fileupload')">File Upload</button>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="page-header">
+    <h1>reke-ui</h1>
+    <p>Sistema de diseño — Lit 3 · Web Components · JetBrains Mono · Dark-first</p>
+  </div>
+
+  <!-- TOKENS -->
+  <section class="section" id="tokens">
+    <div class="section-title">Color Tokens</div>
+    <div class="token-grid">
+      <div class="token-swatch">
+        <div class="token-color" style="background:#22C55E"></div>
+        <div class="token-info"><div class="token-name">--reke-color-primary</div><div class="token-value">#22C55E</div></div>
+      </div>
+      <div class="token-swatch">
+        <div class="token-color" style="background:#3B82F6"></div>
+        <div class="token-info"><div class="token-name">--reke-color-secondary</div><div class="token-value">#3B82F6</div></div>
+      </div>
+      <div class="token-swatch">
+        <div class="token-color" style="background:#EF4444"></div>
+        <div class="token-info"><div class="token-name">--reke-color-danger</div><div class="token-value">#EF4444</div></div>
+      </div>
+      <div class="token-swatch">
+        <div class="token-color" style="background:#F59E0B"></div>
+        <div class="token-info"><div class="token-name">--reke-color-warning</div><div class="token-value">#F59E0B</div></div>
+      </div>
+      <div class="token-swatch">
+        <div class="token-color" style="background:var(--surface); border-bottom:1px solid var(--border)"></div>
+        <div class="token-info"><div class="token-name">--reke-color-surface</div><div class="token-value">#1A1A1A</div></div>
+      </div>
+      <div class="token-swatch">
+        <div class="token-color" style="background:var(--bg); border-bottom:1px solid var(--border)"></div>
+        <div class="token-info"><div class="token-name">--reke-color-bg</div><div class="token-value">#0A0A0B</div></div>
+      </div>
+      <div class="token-swatch">
+        <div class="token-color" style="background:var(--text)"></div>
+        <div class="token-info"><div class="token-name">--reke-color-text</div><div class="token-value">#E5E5E5</div></div>
+      </div>
+      <div class="token-swatch">
+        <div class="token-color" style="background:var(--text-ghost)"></div>
+        <div class="token-info"><div class="token-name">--reke-color-text-ghost</div><div class="token-value">#737373</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TYPOGRAPHY -->
+  <section class="section" id="typography">
+    <div class="section-title">Tipografía — JetBrains Mono</div>
+    <div style="display:flex; flex-direction:column; gap:16px;">
+      <div style="font-size:36px; font-weight:600; color:var(--text); line-height:1.1">reke-ui <span style="color:var(--p)">v1</span></div>
+      <div style="font-size:18px; font-weight:500; color:var(--text)">Sistema de Diseño Modular</div>
+      <div style="font-size:14px; color:var(--text-ghost)">Componentes reutilizables con Lit 3 y Shadow DOM</div>
+      <div style="font-size:12px; color:var(--text-muted)">font-size: 12px · weight: 400 · color: text-muted</div>
+      <div style="font-size:11px; color:var(--text-dis)">font-size: 11px · weight: 400 · color: text-disabled</div>
+    </div>
+  </section>
+
+  <!-- BUTTONS -->
+  <section class="section" id="buttons">
+    <div class="section-title">Button</div>
+
+    <div class="row-label">Variants</div>
+    <div class="row">
+      <button class="btn btn-md btn-primary">Primary</button>
+      <button class="btn btn-md btn-secondary">Secondary</button>
+      <button class="btn btn-md btn-ghost">Ghost</button>
+      <button class="btn btn-md btn-danger">Danger</button>
+      <button class="btn btn-md btn-danger-outline">Danger Outline</button>
+      <button class="btn btn-md btn-icon" title="icon-only">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+      </button>
+    </div>
+
+    <div class="row-label" style="margin-top:16px">Sizes</div>
+    <div class="row" style="align-items:flex-end">
+      <button class="btn btn-xs btn-primary">XSmall</button>
+      <button class="btn btn-sm btn-primary">Small</button>
+      <button class="btn btn-md btn-primary">Medium</button>
+      <button class="btn btn-lg btn-primary">Large</button>
+    </div>
+
+    <div class="row-label" style="margin-top:16px">States</div>
+    <div class="row">
+      <button class="btn btn-md btn-primary btn-loading btn-primary">Loading</button>
+      <button class="btn btn-md btn-secondary btn-loading">Loading</button>
+      <button class="btn btn-md btn-primary btn-disabled">Disabled</button>
+      <button class="btn btn-md btn-secondary btn-disabled">Disabled</button>
+    </div>
+
+    <div class="row-label" style="margin-top:16px">With icons</div>
+    <div class="row">
+      <button class="btn btn-md btn-primary">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
+        Deploy
+      </button>
+      <button class="btn btn-md btn-secondary">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        Search
+      </button>
+      <button class="btn btn-sm btn-danger-outline">
+        <svg class="icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+        Delete
+      </button>
+    </div>
+  </section>
+
+  <!-- BADGES -->
+  <section class="section" id="badges">
+    <div class="section-title">Badge</div>
+
+    <div class="row-label">Variants (pill)</div>
+    <div class="row">
+      <span class="badge badge-pill badge-md badge-default">default</span>
+      <span class="badge badge-pill badge-md badge-primary">primary</span>
+      <span class="badge badge-pill badge-md badge-secondary">secondary</span>
+      <span class="badge badge-pill badge-md badge-danger">danger</span>
+      <span class="badge badge-pill badge-md badge-warning">warning</span>
+      <span class="badge badge-pill badge-md badge-outline">outline</span>
+    </div>
+
+    <div class="row-label" style="margin-top:16px">Square shape</div>
+    <div class="row">
+      <span class="badge badge-square badge-md badge-default">default</span>
+      <span class="badge badge-square badge-md badge-primary">primary</span>
+      <span class="badge badge-square badge-md badge-secondary">secondary</span>
+      <span class="badge badge-square badge-md badge-danger">danger</span>
+      <span class="badge badge-square badge-md badge-warning">warning</span>
+    </div>
+
+    <div class="row-label" style="margin-top:16px">Sizes</div>
+    <div class="row" style="align-items:center">
+      <span class="badge badge-pill badge-sm badge-primary">sm</span>
+      <span class="badge badge-pill badge-md badge-primary">md</span>
+      <span class="badge badge-pill badge-lg badge-primary">lg</span>
+    </div>
+  </section>
+
+  <!-- INPUTS -->
+  <section class="section" id="inputs">
+    <div class="section-title">Input</div>
+    <div class="inputs-grid">
+      <div class="field">
+        <label class="field-label">Default</label>
+        <input class="input input-md" placeholder="Enter value…" />
+      </div>
+      <div class="field">
+        <label class="field-label">Error state</label>
+        <input class="input input-md input-error" value="invalid@" />
+      </div>
+      <div class="field">
+        <label class="field-label">Disabled</label>
+        <input class="input input-md input-disabled" value="Read only value" disabled />
+      </div>
+      <div class="field">
+        <label class="field-label">Password</label>
+        <input class="input input-md" type="password" value="supersecret" />
+      </div>
+    </div>
+
+    <div class="row-label" style="margin-top:24px">Sizes</div>
+    <div style="display:flex; flex-direction:column; gap:10px; max-width:340px;">
+      <input class="input input-xs" placeholder="xs — 11px" />
+      <input class="input input-sm" placeholder="sm — 12px" />
+      <input class="input input-md" placeholder="md — 13px" />
+      <input class="input input-lg" placeholder="lg — 14px" />
+    </div>
+  </section>
+
+  <!-- CARDS -->
+  <section class="section" id="cards">
+    <div class="section-title">Card</div>
+    <div class="card-grid">
+      <div class="card card-default">
+        <div class="card-header">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span class="card-title">Default Card</span>
+            <span class="badge badge-pill badge-sm badge-primary">active</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <p class="card-desc">Variante por defecto con header, body y footer. Borde sutil, fondo surface.</p>
+        </div>
+        <div class="card-footer" style="display:flex;gap:8px">
+          <button class="btn btn-sm btn-primary">Confirm</button>
+          <button class="btn btn-sm btn-ghost">Cancel</button>
+        </div>
+      </div>
+
+      <div class="card card-elevated">
+        <div class="card-body">
+          <div class="card-title">Elevated</div>
+          <p class="card-desc" style="margin-top:6px">Con box-shadow aplicado. Ideal para elementos flotantes y paneles.</p>
+          <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap">
+            <span class="badge badge-pill badge-sm badge-secondary">v2.1.0</span>
+            <span class="badge badge-pill badge-sm badge-warning">beta</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-outlined">
+        <div class="card-body">
+          <div class="card-title">Outlined</div>
+          <p class="card-desc" style="margin-top:6px">Fondo transparente con solo el borde. Para contextos con bg custom.</p>
+        </div>
+      </div>
+
+      <div class="card card-default card-interactive card-accent-primary" onclick="">
+        <div class="card-body">
+          <div class="card-title">Interactive · accent primary</div>
+          <p class="card-desc" style="margin-top:6px">Hover: lift + glow verde. Clic para seleccionar.</p>
+        </div>
+      </div>
+
+      <div class="card card-default card-interactive" onclick="">
+        <div class="card-body">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <div style="width:32px;height:32px;border-radius:50%;background:color-mix(in srgb,var(--s) 20%,transparent);display:flex;align-items:center;justify-content:center">
+              <svg class="icon" style="color:var(--s)" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <span class="card-title">User Card</span>
+          </div>
+          <p class="card-desc">Hover eleva con sombra oscura.</p>
+        </div>
+      </div>
+
+      <div class="card card-default">
+        <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+          <div class="card-title">Form Card</div>
+          <div class="field">
+            <label class="field-label">Email</label>
+            <input class="input input-sm" placeholder="you@example.com" />
+          </div>
+          <button class="btn btn-sm btn-primary" style="width:100%;justify-content:center">Subscribe</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ALERTS -->
+  <section class="section" id="alerts">
+    <div class="section-title">Alert</div>
+    <div style="display:flex; flex-direction:column; gap:10px; max-width:560px" id="alertContainer">
+      <div class="alert alert-success">
+        <div class="alert-content"><strong>Éxito</strong> — Componente desplegado correctamente.</div>
+        <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+      </div>
+      <div class="alert alert-error">
+        <div class="alert-content"><strong>Error</strong> — Falló la validación del token.</div>
+        <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+      </div>
+      <div class="alert alert-warning">
+        <div class="alert-content"><strong>Warning</strong> — API rate limit al 80%.</div>
+        <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+      </div>
+      <div class="alert alert-info">
+        <div class="alert-content"><strong>Info</strong> — Nueva versión disponible: v2.1.0</div>
+        <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+      </div>
+    </div>
+    <button class="btn btn-sm btn-secondary" style="margin-top:12px" onclick="resetAlerts()">Reset alerts</button>
+  </section>
+
+  <!-- TOGGLES -->
+  <section class="section" id="toggles">
+    <div class="section-title">Toggle</div>
+    <div style="display:flex; flex-direction:column; gap:14px">
+      <div class="toggle on" onclick="this.classList.toggle('on')">
+        <div class="toggle-track"><div class="toggle-thumb"></div></div>
+        <span class="toggle-label">Checked</span>
+      </div>
+      <div class="toggle" onclick="this.classList.toggle('on')">
+        <div class="toggle-track"><div class="toggle-thumb"></div></div>
+        <span class="toggle-label">Unchecked</span>
+      </div>
+      <div class="toggle toggle-disabled">
+        <div class="toggle-track"><div class="toggle-thumb"></div></div>
+        <span class="toggle-label">Disabled</span>
+      </div>
+      <div class="toggle on toggle-disabled">
+        <div class="toggle-track"><div class="toggle-thumb"></div></div>
+        <span class="toggle-label">Disabled (on)</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHIPS -->
+  <section class="section" id="chips">
+    <div class="section-title">Chip</div>
+    <div class="row-label">Filtros (click para activar)</div>
+    <div class="row" id="chipsRow">
+      <button class="chip chip-p chip-active" onclick="toggleChip(this,'chip-p')">TypeScript</button>
+      <button class="chip chip-p" onclick="toggleChip(this,'chip-p')">React</button>
+      <button class="chip chip-s" onclick="toggleChip(this,'chip-s')">Lit</button>
+      <button class="chip chip-s chip-active" onclick="toggleChip(this,'chip-s')">Web Components</button>
+      <button class="chip chip-d" onclick="toggleChip(this,'chip-d')">CSS</button>
+    </div>
+
+    <div class="row-label" style="margin-top:16px">Dismissibles</div>
+    <div class="row" id="dismissRow">
+      <button class="chip chip-p chip-active">
+        Tailwind
+        <span class="chip-dismiss" onclick="this.parentElement.remove()">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </span>
+      </button>
+      <button class="chip chip-s chip-active">
+        Vite
+        <span class="chip-dismiss" onclick="this.parentElement.remove()">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </span>
+      </button>
+      <button class="chip chip-d chip-active">
+        Storybook
+        <span class="chip-dismiss" onclick="this.parentElement.remove()">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </span>
+      </button>
+    </div>
+  </section>
+
+  <!-- CHECKBOX -->
+  <section class="section" id="checkbox">
+    <div class="section-title">Checkbox</div>
+    <div style="display:flex; flex-direction:column; gap:12px">
+      <div class="checkbox checked" onclick="this.classList.toggle('checked')">
+        <div class="checkbox-box">
+          <svg viewBox="0 0 12 12"><path d="M2.5 6L5 8.5L9.5 3.5"/></svg>
+        </div>
+        <span class="checkbox-label">Checked</span>
+      </div>
+      <div class="checkbox" onclick="this.classList.toggle('checked')">
+        <div class="checkbox-box"></div>
+        <span class="checkbox-label">Unchecked</span>
+      </div>
+      <div class="checkbox indeterminate">
+        <div class="checkbox-box">
+          <svg viewBox="0 0 12 12"><path d="M3 6H9"/></svg>
+        </div>
+        <span class="checkbox-label">Indeterminate</span>
+      </div>
+      <div class="checkbox checked checkbox-disabled">
+        <div class="checkbox-box">
+          <svg viewBox="0 0 12 12"><path d="M2.5 6L5 8.5L9.5 3.5"/></svg>
+        </div>
+        <span class="checkbox-label">Disabled (checked)</span>
+      </div>
+      <div class="checkbox checkbox-disabled">
+        <div class="checkbox-box"></div>
+        <span class="checkbox-label">Disabled (unchecked)</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SELECT -->
+  <section class="section" id="select">
+    <div class="section-title">Select</div>
+    <div style="display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start">
+      <div>
+        <div class="field-label" style="margin-bottom:6px">Default</div>
+        <div class="select-wrapper" id="sel1">
+          <button class="select-trigger placeholder" onclick="toggleSelect('sel1')">
+            <span class="sel-text">Select framework…</span>
+            <span class="select-chevron">▼</span>
+          </button>
+          <div class="select-dropdown" style="display:none">
+            <div class="select-option" onclick="pickOption('sel1','React','React')">React</div>
+            <div class="select-option" onclick="pickOption('sel1','Vue','Vue')">Vue</div>
+            <div class="select-option" onclick="pickOption('sel1','Svelte','Svelte')">Svelte</div>
+            <div class="select-option" onclick="pickOption('sel1','Lit','Lit')">Lit</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="field-label" style="margin-bottom:6px">With value</div>
+        <div class="select-wrapper" id="sel2">
+          <button class="select-trigger" onclick="toggleSelect('sel2')">
+            <span class="sel-text">TypeScript</span>
+            <span class="select-chevron">▼</span>
+          </button>
+          <div class="select-dropdown" style="display:none">
+            <div class="select-option selected" onclick="pickOption('sel2','TypeScript','TypeScript')">TypeScript</div>
+            <div class="select-option" onclick="pickOption('sel2','JavaScript','JavaScript')">JavaScript</div>
+            <div class="select-option" onclick="pickOption('sel2','Python','Python')">Python</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="field-label" style="margin-bottom:6px">Error</div>
+        <div class="select-wrapper select-error" id="sel3">
+          <button class="select-trigger placeholder" onclick="toggleSelect('sel3')">
+            <span class="sel-text">Required field</span>
+            <span class="select-chevron">▼</span>
+          </button>
+          <div class="select-dropdown" style="display:none">
+            <div class="select-option" onclick="pickOption('sel3','A','Option A')">Option A</div>
+            <div class="select-option" onclick="pickOption('sel3','B','Option B')">Option B</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DATE RANGE -->
+  <section class="section" id="daterange">
+    <div class="section-title">Date Range</div>
+    <div style="display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; padding-bottom:320px; margin-bottom:-300px">
+
+      <!-- Single mode empty -->
+      <div>
+        <div class="field-label" style="margin-bottom:6px">Single — empty</div>
+        <div class="dr-wrap">
+          <button class="dr-trigger placeholder" onclick="toggleDr('dr1')">
+            <svg class="dr-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span class="dr-text">Seleccionar fecha</span>
+            <svg class="dr-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="dr-calendar" id="dr1" style="display:none">
+            <div class="dr-cal-header">
+              <span class="dr-cal-title">Abril 2026</span>
+              <div class="dr-nav">
+                <button class="dr-nav-btn"><svg viewBox="0 0 24 24"><polyline points="17 18 11 12 17 6"/><polyline points="11 18 5 12 11 6"/></svg></button>
+                <button class="dr-nav-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+                <button class="dr-nav-btn"><svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg></button>
+                <button class="dr-nav-btn"><svg viewBox="0 0 24 24"><polyline points="7 6 13 12 7 18"/><polyline points="13 6 19 12 13 18"/></svg></button>
+              </div>
+            </div>
+            <div class="dr-weekdays">
+              <span class="dr-weekday">Lu</span><span class="dr-weekday">Ma</span><span class="dr-weekday">Mi</span><span class="dr-weekday">Ju</span><span class="dr-weekday">Vi</span><span class="dr-weekday">Sa</span><span class="dr-weekday">Do</span>
+            </div>
+            <div class="dr-grid" id="dr1Grid"></div>
+            <div class="dr-cal-footer">
+              <button class="dr-action dr-action-today">Hoy</button>
+              <button class="dr-action dr-action-clear">Limpiar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Range mode with selection -->
+      <div>
+        <div class="field-label" style="margin-bottom:6px">Range — selected</div>
+        <div class="dr-wrap">
+          <button class="dr-trigger">
+            <svg class="dr-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span class="dr-text">07/04/2026 <span class="dr-sep">→</span> 20/04/2026</span>
+            <svg class="dr-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Error state -->
+      <div>
+        <div class="field-label" style="margin-bottom:6px">Error state</div>
+        <div class="dr-wrap">
+          <button class="dr-trigger error placeholder">
+            <svg class="dr-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span class="dr-text">Seleccionar rango</span>
+            <svg class="dr-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TEXTAREA -->
+  <section class="section" id="textarea">
+    <div class="section-title">Textarea</div>
+    <div class="inputs-grid">
+      <div class="field">
+        <label class="field-label">Default</label>
+        <textarea class="textarea" placeholder="Write something…"></textarea>
+      </div>
+      <div class="field">
+        <label class="field-label">Error state</label>
+        <textarea class="textarea textarea-error">This content is invalid.</textarea>
+      </div>
+      <div class="field">
+        <label class="field-label">Disabled</label>
+        <textarea class="textarea textarea-disabled" disabled>Read-only content here.</textarea>
+      </div>
+      <div class="field">
+        <label class="field-label">Small (3 rows)</label>
+        <textarea class="textarea" rows="3" placeholder="Short note…" style="min-height:0"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- TABLE -->
+  <section class="section" id="table">
+    <div class="section-title">Table</div>
+    <div class="table-container">
+      <div class="table-toolbar">
+        <span style="font-size:13px;font-weight:500;color:var(--text)">Deployments</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="input input-sm" placeholder="Search…" style="width:180px" />
+          <button class="btn btn-sm btn-primary">+ New</button>
+        </div>
+      </div>
+      <table class="rk-table" id="mainTable">
+        <thead>
+          <tr>
+            <th onclick="sortTable(0)" class="sorted">Service <span class="sort-arrow">↑</span></th>
+            <th onclick="sortTable(1)">Status</th>
+            <th onclick="sortTable(2)">Environment</th>
+            <th onclick="sortTable(3)">Version</th>
+            <th onclick="sortTable(4)">Updated</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>api-gateway</td>
+            <td><span class="badge badge-pill badge-sm badge-primary">running</span></td>
+            <td><span class="badge badge-square badge-sm badge-secondary">production</span></td>
+            <td style="color:var(--text-ghost)">v3.2.1</td>
+            <td style="color:var(--text-ghost)">2 min ago</td>
+          </tr>
+          <tr>
+            <td>auth-service</td>
+            <td><span class="badge badge-pill badge-sm badge-primary">running</span></td>
+            <td><span class="badge badge-square badge-sm badge-secondary">production</span></td>
+            <td style="color:var(--text-ghost)">v1.8.0</td>
+            <td style="color:var(--text-ghost)">1 hr ago</td>
+          </tr>
+          <tr>
+            <td>worker-queue</td>
+            <td><span class="badge badge-pill badge-sm badge-warning">degraded</span></td>
+            <td><span class="badge badge-square badge-sm badge-outline">staging</span></td>
+            <td style="color:var(--text-ghost)">v2.0.4</td>
+            <td style="color:var(--text-ghost)">5 hr ago</td>
+          </tr>
+          <tr>
+            <td>mailer</td>
+            <td><span class="badge badge-pill badge-sm badge-danger">error</span></td>
+            <td><span class="badge badge-square badge-sm badge-secondary">production</span></td>
+            <td style="color:var(--text-ghost)">v1.1.2</td>
+            <td style="color:var(--text-ghost)">12 hr ago</td>
+          </tr>
+          <tr>
+            <td>cdn-proxy</td>
+            <td><span class="badge badge-pill badge-sm badge-default">idle</span></td>
+            <td><span class="badge badge-square badge-sm badge-outline">dev</span></td>
+            <td style="color:var(--text-ghost)">v0.9.0</td>
+            <td style="color:var(--text-ghost)">2 days ago</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="table-footer">
+        <span>5 services</span>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-xs btn-secondary" disabled>← Prev</button>
+          <button class="btn btn-xs btn-secondary">Next →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TOAST -->
+  <section class="section" id="toast">
+    <div class="section-title">Toast</div>
+    <div class="toast-stack" id="toastStack">
+      <div class="toast toast-success">
+        <div class="toast-left">
+          <div class="toast-icon"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+          <span class="toast-msg">Deployment successful</span>
+        </div>
+        <div class="toast-right">
+          <button class="toast-close" onclick="this.closest('.toast').remove()">×</button>
+        </div>
+      </div>
+      <div class="toast toast-error">
+        <div class="toast-left">
+          <div class="toast-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+          <span class="toast-msg">Build pipeline failed</span>
+        </div>
+        <div class="toast-right">
+          <button class="toast-action">Retry</button>
+          <button class="toast-close" onclick="this.closest('.toast').remove()">×</button>
+        </div>
+      </div>
+      <div class="toast toast-warning">
+        <div class="toast-left">
+          <div class="toast-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+          <span class="toast-msg">Rate limit at 90%</span>
+        </div>
+        <div class="toast-right">
+          <button class="toast-close" onclick="this.closest('.toast').remove()">×</button>
+        </div>
+      </div>
+      <div class="toast toast-info">
+        <div class="toast-left">
+          <div class="toast-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div>
+          <span class="toast-msg">v2.1.0 is available</span>
+        </div>
+        <div class="toast-right">
+          <button class="toast-action">Update</button>
+          <button class="toast-close" onclick="this.closest('.toast').remove()">×</button>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-sm btn-secondary" style="margin-top:12px" onclick="resetToasts()">Reset toasts</button>
+  </section>
+
+  <!-- DIALOG -->
+  <section class="section" id="dialog">
+    <div class="section-title">Dialog</div>
+    <div class="row">
+      <button class="btn btn-md btn-secondary" onclick="document.getElementById('modalDemo').style.display='flex'">Open Modal</button>
+      <button class="btn btn-md btn-secondary" onclick="document.getElementById('drawerDemo').style.display='block'">Open Drawer</button>
+    </div>
+
+    <!-- Modal -->
+    <div class="dialog-backdrop" id="modalDemo" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+      <div class="dialog-panel">
+        <div class="dialog-header">
+          <span class="dialog-title">Confirm deployment</span>
+          <button class="dialog-close" onclick="document.getElementById('modalDemo').style.display='none'">×</button>
+        </div>
+        <div class="dialog-body">
+          Are you sure you want to deploy <strong style="color:var(--text)">api-gateway v3.2.1</strong> to production? This action will trigger a rolling restart and may cause brief downtime.
+        </div>
+        <div class="dialog-footer">
+          <button class="btn btn-sm btn-ghost" onclick="document.getElementById('modalDemo').style.display='none'">Cancel</button>
+          <button class="btn btn-sm btn-primary" onclick="document.getElementById('modalDemo').style.display='none'">Deploy</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Drawer -->
+    <div class="drawer-backdrop" id="drawerDemo" style="display:none" onclick="document.getElementById('drawerDemo').style.display='none'">
+      <div class="drawer-panel" onclick="event.stopPropagation()">
+        <div class="dialog-header">
+          <span class="dialog-title">Service settings</span>
+          <button class="dialog-close" onclick="document.getElementById('drawerDemo').style.display='none'">×</button>
+        </div>
+        <div class="drawer-body">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="field"><label class="field-label">Service name</label><input class="input input-md" value="api-gateway" /></div>
+            <div class="field"><label class="field-label">Environment</label>
+              <div class="select-wrapper" id="selDrawer">
+                <button class="select-trigger" onclick="toggleSelect('selDrawer')">
+                  <span class="sel-text">production</span>
+                  <span class="select-chevron">▼</span>
+                </button>
+                <div class="select-dropdown" style="display:none">
+                  <div class="select-option selected" onclick="pickOption('selDrawer','production','production')">production</div>
+                  <div class="select-option" onclick="pickOption('selDrawer','staging','staging')">staging</div>
+                  <div class="select-option" onclick="pickOption('selDrawer','dev','dev')">dev</div>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span class="field-label">Auto-deploy on push</span>
+              <div class="toggle on" onclick="this.classList.toggle('on')">
+                <div class="toggle-track"><div class="toggle-thumb"></div></div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span class="field-label">Health checks</span>
+              <div class="toggle on" onclick="this.classList.toggle('on')">
+                <div class="toggle-track"><div class="toggle-thumb"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="drawer-footer">
+          <button class="btn btn-sm btn-ghost" onclick="document.getElementById('drawerDemo').style.display='none'">Cancel</button>
+          <button class="btn btn-sm btn-primary" onclick="document.getElementById('drawerDemo').style.display='none'">Save</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TOOLTIP -->
+  <section class="section" id="tooltip">
+    <div class="section-title">Tooltip</div>
+    <div class="row" style="gap:32px; padding: 32px 0">
+      <div class="tooltip-wrap">
+        <div class="tooltip-bubble tooltip-top">Deploy to production</div>
+        <button class="btn btn-md btn-secondary">Hover me (top)</button>
+      </div>
+      <div class="tooltip-wrap">
+        <div class="tooltip-bubble tooltip-bottom">Run tests first</div>
+        <button class="btn btn-md btn-secondary">Hover me (bottom)</button>
+      </div>
+      <div class="tooltip-wrap">
+        <div class="tooltip-bubble tooltip-right">Copy to clipboard</div>
+        <button class="btn btn-md btn-icon btn-xs">
+          <svg class="icon" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- FILE UPLOAD -->
+  <section class="section" id="fileupload">
+    <div class="section-title">File Upload</div>
+    <div style="display:flex; flex-direction:column; gap:16px; max-width:480px">
+      <div class="dropzone" id="dz1"
+        ondragover="event.preventDefault();this.classList.add('dragging')"
+        ondragleave="this.classList.remove('dragging')"
+        ondrop="handleDrop(event,'dz1')">
+        <div class="dropzone-icon">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <span class="dropzone-primary">drag or select file</span>
+        <span class="dropzone-hint">.csv, .xlsx up to 10MB</span>
+      </div>
+
+      <div class="dropzone" id="dz2"
+        ondragover="event.preventDefault();this.classList.add('dragging')"
+        ondragleave="this.classList.remove('dragging')"
+        ondrop="handleDrop(event,'dz2')">
+        <div class="dropzone-icon">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <span class="dropzone-file">report-2024.csv</span>
+        <span class="dropzone-hint">File selected — click to change</span>
+      </div>
+
+      <div class="dropzone dropzone-error" id="dz3">
+        <div class="dropzone-icon" style="background:color-mix(in srgb,var(--d) 15%,transparent)">
+          <svg viewBox="0 0 24 24" style="stroke:var(--d)"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <span class="dropzone-primary">drag or select file</span>
+        <span class="dropzone-err-msg">File type not supported</span>
+      </div>
+
+      <div class="dropzone dropzone-compact" id="dz4"
+        ondragover="event.preventDefault();this.classList.add('dragging')"
+        ondragleave="this.classList.remove('dragging')">
+        <div class="dropzone-icon">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <div>
+          <div class="dropzone-primary">Compact variant</div>
+          <div class="dropzone-hint">.png, .jpg up to 5MB</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- TWEAKS PANEL -->
+<div class="tweaks-panel" id="tweaksPanel">
+  <div class="tweaks-title">Tweaks</div>
+
+  <div class="tweaks-row">
+    <span class="tweaks-label">Tema</span>
+    <div class="tw-toggle">
+      <button class="tw-btn active" id="twDark" onclick="setTheme('dark')">Dark</button>
+      <button class="tw-btn" id="twLight" onclick="setTheme('light')">Light</button>
+    </div>
+  </div>
+
+  <div class="tweaks-row">
+    <span class="tweaks-label">Color primario</span>
+    <div class="tw-color-row">
+      <div class="tw-color active" style="background:#22C55E" onclick="setPrimary('#22C55E','#0A0A0B',this)" title="Green"></div>
+      <div class="tw-color" style="background:#3B82F6" onclick="setPrimary('#3B82F6','#FFFFFF',this)" title="Blue"></div>
+      <div class="tw-color" style="background:#A855F7" onclick="setPrimary('#A855F7','#FFFFFF',this)" title="Purple"></div>
+      <div class="tw-color" style="background:#F59E0B" onclick="setPrimary('#F59E0B','#0A0A0B',this)" title="Amber"></div>
+      <div class="tw-color" style="background:#EC4899" onclick="setPrimary('#EC4899','#FFFFFF',this)" title="Pink"></div>
+    </div>
+  </div>
+
+  <div class="tweaks-row">
+    <span class="tweaks-label">Radio de bordes</span>
+    <div class="tw-toggle">
+      <button class="tw-btn active" onclick="setRadius('4px',this)">4px</button>
+      <button class="tw-btn" onclick="setRadius('8px',this)">8px</button>
+      <button class="tw-btn" onclick="setRadius('12px',this)">12px</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── NAV ─────────────────────────────────────────────────────────
+function scrollTo(id) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+// ─── SELECT ──────────────────────────────────────────────────────
+function toggleSelect(id) {
+  const wrapper = document.getElementById(id);
+  const trigger = wrapper.querySelector('.select-trigger');
+  const dropdown = wrapper.querySelector('.select-dropdown');
+  const isOpen = dropdown.style.display !== 'none';
+  document.querySelectorAll('.select-dropdown').forEach(d => d.style.display = 'none');
+  document.querySelectorAll('.select-trigger').forEach(t => t.classList.remove('open'));
+  if (!isOpen) {
+    dropdown.style.display = 'block';
+    trigger.classList.add('open');
+  }
+}
+function pickOption(id, value, label) {
+  const wrapper = document.getElementById(id);
+  const trigger = wrapper.querySelector('.select-trigger');
+  trigger.querySelector('.sel-text').textContent = label;
+  trigger.classList.remove('placeholder', 'open');
+  wrapper.querySelector('.select-dropdown').style.display = 'none';
+  wrapper.querySelectorAll('.select-option').forEach(o => o.classList.remove('selected'));
+  wrapper.querySelector(`.select-option[onclick*="${value}"]`).classList.add('selected');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.select-wrapper')) {
+    document.querySelectorAll('.select-dropdown').forEach(d => d.style.display = 'none');
+    document.querySelectorAll('.select-trigger').forEach(t => t.classList.remove('open'));
+  }
+});
+
+// ─── TOAST RESET ─────────────────────────────────────────────────
+const toastsHTML = document.getElementById('toastStack').innerHTML;
+function resetToasts() { document.getElementById('toastStack').innerHTML = toastsHTML; }
+
+// ─── TABLE SORT ───────────────────────────────────────────────────
+let sortDir = 1;
+function sortTable(colIdx) {
+  const table = document.getElementById('mainTable');
+  const headers = table.querySelectorAll('th');
+  headers.forEach((h,i) => { h.classList.toggle('sorted', i === colIdx); h.querySelector('.sort-arrow') && (h.querySelector('.sort-arrow').textContent = ''); });
+  const arrow = document.createElement('span'); arrow.className = 'sort-arrow'; arrow.textContent = sortDir > 0 ? ' ↑' : ' ↓';
+  headers[colIdx].appendChild(arrow);
+  const tbody = table.querySelector('tbody');
+  const rows = [...tbody.querySelectorAll('tr')];
+  rows.sort((a, b) => {
+    const aT = a.cells[colIdx].textContent.trim();
+    const bT = b.cells[colIdx].textContent.trim();
+    return aT.localeCompare(bT) * sortDir;
+  });
+  sortDir *= -1;
+  rows.forEach(r => tbody.appendChild(r));
+}
+
+// ─── FILE DROP ────────────────────────────────────────────────────
+function handleDrop(e, id) {
+  e.preventDefault();
+  const dz = document.getElementById(id);
+  dz.classList.remove('dragging');
+  const file = e.dataTransfer?.files[0];
+  if (file) {
+    const primary = dz.querySelector('.dropzone-primary') || dz.querySelector('.dropzone-file');
+    if (primary) { primary.className = 'dropzone-file'; primary.textContent = file.name; }
+  }
+}
+
+// ─── ALERT RESET ─────────────────────────────────────────────────
+const alertsHTML = document.getElementById('alertContainer').innerHTML;
+function resetAlerts() {
+  document.getElementById('alertContainer').innerHTML = alertsHTML;
+}
+
+// ─── CHIP TOGGLE ─────────────────────────────────────────────────
+function toggleChip(el, colorClass) {
+  el.classList.toggle('chip-active');
+}
+
+// ─── DATE RANGE ───────────────────────────────────────────────────
+(function() {
+  const WEEKDAYS = ['Lu','Ma','Mi','Ju','Vi','Sa','Do'];
+  let selectedDay = null;
+
+  function buildCalendar(gridId, year, month) {
+    const grid = document.getElementById(gridId);
+    if (!grid) return;
+    grid.innerHTML = '';
+    const today = new Date();
+    const first = new Date(year, month, 1);
+    let offset = first.getDay() - 1; if (offset < 0) offset = 6;
+    const start = new Date(year, month, 1 - offset);
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+      const btn = document.createElement('button');
+      btn.className = 'dr-day';
+      btn.textContent = d.getDate();
+      if (d.getMonth() !== month) btn.classList.add('other');
+      if (d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear() && d.getMonth() === month)
+        btn.classList.add('today');
+      if (selectedDay && d.getDate() === selectedDay.getDate() && d.getMonth() === selectedDay.getMonth())
+        btn.classList.add('selected');
+      btn.addEventListener('click', () => {
+        selectedDay = d;
+        document.getElementById('dr1').style.display = 'none';
+        document.querySelector('#dr1').closest('.dr-wrap').querySelector('.dr-trigger').classList.remove('placeholder','open');
+        document.querySelector('#dr1').closest('.dr-wrap').querySelector('.dr-text').textContent =
+          String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear();
+      });
+      grid.appendChild(btn);
+    }
+  }
+
+  const now = new Date();
+  buildCalendar('dr1Grid', now.getFullYear(), now.getMonth());
+
+  window.toggleDr = function(id) {
+    const cal = document.getElementById(id);
+    const trigger = cal.closest('.dr-wrap').querySelector('.dr-trigger');
+    const isOpen = cal.style.display !== 'none';
+    // close all
+    document.querySelectorAll('.dr-calendar').forEach(c => { c.style.display='none'; c.closest('.dr-wrap').querySelector('.dr-trigger').classList.remove('open'); });
+    if (!isOpen) { cal.style.display='block'; trigger.classList.add('open'); }
+  };
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.dr-wrap')) {
+      document.querySelectorAll('.dr-calendar').forEach(c => { c.style.display='none'; c.closest('.dr-wrap').querySelector('.dr-trigger').classList.remove('open'); });
+    }
+  });
+})();
+
+// ─── TWEAKS ──────────────────────────────────────────────────────
+window.addEventListener('message', e => {
+  if (e.data?.type === '__activate_edit_mode')   document.getElementById('tweaksPanel').classList.add('visible');
+  if (e.data?.type === '__deactivate_edit_mode') document.getElementById('tweaksPanel').classList.remove('visible');
+});
+window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "theme": "dark",
+  "primary": "#22C55E",
+  "onPrimary": "#0A0A0B",
+  "radius": "8px"
+}/*EDITMODE-END*/;
+
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('twDark').classList.toggle('active', t === 'dark');
+  document.getElementById('twLight').classList.toggle('active', t === 'light');
+  window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { theme: t } }, '*');
+}
+
+function setPrimary(hex, onHex, el) {
+  document.documentElement.style.setProperty('--p', hex);
+  document.documentElement.style.setProperty('--on-p', onHex);
+  document.querySelectorAll('.tw-color').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { primary: hex, onPrimary: onHex } }, '*');
+}
+
+function setRadius(val, btn) {
+  document.documentElement.style.setProperty('--r', val);
+  btn.closest('.tw-toggle').querySelectorAll('.tw-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { radius: val } }, '*');
+}
+
+// Apply saved tweaks on load
+(function() {
+  const d = TWEAK_DEFAULTS;
+  if (d.theme)     setTheme(d.theme);
+  if (d.primary)   { document.documentElement.style.setProperty('--p', d.primary); }
+  if (d.onPrimary) { document.documentElement.style.setProperty('--on-p', d.onPrimary); }
+  if (d.radius)    { document.documentElement.style.setProperty('--r', d.radius); }
+})();
+</script>
+</body>
+</html>

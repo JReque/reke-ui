@@ -23,7 +23,12 @@ export const styles = [
       font-family: var(--reke-font-mono, 'JetBrains Mono', ui-monospace, monospace);
       font-weight: var(--reke-font-weight-medium, 500);
       cursor: pointer;
-      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+      transition:
+        background-color var(--reke-transition-fast, 0.12s ease),
+        border-color var(--reke-transition-fast, 0.12s ease),
+        color var(--reke-transition-fast, 0.12s ease),
+        box-shadow var(--reke-transition-normal, 0.2s ease),
+        transform var(--reke-transition-normal, 0.2s ease);
       text-decoration: none;
       line-height: 1;
       white-space: nowrap;
@@ -65,8 +70,16 @@ export const styles = [
       border-color: var(--reke-color-primary, #22C55E);
     }
 
-    .button--primary:hover {
-      background-color: color-mix(in srgb, var(--reke-color-primary, #22C55E) 85%, black);
+    .button--primary:hover:not(:disabled) {
+      background-color: color-mix(in srgb, var(--reke-color-primary, #22C55E) 88%, black);
+      border-color: color-mix(in srgb, var(--reke-color-primary, #22C55E) 88%, black);
+      box-shadow: var(--reke-shadow-glow-primary, 0 0 20px rgba(34, 197, 94, 0.35));
+      transform: translateY(-1px);
+    }
+
+    .button--primary:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: none;
     }
 
     .button--secondary {
@@ -75,9 +88,17 @@ export const styles = [
       border-color: var(--reke-color-border, #252525);
     }
 
-    .button--secondary:hover {
-      background-color: var(--reke-color-surface-elevated, #151515);
-      border-color: var(--reke-color-text-muted, #525252);
+    .button--secondary:hover:not(:disabled) {
+      background-color: var(--reke-color-surface-hover, #202020);
+      border-color: var(--reke-color-border-hover, #3A3A3A);
+      color: var(--reke-color-text, #E5E5E5);
+      transform: translateY(-1px);
+      box-shadow: var(--reke-shadow-lift-sm, 0 4px 16px rgba(0, 0, 0, 0.35));
+    }
+
+    .button--secondary:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: none;
     }
 
     .button--ghost {
@@ -86,9 +107,10 @@ export const styles = [
       border-color: transparent;
     }
 
-    .button--ghost:hover {
+    .button--ghost:hover:not(:disabled) {
       background-color: var(--reke-color-surface, #1A1A1A);
       color: var(--reke-color-text, #E5E5E5);
+      border-color: var(--reke-color-border-subtle, #1F1F1F);
     }
 
     .button--danger {
@@ -97,8 +119,16 @@ export const styles = [
       border-color: var(--reke-color-danger, #EF4444);
     }
 
-    .button--danger:hover {
-      background-color: color-mix(in srgb, var(--reke-color-danger, #EF4444) 85%, black);
+    .button--danger:hover:not(:disabled) {
+      background-color: color-mix(in srgb, var(--reke-color-danger, #EF4444) 88%, black);
+      border-color: color-mix(in srgb, var(--reke-color-danger, #EF4444) 88%, black);
+      box-shadow: var(--reke-shadow-glow-danger, 0 0 20px rgba(239, 68, 68, 0.35));
+      transform: translateY(-1px);
+    }
+
+    .button--danger:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: none;
     }
 
     .button--danger-outline {
@@ -107,9 +137,15 @@ export const styles = [
       border-color: var(--reke-color-danger, #EF4444);
     }
 
-    .button--danger-outline:hover {
-      background-color: var(--reke-color-danger, #EF4444);
-      color: #FFFFFF;
+    .button--danger-outline:hover:not(:disabled) {
+      background-color: color-mix(in srgb, var(--reke-color-danger, #EF4444) 10%, transparent);
+      box-shadow: var(--reke-shadow-glow-danger, 0 0 20px rgba(239, 68, 68, 0.35));
+      transform: translateY(-1px);
+    }
+
+    .button--danger-outline:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: none;
     }
 
     .button--icon-only {
@@ -118,8 +154,10 @@ export const styles = [
       border-color: var(--reke-color-border, #252525);
     }
 
-    .button--icon-only:hover {
-      border-color: var(--reke-color-text-muted, #525252);
+    .button--icon-only:hover:not(:disabled) {
+      background-color: var(--reke-color-surface-hover, #202020);
+      border-color: var(--reke-color-border-hover, #3A3A3A);
+      color: var(--reke-color-text, #E5E5E5);
     }
 
     .button--icon-only.button--xs {

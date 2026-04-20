@@ -92,7 +92,7 @@ export const styles = [
       margin: 0;
       font-size: var(--reke-font-size-md, 14px);
       font-weight: var(--reke-font-weight-semibold, 600);
-      color: var(--reke-color-text, #e5e5e5);
+      color: var(--reke-color-text, #E5E5E5);
     }
 
     .close-btn {
@@ -106,11 +106,11 @@ export const styles = [
     }
 
     .close-btn:hover {
-      color: var(--reke-color-text, #e5e5e5);
+      color: var(--reke-color-text, #E5E5E5);
     }
 
     .close-btn:focus-visible {
-      outline: 2px solid var(--reke-color-primary, #22c55e);
+      outline: 2px solid var(--reke-color-primary, #22C55E);
       outline-offset: 2px;
     }
 

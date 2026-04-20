@@ -58,6 +58,11 @@ export const WithHeaderAndFooter: Story = {
 };
 
 export const AllVariants: Story = {
+  args: {
+    variant: "elevated",
+    padding: "sm"
+  },
+
   render: () => html`
     <div style="display: flex; gap: 16px; flex-wrap: wrap;">
       <reke-card variant="default" style="flex: 1; min-width: 200px;">
@@ -73,7 +78,7 @@ export const AllVariants: Story = {
         <p style="margin: 0; color: #A3A3A3;">Outlined variant card.</p>
       </reke-card>
     </div>
-  `,
+  `
 };
 
 export const Elevated: Story = {

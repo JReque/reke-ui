@@ -6,6 +6,18 @@ export const styles = [
   css`
     :host {
       display: block;
+      animation: toast-in var(--reke-transition-normal, 0.2s ease) both;
+    }
+
+    @keyframes toast-in {
+      from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.97);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
     }
 
     .toast {
@@ -13,30 +25,34 @@ export const styles = [
       align-items: center;
       justify-content: space-between;
       gap: var(--reke-space-sm, 12px);
-      padding: var(--reke-space-sm, 14px) var(--reke-space-lg, 20px);
+      padding: 12px 14px;
       border-radius: var(--reke-radius, 4px);
       border: 1px solid var(--reke-color-border, #252525);
-      background-color: var(--reke-color-surface, #1a1a1a);
+      background-color: var(--reke-color-surface, #1A1A1A);
       font-family: var(--reke-font-mono, 'JetBrains Mono', ui-monospace, monospace);
-      font-size: var(--reke-font-size-sm, 13px);
+      font-size: var(--reke-font-size-xs, 12px);
       box-sizing: border-box;
-      transition: opacity 0.2s ease, transform 0.2s ease;
+      transition:
+        opacity var(--reke-transition-normal, 0.2s ease),
+        transform var(--reke-transition-normal, 0.2s ease);
+      /* left accent stripe */
+      border-left-width: 3px;
     }
 
     .toast--error {
-      border-color: color-mix(in srgb, var(--reke-color-danger, #EF4444) 25%, transparent);
+      border-left-color: var(--reke-color-danger, #EF4444);
     }
 
     .toast--success {
-      border-color: color-mix(in srgb, var(--reke-color-primary, #22C55E) 25%, transparent);
+      border-left-color: var(--reke-color-primary, #22C55E);
     }
 
     .toast--warning {
-      border-color: color-mix(in srgb, var(--reke-color-warning, #F59E0B) 25%, transparent);
+      border-left-color: var(--reke-color-warning, #F59E0B);
     }
 
     .toast--info {
-      border-color: color-mix(in srgb, var(--reke-color-secondary, #3B82F6) 25%, transparent);
+      border-left-color: var(--reke-color-secondary, #3B82F6);
     }
 
     /* === Left section === */
@@ -85,7 +101,7 @@ export const styles = [
     }
 
     .toast__message {
-      color: var(--reke-color-text, #e5e5e5);
+      color: var(--reke-color-text, #E5E5E5);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -153,11 +169,11 @@ export const styles = [
     }
 
     .toast__close:hover {
-      color: var(--reke-color-text, #e5e5e5);
+      color: var(--reke-color-text, #E5E5E5);
     }
 
     .toast__close:focus-visible {
-      outline: 2px solid var(--reke-color-primary, #22c55e);
+      outline: 2px solid var(--reke-color-primary, #22C55E);
       outline-offset: 2px;
     }
   `,
