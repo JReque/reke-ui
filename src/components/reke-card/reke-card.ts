@@ -6,6 +6,7 @@ import { styles } from './reke-card.styles.js';
 
 export type CardVariant = 'default' | 'elevated' | 'outlined';
 export type CardPadding = 'none' | 'sm' | 'md' | 'lg';
+export type CardAccent = 'none' | 'primary' | 'secondary' | 'danger' | 'warning';
 
 /**
  * @tag reke-card
@@ -19,6 +20,8 @@ export type CardPadding = 'none' | 'sm' | 'md' | 'lg';
  * @cssprop [--reke-color-border=#252525] - Card border color.
  * @cssprop [--reke-shadow-md=0 4px 6px rgba(0,0,0,0.3)] - Elevated variant shadow.
  * @cssprop [--reke-radius=4px] - Card border radius.
+ * @cssprop [--reke-shadow-lift] - Shadow applied on hover when interactive.
+ * @cssprop [--reke-shadow-glow-primary] - Glow shadow for accent=primary on hover.
  */
 @customElement('reke-card')
 export class RekeCard extends RekeElement {
@@ -29,6 +32,14 @@ export class RekeCard extends RekeElement {
 
   @property({ reflect: true })
   padding: CardPadding = 'md';
+
+  /** Enables hover lift + border glow effect. */
+  @property({ type: Boolean, reflect: true })
+  interactive = false;
+
+  /** Accent color shown on hover border (requires interactive=true). */
+  @property({ reflect: true })
+  accent: CardAccent = 'none';
 
   @state() private _hasHeader = false;
   @state() private _hasFooter = false;
@@ -45,6 +56,8 @@ export class RekeCard extends RekeElement {
       card: true,
       [`card--${this.variant}`]: true,
       [`card--padding-${this.padding}`]: true,
+      'card--interactive': this.interactive,
+      [`card--accent-${this.accent}`]: this.accent !== 'none',
     };
 
     return html`
@@ -70,5 +83,6 @@ export class RekeCard extends RekeElement {
 declare global {
   interface HTMLElementTagNameMap {
     'reke-card': RekeCard;
+    // types re-exported for consumers
   }
 }

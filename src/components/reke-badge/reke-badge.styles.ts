@@ -13,11 +13,20 @@ export const styles = [
       align-items: center;
       font-family: var(--reke-font-mono, 'JetBrains Mono', ui-monospace, monospace);
       font-weight: var(--reke-font-weight-medium, 500);
-      border-radius: 9999px;
       border: 1px solid transparent;
       line-height: 1;
       white-space: nowrap;
       box-sizing: border-box;
+    }
+
+    /* === Shape === */
+
+    .badge--pill {
+      border-radius: 9999px;
+    }
+
+    .badge--square {
+      border-radius: var(--reke-radius, 4px);
     }
 
     /* === Sizes === */
@@ -28,8 +37,13 @@ export const styles = [
     }
 
     .badge--md {
-      padding: 4px 12px;
+      padding: 4px 10px;
       font-size: 12px;
+    }
+
+    .badge--lg {
+      padding: 5px 14px;
+      font-size: 13px;
     }
 
     /* === Variants === */
@@ -68,6 +82,12 @@ export const styles = [
       background-color: color-mix(in srgb, var(--reke-color-primary, #22C55E) 15%, transparent);
       color: var(--reke-color-primary, #22C55E);
       border-color: color-mix(in srgb, var(--reke-color-primary, #22C55E) 30%, transparent);
+    }
+
+    .badge--outline {
+      background-color: transparent;
+      color: var(--reke-color-text-ghost, #737373);
+      border-color: var(--reke-color-border, #252525);
     }
   `,
 ];

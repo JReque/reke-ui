@@ -12,7 +12,7 @@ export interface TableColumn {
   /** Set to false to disable sorting on this column. Default: true. */
   sortable?: boolean;
   /** Custom render function for cell content. Falls back to row[col.key] if omitted. */
-  render?: (value: unknown, row: TableRow, index: number) => TemplateResult | string;
+  render?: (value: unknown, row: TableRow, index: number) => TemplateResult | string | HTMLElement | Node;
 }
 
 export type TableRow = Record<string, unknown>;
@@ -46,6 +46,10 @@ export type ExpandedRowRenderer = (row: TableRow, index: number) => TemplateResu
  * @cssprop [--reke-color-border=#252525] - Border and row divider color.
  * @cssprop [--reke-color-text=#E5E5E5] - Cell text color.
  * @cssprop [--reke-color-text-muted=#525252] - Header text color.
+ *
+ * Props:
+ * - `expandedRowRender`: Lit-based expand render. Receives `(row, index)` → TemplateResult.
+ * - `expandedRowElement`: Framework-agnostic expand render. Receives `(host, row, index)` — mount any framework. Return cleanup or void.
  */
 @customElement('reke-table')
 export class RekeTable extends RekeElement {
@@ -82,9 +86,26 @@ export class RekeTable extends RekeElement {
   @property({ attribute: false })
   expandedRowRender: ExpandedRowRenderer | null = null;
 
+  /**
+   * Framework-agnostic alternative to expandedRowRender.
+   * Receives an HTMLElement host — mount any framework's content into it.
+   * Return a cleanup function (called on collapse) or void.
+   *
+   * @example React usage:
+   *   expandedRowElement={(host, row, i) => {
+   *     const root = createRoot(host);
+   *     root.render(<MyContent data={row} />);
+   *     return () => root.unmount();
+   *   }}
+   */
+  @property({ attribute: false })
+  expandedRowElement: ((host: HTMLElement, row: TableRow, index: number) => (() => void) | void) | null = null;
+
   /** Set of row indices currently expanded. */
   @property({ attribute: false })
   expandedRows: Set<number> = new Set();
+
+  private _expandCleanups = new Map<number, () => void>();
 
   @state() private _hasToolbar = false;
   @state() private _hasFooter = false;
@@ -114,6 +135,12 @@ export class RekeTable extends RekeElement {
       newSet.add(index);
     } else {
       newSet.delete(index);
+      // Call cleanup if registered
+      const cleanup = this._expandCleanups.get(index);
+      if (cleanup) {
+        cleanup();
+        this._expandCleanups.delete(index);
+      }
     }
     this.expandedRows = newSet;
     this.emit('reke-row-expand', { row, index, expanded: expanding });
@@ -155,16 +182,34 @@ export class RekeTable extends RekeElement {
           `,
         )}
       </tr>
-      ${this.expandedRowRender && isExpanded
+      ${(this.expandedRowElement || this.expandedRowRender) && isExpanded
         ? html`
             <tr part="expand-row" class="expand-row">
               <td part="expand-content" class="expand-content" colspan=${this.columns.length}>
-                ${this.expandedRowRender(row, i)}
+                ${this.expandedRowElement
+                  ? this._renderExpandedElement(row, i)
+                  : this.expandedRowRender!(row, i)}
               </td>
             </tr>
           `
         : nothing}
     `;
+  }
+
+  private _renderExpandedElement(row: TableRow, i: number) {
+    const host = document.createElement('div');
+    host.style.cssText = 'display: contents;';
+    const cleanup = this.expandedRowElement!(host, row, i);
+    if (cleanup) {
+      this._expandCleanups.set(i, cleanup);
+    }
+    return host;
+  }
+
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    this._expandCleanups.forEach((cleanup) => cleanup());
+    this._expandCleanups.clear();
   }
 
   override render() {

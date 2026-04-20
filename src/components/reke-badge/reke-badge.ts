@@ -10,9 +10,11 @@ export type BadgeVariant =
   | 'secondary'
   | 'danger'
   | 'warning'
-  | 'success';
+  | 'success'
+  | 'outline';
 
-export type BadgeSize = 'sm' | 'md';
+export type BadgeSize = 'sm' | 'md' | 'lg';
+export type BadgeShape = 'pill' | 'square';
 
 /**
  * @tag reke-badge
@@ -38,11 +40,15 @@ export class RekeBadge extends RekeElement {
   @property({ reflect: true })
   size: BadgeSize = 'md';
 
+  @property({ reflect: true })
+  shape: BadgeShape = 'pill';
+
   override render() {
     const classes = {
       badge: true,
       [`badge--${this.variant}`]: true,
       [`badge--${this.size}`]: true,
+      [`badge--${this.shape}`]: true,
     };
 
     return html`
