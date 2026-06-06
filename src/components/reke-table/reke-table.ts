@@ -1,7 +1,7 @@
 import { html, nothing, type TemplateResult, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
-import { ref, type Ref } from 'lit/directives/ref.js';
+import { ref } from 'lit/directives/ref.js';
 import { RekeElement } from '../../shared/base-element.js';
 import { styles } from './reke-table.styles.js';
 
@@ -41,25 +41,31 @@ export type GetRowKey = (row: TableRow, index: number) => RowKey;
 
 /**
  * Detect dev mode without leaking bundler-specific types into the TS surface.
- * Supports Vite (`import.meta.env.DEV`) and Node (`process.env.NODE_ENV !== 'production'`).
- * In production bundles the check folds to `false` and the warnings are dead-code-eliminated.
+ * Supports Vite (`import.meta.env.DEV`/`MODE`) and Node (`process.env.NODE_ENV === 'development'`).
+ * This is a RUNTIME check, NOT dead-code elimination: the warnings still ship in the bundle.
+ * The final fallback defaults to `false` so that non-Vite / non-Module-Federation consumers
+ * never leak dev `console.error`/`console.warn` into production.
  */
 function _isDev(): boolean {
   try {
-    const meta = import.meta as unknown as { env?: { DEV?: boolean; MODE?: string } };
-    if (meta.env && typeof meta.env.DEV === 'boolean') return meta.env.DEV;
-    if (meta.env && typeof meta.env.MODE === 'string') return meta.env.MODE !== 'production';
+    // Access `import.meta.env` directly (not via an alias): Vite only substitutes the
+    // literal `import.meta.env` token. The `as` cast is compile-time only and leaves the
+    // token intact, so this resolves to Vite's real env object at runtime.
+    const env = (import.meta as unknown as { env?: { DEV?: boolean; MODE?: string } }).env;
+    if (env && typeof env.DEV === 'boolean') return env.DEV;
+    if (env && typeof env.MODE === 'string') return env.MODE !== 'production';
   } catch {
     // ignore — fall through
   }
   try {
     const proc = (globalThis as unknown as { process?: { env?: { NODE_ENV?: string } } }).process;
-    if (proc?.env?.NODE_ENV) return proc.env.NODE_ENV !== 'production';
+    if (proc?.env?.NODE_ENV) return proc.env.NODE_ENV === 'development';
   } catch {
     // ignore
   }
-  // Default to dev so warnings surface during development/testing setups.
-  return true;
+  // Default to false so dev warnings never leak into production for consumers
+  // whose environment we cannot positively detect.
+  return false;
 }
 
 /**
@@ -167,11 +173,17 @@ export class RekeTable extends RekeElement {
   /** Keys we have already warned about as duplicates (one-shot per component lifetime). */
   private _warnedDupKeys = new Set<RowKey>();
 
+  /** One-shot guard for the numeric-target-with-getRowKey ambiguity warning. */
+  private _warnedNumericTarget = false;
+
   /** Track which keys are currently mounted in the DOM, to honor the contract that mount happens after `updated()` reconciles. */
   private _mountedKeys = new Set<RowKey>();
 
   /** Latest resolved row map: key → row. Filled during render so callbacks can look up rows. */
   private _keyToRow = new Map<RowKey, TableRow>();
+
+  /** Stable ref callback per row key. One closure per key, reused across renders. */
+  private _refCallbacks = new Map<RowKey, (el: Element | undefined) => void>();
 
   @state() private _hasToolbar = false;
   @state() private _hasFooter = false;
@@ -207,6 +219,14 @@ export class RekeTable extends RekeElement {
     let index: number;
     let row: TableRow | undefined;
 
+    if (typeof target === 'number' && this.getRowKey && !this._warnedNumericTarget && _isDev()) {
+      this._warnedNumericTarget = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[reke-table] toggleExpand received a numeric target while `getRowKey` is set; numeric targets are interpreted as row INDICES, not keys. Pass the resolved key to target by identity.',
+      );
+    }
+
     if (typeof target === 'number' && target === Math.trunc(target) && target >= 0 && target < this.rows.length) {
       index = target;
       row = this.rows[index];
@@ -224,14 +244,11 @@ export class RekeTable extends RekeElement {
       newSet.add(key);
     } else {
       newSet.delete(key);
-      // Run cleanup synchronously BEFORE any subsequent mount.
-      const cleanup = this._cleanupMap.get(key);
-      if (cleanup) {
-        cleanup();
-        this._cleanupMap.delete(key);
-      }
+      // Run cleanup synchronously BEFORE any subsequent mount; guard consumer throws.
+      this._safeCleanup(key);
       this._hostCache.delete(key);
       this._mountedKeys.delete(key);
+      this._refCallbacks.delete(key);
     }
 
     this.expandedRows = newSet;
@@ -263,21 +280,26 @@ export class RekeTable extends RekeElement {
     return host;
   }
 
-  private _expandTdRef(key: RowKey): Ref<HTMLElement> {
-    // Lit's ref directive accepts a callback form, but a Ref object is more ergonomic.
-    // We use the callback form via createRef-style closure to append the cached host on connect.
-    const refCallback = (element: Element | undefined) => {
-      if (!element) return;
-      const td = element as HTMLElement;
-      const host = this._getOrCreateHost(key);
-      if (host.parentElement !== td) {
-        // Move/append the cached host into the new td (could be a fresh td from Lit reconciliation).
-        td.appendChild(host);
-      }
-    };
-    // The Ref type from lit/directives/ref expects an object — but the directive
-    // also accepts callbacks. Wrap as any cast-free by exploiting overload.
-    return refCallback as unknown as Ref<HTMLElement>;
+  /**
+   * Return a STABLE ref callback for a given row key. Lit's `ref()` directive accepts a
+   * callback `(el: Element | undefined) => void` directly, so no cast is needed. The callback
+   * is memoized per key to avoid churning Lit's ref directive on every render.
+   */
+  private _expandTdRef(key: RowKey): (el: Element | undefined) => void {
+    let refCallback = this._refCallbacks.get(key);
+    if (!refCallback) {
+      refCallback = (element: Element | undefined) => {
+        if (!element) return;
+        const td = element as HTMLElement;
+        const host = this._getOrCreateHost(key);
+        if (host.parentElement !== td) {
+          // Move/append the cached host into the new td (could be a fresh td from reconciliation).
+          td.appendChild(host);
+        }
+      };
+      this._refCallbacks.set(key, refCallback);
+    }
+    return refCallback;
   }
 
   private _renderRow(row: TableRow, i: number, key: RowKey) {
@@ -301,7 +323,7 @@ export class RekeTable extends RekeElement {
           `,
         )}
       </tr>
-      ${this.expandedRowElement && isExpanded
+      ${this.expandedRowElement && isExpanded && this._keyToRow.get(key) === row
         ? html`
             <tr part="expand-row" class="expand-row">
               <td
@@ -370,11 +392,19 @@ export class RekeTable extends RekeElement {
       const present = this._keyToRow.has(cachedKey);
       const stillExpanded = this.expandedRows.has(cachedKey);
       if (!present || !stillExpanded) {
-        const cleanup = this._cleanupMap.get(cachedKey);
-        if (cleanup) cleanup();
-        this._cleanupMap.delete(cachedKey);
+        // Guard consumer cleanup against throws so our state stays consistent.
+        this._safeCleanup(cachedKey);
         this._hostCache.delete(cachedKey);
         this._mountedKeys.delete(cachedKey);
+        this._refCallbacks.delete(cachedKey);
+        // If the row was REMOVED (not a normal collapse), purge it from `expandedRows`
+        // so `isRowExpanded()` stops lying and a re-added row with the same key renders
+        // COLLAPSED instead of spontaneously re-expanding. The `!stillExpanded` (normal
+        // collapse) case already removed the key via `toggleExpand`. The row is already
+        // gone, so mutate the Set in place to avoid an extra reactive cycle.
+        if (!present) {
+          this.expandedRows.delete(cachedKey);
+        }
       }
     }
 
@@ -393,6 +423,23 @@ export class RekeTable extends RekeElement {
     }
   }
 
+  /**
+   * Invoke the cached cleanup for a key, swallowing consumer errors so our own state
+   * mutation (`expandedRows`, host/cleanup/ref maps) and `emit` stay consistent even if
+   * the consumer's cleanup throws. Deletes the cleanup entry after running.
+   */
+  private _safeCleanup(key: RowKey): void {
+    const cleanup = this._cleanupMap.get(key);
+    if (cleanup) {
+      try {
+        cleanup();
+      } catch {
+        // Swallow consumer cleanup errors so our state stays consistent.
+      }
+      this._cleanupMap.delete(key);
+    }
+  }
+
   private _runAllCleanupsAndClear(): void {
     for (const cleanup of this._cleanupMap.values()) {
       try {
@@ -404,6 +451,7 @@ export class RekeTable extends RekeElement {
     this._cleanupMap.clear();
     this._hostCache.clear();
     this._mountedKeys.clear();
+    this._refCallbacks.clear();
   }
 
   override disconnectedCallback() {
