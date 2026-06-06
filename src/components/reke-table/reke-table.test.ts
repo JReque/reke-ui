@@ -834,4 +834,232 @@ describe('reke-table', () => {
 
     wrapper.remove();
   });
+
+  // ============================================================
+  // Slice 2 — Opt-In Chevron Column + A11y
+  // ============================================================
+
+  // Task 2.9: RENDERING — without `expandable`, no leading column and no chevron button
+  it('chevron OFF: no leading toggle column or chevron button is rendered', async () => {
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    await waitForUpdate(el);
+
+    expect(el.shadowRoot!.querySelector('.expand-toggle-cell')).toBeNull();
+    expect(el.shadowRoot!.querySelector('.expand-toggle-button')).toBeNull();
+    // Header cell count equals the consumer-provided columns (no extra leading th).
+    const headers = el.shadowRoot!.querySelectorAll('thead .header-cell');
+    expect(headers.length).toBe(testColumns.length);
+    // Each data row has exactly testColumns.length cells (no extra leading td).
+    const firstRow = el.shadowRoot!.querySelector('tbody .row')!;
+    expect(firstRow.querySelectorAll('td').length).toBe(testColumns.length);
+
+    wrapper.remove();
+  });
+
+  // Task 2.7: RENDERING + ACCESSIBILITY — chevron ON renders accessible toggle per row
+  it('chevron ON: renders a leading <button> per row with aria-expanded and aria-controls', async () => {
+    const wrapper = createElement('<reke-table expandable></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    el.getRowKey = (row) => (row as { id: string }).id;
+    el.expandedRowElement = (host) => {
+      host.appendChild(document.createElement('div'));
+      return () => {};
+    };
+    await waitForUpdate(el);
+
+    // One leading toggle cell + button per row, sitting before the consumer columns.
+    const buttons = el.shadowRoot!.querySelectorAll<HTMLButtonElement>(
+      'tbody .expand-toggle-button',
+    );
+    expect(buttons.length).toBe(testRows.length);
+
+    // Header has a leading empty toggle header cell as well, to keep column alignment.
+    const headers = el.shadowRoot!.querySelectorAll('thead .header-cell, thead .expand-toggle-header-cell');
+    expect(headers.length).toBe(testColumns.length + 1);
+
+    // Each row has columns.length + 1 cells (leading toggle cell first).
+    const firstRow = el.shadowRoot!.querySelector('tbody .row')!;
+    const firstRowCells = firstRow.querySelectorAll('td');
+    expect(firstRowCells.length).toBe(testColumns.length + 1);
+    expect(firstRowCells[0].classList.contains('expand-toggle-cell')).toBe(true);
+
+    // ARIA: aria-expanded="false" + aria-controls pointing at the expand <td> id.
+    const firstButton = buttons[0]!;
+    expect(firstButton.getAttribute('aria-expanded')).toBe('false');
+    const ariaControls = firstButton.getAttribute('aria-controls');
+    expect(ariaControls).toBe('reke-table-expand-a');
+
+    // axe-core: zero violations (ignoring pre-existing color-contrast noise).
+    const results = await runAxe(wrapper);
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
+    expect(violations).toEqual([]);
+
+    wrapper.remove();
+  });
+
+  // Task 2.7/2.8: RENDERING — aria-expanded flips when row expands; axe stays clean
+  it('chevron ON: aria-expanded reflects expanded state and axe stays clean when expanded', async () => {
+    const wrapper = createElement('<reke-table expandable></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    el.getRowKey = (row) => (row as { id: string }).id;
+    el.expandedRowElement = (host, row) => {
+      const n = document.createElement('div');
+      n.textContent = `${(row as { name: string }).name} details`;
+      host.appendChild(n);
+      return () => n.remove();
+    };
+    await waitForUpdate(el);
+
+    const buttons = el.shadowRoot!.querySelectorAll<HTMLButtonElement>(
+      'tbody .expand-toggle-button',
+    );
+    expect(buttons[0].getAttribute('aria-expanded')).toBe('false');
+
+    // Click the first chevron — should expand.
+    buttons[0].click();
+    await waitForUpdate(el);
+
+    const buttonsAfter = el.shadowRoot!.querySelectorAll<HTMLButtonElement>(
+      'tbody .expand-toggle-button',
+    );
+    expect(buttonsAfter[0].getAttribute('aria-expanded')).toBe('true');
+
+    // Expand row visible with the host id matching aria-controls.
+    const expandRow = el.shadowRoot!.querySelector('.expand-row');
+    expect(expandRow).toBeTruthy();
+    const expandTd = el.shadowRoot!.querySelector('.expand-content') as HTMLElement;
+    expect(expandTd).toBeTruthy();
+    expect(expandTd.id).toBe('reke-table-expand-a');
+    expect(expandTd.id).toBe(buttonsAfter[0].getAttribute('aria-controls'));
+
+    // Axe-core on expanded state with chevron ON.
+    const results = await runAxe(wrapper);
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
+    expect(violations).toEqual([]);
+
+    wrapper.remove();
+  });
+
+  // Task 2.8: ACCESSIBILITY — Enter and Space toggle expand state
+  it('chevron ON: Enter and Space activate the toggle button', async () => {
+    const wrapper = createElement('<reke-table expandable></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    el.getRowKey = (row) => (row as { id: string }).id;
+    el.expandedRowElement = (host) => {
+      host.appendChild(document.createElement('div'));
+      return () => {};
+    };
+    await waitForUpdate(el);
+
+    const getButton = () =>
+      el.shadowRoot!.querySelector<HTMLButtonElement>(
+        'tbody .row .expand-toggle-button',
+      )!;
+
+    // Enter expands.
+    getButton().focus();
+    getButton().dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+    );
+    await waitForUpdate(el);
+    expect(getButton().getAttribute('aria-expanded')).toBe('true');
+    expect(el.isRowExpanded('a')).toBe(true);
+
+    // Space collapses (and preventDefault prevents page scroll — we just verify toggle).
+    const spaceEvent = new KeyboardEvent('keydown', {
+      key: ' ',
+      bubbles: true,
+      cancelable: true,
+    });
+    getButton().dispatchEvent(spaceEvent);
+    await waitForUpdate(el);
+    expect(spaceEvent.defaultPrevented).toBe(true);
+    expect(getButton().getAttribute('aria-expanded')).toBe('false');
+    expect(el.isRowExpanded('a')).toBe(false);
+
+    wrapper.remove();
+  });
+
+  // Task 2.10: BEHAVIOR — chevron click fires reke-row-expand with correct detail.key
+  it('chevron click fires reke-row-expand with the correct row key', async () => {
+    const wrapper = createElement('<reke-table expandable></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    el.getRowKey = (row) => (row as { id: string }).id;
+    el.expandedRowElement = (host) => {
+      host.appendChild(document.createElement('div'));
+      return () => {};
+    };
+    await waitForUpdate(el);
+
+    const handler = vi.fn();
+    el.addEventListener('reke-row-expand', handler);
+
+    const buttons = el.shadowRoot!.querySelectorAll<HTMLButtonElement>(
+      'tbody .expand-toggle-button',
+    );
+    buttons[1].click(); // row 'b'
+    await waitForUpdate(el);
+
+    expect(handler).toHaveBeenCalledOnce();
+    const detail = (handler.mock.calls[0][0] as CustomEvent).detail;
+    expect(detail.key).toBe('b');
+    expect(detail.expanded).toBe(true);
+    expect(detail.index).toBe(1);
+    expect(detail.row).toEqual(testRows[1]);
+
+    wrapper.remove();
+  });
+
+  // Task 2.10b: BEHAVIOR — chevron click does NOT also fire reke-row-click (no row bubbling)
+  it('chevron click does not also trigger reke-row-click', async () => {
+    const wrapper = createElement('<reke-table expandable></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    el.getRowKey = (row) => (row as { id: string }).id;
+    el.expandedRowElement = (host) => {
+      host.appendChild(document.createElement('div'));
+      return () => {};
+    };
+    await waitForUpdate(el);
+
+    const rowClickHandler = vi.fn();
+    el.addEventListener('reke-row-click', rowClickHandler);
+
+    const button = el.shadowRoot!.querySelector<HTMLButtonElement>(
+      'tbody .expand-toggle-button',
+    )!;
+    button.click();
+    await waitForUpdate(el);
+
+    expect(rowClickHandler).not.toHaveBeenCalled();
+
+    wrapper.remove();
+  });
+
+  // Task 2.11: ACCESSIBILITY — runAxe() passes on empty table with expandable=true
+  it('chevron ON: passes a11y audit on an empty table', async () => {
+    const wrapper = createElement('<reke-table expandable></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = [];
+    await waitForUpdate(el);
+
+    const results = await runAxe(wrapper);
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
+    expect(violations).toEqual([]);
+
+    wrapper.remove();
+  });
 });

@@ -146,6 +146,67 @@ export const styles = [
       padding: 24px 16px;
     }
 
+    /* === Expand toggle column (opt-in via expandable prop) === */
+
+    .expand-toggle-header-cell {
+      width: 40px;
+      padding: 12px 8px;
+      border-bottom: 1px solid var(--reke-color-border, #252525);
+      background: var(--reke-color-surface, #1A1A1A);
+    }
+
+    .expand-toggle-cell {
+      width: 40px;
+      padding: 8px 4px 8px 8px;
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    .expand-toggle-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      background: transparent;
+      border: none;
+      border-radius: var(--reke-radius, 4px);
+      color: var(--reke-color-text-muted, #525252);
+      cursor: pointer;
+      font: inherit;
+      line-height: 1;
+    }
+
+    .expand-toggle-button:hover {
+      color: var(--reke-color-text, #E5E5E5);
+      background: color-mix(in srgb, var(--reke-color-surface, #1A1A1A) 75%, var(--reke-color-border, #252525));
+    }
+
+    .expand-toggle-button:focus-visible {
+      outline: 2px solid var(--reke-color-primary, #22C55E);
+      outline-offset: 2px;
+    }
+
+    .expand-toggle-chevron {
+      display: inline-block;
+      font-size: 10px;
+      transition: transform 120ms ease;
+      transform: rotate(0deg);
+    }
+
+    .expand-toggle-button--expanded .expand-toggle-chevron {
+      transform: rotate(90deg);
+    }
+
+    .table--dense .expand-toggle-header-cell {
+      padding: 8px 6px;
+    }
+
+    .table--dense .expand-toggle-cell {
+      padding: 4px 4px 4px 6px;
+    }
+
     /* === Expanded row === */
 
     .expand-row {
