@@ -658,6 +658,44 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
+  // Task 1.22c: BEHAVIOR — never-mounted expand key purged when row removed in same tick
+  it('purges a never-mounted expand key removed in the same tick and re-add stays collapsed', async () => {
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    el.getRowKey = (row) => (row as { id: string }).id;
+
+    let mountCount = 0;
+    el.expandedRowElement = (host, _row, key) => {
+      if (key === 'b') mountCount += 1;
+      host.appendChild(document.createElement('div'));
+      return () => {};
+    };
+    await waitForUpdate(el);
+
+    // Expand 'b' and remove 'b' in the SAME tick: 'b' enters expandedRows but its
+    // row never renders, so the host is never created (never enters _hostCache).
+    el.toggleExpand('b');
+    el.rows = [testRows[0], testRows[2]];
+    await waitForUpdate(el);
+
+    // Phantom key must be purged even though it was never mounted.
+    expect(el.isRowExpanded('b')).toBe(false);
+    expect(mountCount).toBe(0);
+    expect(el.shadowRoot!.querySelector('.expand-row')).toBeNull();
+
+    // Re-add a row with key 'b' — must render COLLAPSED and stay unmounted.
+    el.rows = [testRows[0], testRows[1], testRows[2]];
+    await waitForUpdate(el);
+
+    expect(el.isRowExpanded('b')).toBe(false);
+    expect(mountCount).toBe(0);
+    expect(el.shadowRoot!.querySelector('.expand-row')).toBeNull();
+
+    wrapper.remove();
+  });
+
   // Task 1.23: BEHAVIOR — duplicate getRowKey emits one-shot dev warn; last wins
   it('duplicate getRowKey values emit a one-shot dev warning and last wins', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
