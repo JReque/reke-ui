@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { html } from 'lit';
 import './reke-table.js';
 import type { RekeTable } from './reke-table.js';
@@ -434,6 +434,42 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
+  // Task 1.18b: BEHAVIOR — collapse + re-expand WITHIN THE SAME TASK runs old cleanup before new mount
+  it('same-task collapse then re-expand runs old cleanup before new mount', async () => {
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+
+    const order: string[] = [];
+    let mountCount = 0;
+    el.expandedRowElement = (host) => {
+      mountCount += 1;
+      const id = mountCount;
+      order.push(`mount-${id}`);
+      const n = document.createElement('div');
+      host.appendChild(n);
+      return () => {
+        order.push(`cleanup-${id}`);
+        n.remove();
+      };
+    };
+    await waitForUpdate(el);
+
+    el.toggleExpand(0); // expand
+    await waitForUpdate(el);
+
+    // Collapse and re-expand synchronously, no waitForUpdate between them.
+    el.toggleExpand(0); // collapse — cleanup runs synchronously inside toggleExpand
+    el.toggleExpand(0); // re-expand — mount deferred to updated()
+    await waitForUpdate(el);
+
+    expect(mountCount).toBe(2);
+    expect(order).toEqual(['mount-1', 'cleanup-1', 'mount-2']);
+
+    wrapper.remove();
+  });
+
   // Task 1.19: BEHAVIOR — removing <reke-table> invokes cleanup for every expanded row once
   it('disconnectedCallback invokes cleanup for every expanded row once', async () => {
     const wrapper = createElement('<reke-table></reke-table>');
@@ -463,7 +499,7 @@ describe('reke-table', () => {
     expect(cleanups.b).toHaveBeenCalledOnce();
   });
 
-  // Task 1.20: BEHAVIOR — getRowKey keeps B expanded across [A,B,C] → [C,B,A]
+  // Task 1.20: BEHAVIOR — getRowKey keeps B expanded across [A,B,C] → [B,C,A]
   it('identity-keyed expand survives row reordering and reuses host', async () => {
     const wrapper = createElement('<reke-table></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
@@ -491,21 +527,25 @@ describe('reke-table', () => {
     const firstHost = hosts.get('b');
     expect(firstHost).toBeTruthy();
 
-    // Reorder rows
-    el.rows = [testRows[2], testRows[1], testRows[0]];
+    // Reorder rows so that the expanded row 'b' ACTUALLY changes index (1 → 0).
+    el.rows = [testRows[1], testRows[2], testRows[0]];
     await waitForUpdate(el);
 
     // 'b' still expanded
     expect(el.isRowExpanded('b')).toBe(true);
+    // Other keys are NOT expanded
+    expect(el.isRowExpanded('a')).toBe(false);
+    expect(el.isRowExpanded('c')).toBe(false);
     // No remount
     expect(mountCount).toBe(1);
-    // Host identity preserved
+    // Host identity preserved (same DOM node reused)
     expect(hosts.get('b')).toBe(firstHost);
 
-    // Detail content is still in the DOM under the new B row
+    // Detail content is still in the DOM under the new B row, on the SAME node
     const detail = el.shadowRoot!.querySelector('.detail-content');
     expect(detail).toBeTruthy();
     expect((detail as HTMLElement).dataset.key).toBe('b');
+    expect((firstHost as HTMLElement).contains(detail)).toBe(true);
 
     wrapper.remove();
   });
@@ -573,6 +613,47 @@ describe('reke-table', () => {
     await waitForUpdate(el);
 
     expect(cleanup).toHaveBeenCalledOnce();
+
+    wrapper.remove();
+  });
+
+  // Task 1.22b: BEHAVIOR — removing an expanded row purges expandedRows; re-add renders collapsed
+  it('removing an expanded row purges expand state and re-add does not auto-expand', async () => {
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    el.getRowKey = (row) => (row as { id: string }).id;
+
+    const cleanup = vi.fn();
+    let mountCount = 0;
+    el.expandedRowElement = (host, _row, key) => {
+      if (key === 'b') mountCount += 1;
+      host.appendChild(document.createElement('div'));
+      return key === 'b' ? cleanup : () => {};
+    };
+    await waitForUpdate(el);
+
+    el.toggleExpand('b');
+    await waitForUpdate(el);
+    expect(el.isRowExpanded('b')).toBe(true);
+    expect(mountCount).toBe(1);
+
+    // Remove row B
+    el.rows = [testRows[0], testRows[2]];
+    await waitForUpdate(el);
+
+    // Cleanup fired once AND expand state purged
+    expect(cleanup).toHaveBeenCalledOnce();
+    expect(el.isRowExpanded('b')).toBe(false);
+
+    // Re-add a row with key 'b' — it must render COLLAPSED, not auto-expanded or re-mounted
+    el.rows = [testRows[0], testRows[1], testRows[2]];
+    await waitForUpdate(el);
+
+    expect(el.isRowExpanded('b')).toBe(false);
+    expect(mountCount).toBe(1);
+    expect(el.shadowRoot!.querySelector('.expand-row')).toBeNull();
 
     wrapper.remove();
   });
