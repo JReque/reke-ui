@@ -10,3 +10,4 @@ README-DOC.md
 docs/dist/
 docs/node_modules/
 docs/.astro/
+.atl/

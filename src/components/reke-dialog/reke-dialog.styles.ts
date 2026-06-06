@@ -14,6 +14,7 @@ export const styles = [
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(2px);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -37,7 +38,7 @@ export const styles = [
     .dialog {
       background: var(--reke-color-bg, #0f0f10);
       border: 1px solid var(--reke-color-border, #252525);
-      border-radius: var(--reke-radius, 4px);
+      border-radius: 6px;
       min-width: 400px;
       max-width: 560px;
       width: 100%;

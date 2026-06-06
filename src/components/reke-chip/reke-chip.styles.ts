@@ -25,7 +25,7 @@ export const styles = [
       border: 1px solid var(--reke-color-border-subtle, #1F1F1F);
       border-radius: var(--reke-radius, 4px);
       background: transparent;
-      color: var(--reke-color-text-muted, #525252);
+      color: var(--reke-color-text-ghost, #7A7A7A);
       cursor: pointer;
       transition:
         background-color var(--reke-transition-fast, 0.12s ease),
@@ -99,8 +99,8 @@ export const styles = [
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 12px;
-      height: 12px;
+      width: 16px;
+      height: 16px;
       border-radius: 2px;
       cursor: pointer;
       opacity: 0.6;
@@ -108,6 +108,12 @@ export const styles = [
     }
 
     .chip__dismiss:hover {
+      opacity: 1;
+    }
+
+    .chip__dismiss:focus-visible {
+      outline: 2px solid var(--reke-color-primary, #22C55E);
+      outline-offset: 1px;
       opacity: 1;
     }
 

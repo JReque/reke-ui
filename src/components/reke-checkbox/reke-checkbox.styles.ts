@@ -22,6 +22,7 @@ export const styles = [
       gap: 8px;
       cursor: pointer;
       outline: none;
+      min-height: 24px; /* WCAG 2.2 — 2.5.8 Target Size Minimum */
     }
 
     .native-input {

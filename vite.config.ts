@@ -17,6 +17,8 @@ export default defineConfig({
         'lit/decorators.js',
         'lit/directives/class-map.js',
         'react',
+        'react-dom',
+        'react-dom/client',
         '@lit/react',
       ],
       output: {

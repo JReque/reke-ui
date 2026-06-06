@@ -41,18 +41,22 @@ export const styles = [
 
     .toast--error {
       border-left-color: var(--reke-color-danger, #EF4444);
+      background-color: color-mix(in srgb, var(--reke-color-danger, #EF4444) 8%, var(--reke-color-surface, #1A1A1A));
     }
 
     .toast--success {
       border-left-color: var(--reke-color-primary, #22C55E);
+      background-color: color-mix(in srgb, var(--reke-color-primary, #22C55E) 8%, var(--reke-color-surface, #1A1A1A));
     }
 
     .toast--warning {
       border-left-color: var(--reke-color-warning, #F59E0B);
+      background-color: color-mix(in srgb, var(--reke-color-warning, #F59E0B) 8%, var(--reke-color-surface, #1A1A1A));
     }
 
     .toast--info {
       border-left-color: var(--reke-color-secondary, #3B82F6);
+      background-color: color-mix(in srgb, var(--reke-color-secondary, #3B82F6) 8%, var(--reke-color-surface, #1A1A1A));
     }
 
     /* === Left section === */
@@ -156,8 +160,8 @@ export const styles = [
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 20px;
-      height: 20px;
+      width: 24px;
+      height: 24px;
       background: transparent;
       border: none;
       color: var(--reke-color-text-muted, #525252);
