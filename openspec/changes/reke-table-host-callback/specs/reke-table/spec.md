@@ -103,6 +103,43 @@ The system SHALL accept an opt-in `expandable: boolean` prop (default `false`). 
 - THEN no extra leading column is added
 - AND no chevron button is rendered
 
+### Requirement: Optional Row-Click Expansion
+
+The system SHALL accept an opt-in `expandOnRowClick: boolean` prop (attribute `expand-on-row-click`, default `false`). When `true`, clicking anywhere on a row MUST call `toggleExpand(key)` internally using the row's identity key. The `reke-row-click` event MUST still be emitted on every row click regardless of this flag (non-breaking; consumers can react in addition to the built-in toggle). When `false`, row clicks MUST NOT toggle expand state and existing consumers that wire their own `reke-row-click` → `toggleExpand` handler MUST remain unaffected. The chevron `<button>` MUST call `stopPropagation()` so chevron clicks do NOT trigger the row-click toggle (no double toggle). The `<tr>` MUST NOT receive `role="button"` or `tabindex` (clickable-row a11y anti-pattern). For keyboard / screen-reader users, `expandOnRowClick` SHOULD be paired with `expandable` so the accessible chevron `<button>` is the keyboard path.
+
+#### Scenario: Row click toggles expand when flag is ON
+
+- GIVEN `<reke-table expand-on-row-click .columns=${cols} .rows=${rows} .expandedRowElement=${cb}>`
+- WHEN a row is clicked
+- THEN `toggleExpand(key)` runs internally and `isRowExpanded(key) === true`
+- AND clicking the same row again collapses it (`isRowExpanded(key) === false`)
+
+#### Scenario: Row click does not toggle when flag is OFF (default)
+
+- GIVEN `<reke-table>` without `expand-on-row-click`
+- WHEN a row is clicked
+- THEN `isRowExpanded(key)` remains `false` and no expand `<tr>` is rendered
+
+#### Scenario: `reke-row-click` still emitted when flag is ON
+
+- GIVEN `<reke-table expand-on-row-click>` with a `reke-row-click` listener
+- WHEN a row is clicked
+- THEN the `reke-row-click` event fires once with `{ row, index }`
+- AND the internal toggle has also run (`isRowExpanded(key) === true`)
+
+#### Scenario: Chevron click does not double-toggle with flag ON
+
+- GIVEN `<reke-table expandable expand-on-row-click>` with row `a` collapsed
+- WHEN the chevron `<button>` for row `a` is clicked
+- THEN `isRowExpanded('a')` flips exactly once (now `true`)
+- AND exactly one `reke-row-expand` event fires (the chevron's `stopPropagation()` prevents the row-click handler from also toggling)
+
+#### Scenario: Accessibility with both flags ON
+
+- GIVEN `<reke-table expandable expand-on-row-click>` with row `a` expanded
+- WHEN axe-core audits the rendered table
+- THEN zero violations are reported (ignoring pre-existing color-contrast noise)
+
 ### Requirement: Row-Key Surfaced in Events and API
 
 The system SHALL surface the row key through `toggleExpand(key)`, `isRowExpanded(key)`, and the `reke-row-expand` event detail (`{ key, row, expanded }`). Public APIs MUST accept the same `RowKey` type returned by `getRowKey`.

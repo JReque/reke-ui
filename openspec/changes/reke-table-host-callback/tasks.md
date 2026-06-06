@@ -88,6 +88,18 @@ Chain strategy: feature-branch-chain (tracker `feat/reke-table-host-callback`; P
 - [x] 2.11 ACCESSIBILITY test: `runAxe()` passes on disabled/empty table with `expandable=true`.
 - [x] 2.12 `npm run test:run`, `npm run lint`, `npm run build` — all green.
 
+### 2.G Slice 2 addendum — `expandOnRowClick`
+
+- [x] 2.13 Add `@property({ type: Boolean, reflect: true, attribute: 'expand-on-row-click' }) expandOnRowClick = false;` to `reke-table.ts` (default OFF — non-breaking).
+- [x] 2.14 In `handleRowClick`, ALWAYS emit `reke-row-click` (existing behavior, unchanged). When `expandOnRowClick === true`, also call `toggleExpand(this._resolveKey(row, index))` so the row's identity key drives the toggle (consistent with the rest of the expand state). Chevron `stopPropagation()` still prevents double toggle.
+- [x] 2.15 JSDoc: document `expandOnRowClick` on the class header (props block) and on the property itself — default OFF, event still emits, double-wiring caveat (use EITHER the prop OR a hand-rolled handler), a11y pairing recommendation with `expandable`, and chevron `stopPropagation` guarantee.
+- [x] 2.16 BEHAVIOR test: ON → row click toggles open then close (`isRowExpanded` flips both ways; expanded content renders/disappears).
+- [x] 2.17 BEHAVIOR test: OFF (default) → row click does NOT toggle expand.
+- [x] 2.18 BEHAVIOR test: chevron click with both `expandable` AND `expandOnRowClick` ON toggles exactly once (state flips once, exactly one `reke-row-expand` emitted — `stopPropagation()` blocks the row handler).
+- [x] 2.19 BEHAVIOR test: with `expandOnRowClick` ON, `reke-row-click` is still emitted on row click (consumers can react in addition to the built-in toggle).
+- [x] 2.20 ACCESSIBILITY test: `runAxe()` zero violations with `expandable` + `expandOnRowClick` ON in expanded state.
+- [x] 2.21 `npm run test:run` 42/42 reke-table green (37 prior + 5 new); full suite 178/179 green (the 1 failure is the pre-existing `reke-chip` color-contrast issue, NOT ours). `npx tsc --noEmit` clean. `npm run build` succeeds.
+
 ## Phase 3: React Bridge + Exports + Docs + Vanilla Story (PR 3)
 
 ### 3.A React bridge rewrite (`src/react-bridge/table.ts`)

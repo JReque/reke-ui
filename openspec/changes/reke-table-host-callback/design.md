@@ -44,6 +44,16 @@ Maps to proposal Approach §1-§7 and spec Requirements 1-6.
 
 **Rationale**: chevron column knows the row index at render time, so passing `index` is natural. External consumers (event handlers, programmatic toggles) get the key-based path. Duplicate-key policy (last-wins) makes the resolution deterministic.
 
+### Decision: Opt-in `expandOnRowClick`
+
+| Option | Tradeoff | Decision |
+|---|---|---|
+| Make row-click toggle expand by default | Convenient, but breaking: every existing consumer that already wires a `reke-row-click` handler that calls `toggleExpand` would double-toggle and net to no change. | Reject |
+| Add `expandOnRowClick: boolean` prop, default `false` | Non-breaking; consumers opt in. Pairs naturally with `expandable` for a11y. Carries a clear double-wiring caveat in JSDoc (use EITHER the prop OR a hand-rolled `reke-row-click` handler — not both). | **Choose** |
+| Suppress `reke-row-click` when `expandOnRowClick=true` | Cleaner mental model but silently breaks consumers that listen for the event (e.g., analytics / nav). | Reject |
+
+**Rationale**: a11y stance — we do NOT add `role="button"` or `tabindex` to the `<tr>`. Row-click is a POINTER convenience only; the accessible keyboard / screen-reader path remains the chevron `<button>` rendered when `expandable=true`. JSDoc documents the recommended pairing with `expandable` and the double-wiring caveat. The chevron button calls `stopPropagation()`, so it does NOT double-toggle through the row handler — verified by a dedicated test.
+
 ### Decision: Chevron column position
 
 | Option | Tradeoff | Decision |
