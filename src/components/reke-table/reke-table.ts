@@ -90,15 +90,20 @@ function _isDev(): boolean {
  * @csspart footer - The footer wrapper div.
  * @csspart expand-row - The tr for expanded content.
  * @csspart expand-content - The td spanning all columns in the expanded row.
+ * @csspart expand-toggle-cell - The leading `<td>` that contains the chevron button (only when `expandable`).
+ * @csspart expand-toggle-button - The chevron `<button>` itself (only when `expandable`).
  *
  * @cssprop [--reke-color-surface=#1A1A1A] - Table background.
  * @cssprop [--reke-color-border=#252525] - Border and row divider color.
  * @cssprop [--reke-color-text=#E5E5E5] - Cell text color.
  * @cssprop [--reke-color-text-muted=#525252] - Header text color.
+ * @cssprop [--reke-color-primary=#22C55E] - Chevron focus outline color.
+ * @cssprop [--reke-radius=4px] - Chevron button corner radius.
  *
  * Props:
  * - `expandedRowElement`: Framework-agnostic expand render. Receives `(host, row, key)`. Mount any framework. Return cleanup or void.
  * - `getRowKey`: Optional `(row, index) => RowKey`. Defaults to `String(index)`. Use a stable domain id for identity-keyed expand state across sorts.
+ * - `expandable`: Opt-in boolean (default `false`). When `true`, `reke-table` prepends a leading toggle column with an accessible chevron `<button>` per row: `aria-expanded` reflects the row's expand state, `aria-controls` points at the expand `<td>`, and `Enter`/`Space` activate the toggle. Consumers can also build their own toggles by leaving `expandable=false` (default) and calling `toggleExpand(key)` directly.
  */
 @customElement('reke-table')
 export class RekeTable extends RekeElement {
@@ -124,6 +129,18 @@ export class RekeTable extends RekeElement {
 
   @property({ type: Boolean, reflect: true })
   borderless = false;
+
+  /**
+   * Opt-in: when `true`, the table prepends a leading toggle column whose
+   * `<button>` calls `toggleExpand(key)`, exposes `aria-expanded` reflecting
+   * the expand state, `aria-controls` pointing at the expand `<td>` id
+   * (`reke-table-expand-<key>`), and accepts `Enter` / `Space` activation.
+   *
+   * Defaults to `false` so consumers that already wire their own toggles
+   * (chips, links, custom buttons) are unaffected.
+   */
+  @property({ type: Boolean, reflect: true })
+  expandable = false;
 
   @property({ reflect: true, attribute: 'sort-key' })
   sortKey = '';
@@ -207,6 +224,32 @@ export class RekeTable extends RekeElement {
 
   private handleRowClick(row: TableRow, index: number) {
     this.emit('reke-row-click', { row, index });
+  }
+
+  /**
+   * Chevron button click handler. Stops propagation so it does NOT also fire
+   * the row-level `reke-row-click` event, then toggles the row by key.
+   */
+  private _handleChevronClick(event: Event, key: RowKey): void {
+    event.stopPropagation();
+    this.toggleExpand(key);
+  }
+
+  /**
+   * Chevron keyboard activation. The element is a native `<button>`, so Enter
+   * already fires `click` natively. We still handle it here to keep the
+   * keyboard contract explicit and testable across environments where the
+   * `KeyboardEvent` is dispatched programmatically (Vitest browser mode tests
+   * dispatch raw `keydown`s without the synthesized `click`).
+   *
+   * For Space we MUST call `preventDefault()` so the page does not scroll.
+   */
+  private _handleChevronKeydown(event: KeyboardEvent, key: RowKey): void {
+    if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+      event.preventDefault();
+      event.stopPropagation();
+      this.toggleExpand(key);
+    }
   }
 
   /**
@@ -310,6 +353,8 @@ export class RekeTable extends RekeElement {
 
   private _renderRow(row: TableRow, i: number, key: RowKey) {
     const isExpanded = this.expandedRows.has(key);
+    const hostId = `reke-table-expand-${String(key)}`;
+    const expandColspan = this.columns.length + (this.expandable ? 1 : 0);
 
     return html`
       <tr
@@ -317,6 +362,27 @@ export class RekeTable extends RekeElement {
         class="row ${i % 2 === 1 ? 'row--even' : ''} ${isExpanded ? 'row--expanded' : ''}"
         @click=${() => this.handleRowClick(row, i)}
       >
+        ${this.expandable
+          ? html`
+              <td
+                part="expand-toggle-cell"
+                class="expand-toggle-cell"
+              >
+                <button
+                  type="button"
+                  part="expand-toggle-button"
+                  class="expand-toggle-button ${isExpanded ? 'expand-toggle-button--expanded' : ''}"
+                  aria-expanded=${isExpanded ? 'true' : 'false'}
+                  aria-controls=${hostId}
+                  aria-label=${isExpanded ? 'Collapse row' : 'Expand row'}
+                  @click=${(e: Event) => this._handleChevronClick(e, key)}
+                  @keydown=${(e: KeyboardEvent) => this._handleChevronKeydown(e, key)}
+                >
+                  <span class="expand-toggle-chevron" aria-hidden="true">▶</span>
+                </button>
+              </td>
+            `
+          : nothing}
         ${this.columns.map(
           (col) => html`
             <td
@@ -335,8 +401,8 @@ export class RekeTable extends RekeElement {
               <td
                 part="expand-content"
                 class="expand-content"
-                id=${`reke-table-expand-${String(key)}`}
-                colspan=${this.columns.length}
+                id=${hostId}
+                colspan=${expandColspan}
                 ${ref(this._expandTdRef(key))}
               ></td>
             </tr>
@@ -506,6 +572,15 @@ export class RekeTable extends RekeElement {
           <table part="table" class=${classMap(tableClasses)} role="table">
             <thead part="header">
               <tr>
+                ${this.expandable
+                  ? html`
+                      <th
+                        part="expand-toggle-header-cell"
+                        class="expand-toggle-header-cell"
+                        aria-hidden="true"
+                      ></th>
+                    `
+                  : nothing}
                 ${this.columns.map(
                   (col) => html`
                     <th
@@ -534,7 +609,10 @@ export class RekeTable extends RekeElement {
               ${this.rows.length === 0
                 ? html`
                     <tr class="row row--empty">
-                      <td class="cell cell--empty" colspan=${this.columns.length}>
+                      <td
+                        class="cell cell--empty"
+                        colspan=${this.columns.length + (this.expandable ? 1 : 0)}
+                      >
                         <slot name="empty">No data</slot>
                       </td>
                     </tr>

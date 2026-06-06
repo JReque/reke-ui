@@ -75,18 +75,18 @@ Chain strategy: feature-branch-chain (tracker `feat/reke-table-host-callback`; P
 
 ## Phase 2: Chevron Column + A11y (PR 2)
 
-- [ ] 2.1 Add `@property({ type: Boolean, reflect: true }) expandable = false;` to `reke-table.ts`.
-- [ ] 2.2 When `expandable === true`, prepend a leading toggle column in the header and each row; do NOT mutate the consumer-provided `columns` array.
-- [ ] 2.3 Render chevron cell with `<button class="expand-toggle-button" part="expand-toggle-button" aria-expanded=${expanded} aria-controls=${hostId} @click=${...} @keydown=${enterSpaceHandler}>`. Expose `expand-toggle-cell` CSS part on the `<td>`.
-- [ ] 2.4 Keyboard handler activates on `Enter` and `Space` (preventDefault on Space to avoid page scroll).
-- [ ] 2.5 In `reke-table.styles.ts`, add `.expand-toggle-cell`, `.expand-toggle-button`, and `:focus-visible` styling using existing `--reke-*` tokens with fallbacks (no new tokens needed; reuse `--reke-color-primary`, `--reke-color-text`, `--reke-radius`).
-- [ ] 2.6 Fix JSDoc on the class header — remove any claim that chevron is auto-rendered; document `expandable` prop, `expand-toggle-cell`/`expand-toggle-button` CSS parts, and Enter/Space activation (R1 from sdd-init).
-- [ ] 2.7 ACCESSIBILITY test: `expandable=true` renders a leading `<button>` per row with `aria-expanded="false"` and `aria-controls` pointing to the host id; `runAxe()` zero violations (spec "Chevron ON renders accessible toggle" + axe portion).
-- [ ] 2.8 ACCESSIBILITY test: pressing `Enter` toggles expand and flips `aria-expanded` to `"true"`; pressing `Space` same (spec "Chevron ON renders accessible toggle" — keyboard portion).
-- [ ] 2.9 RENDERING test: without `expandable`, no leading column and no chevron button render (spec "Chevron OFF leaves rows unchanged").
-- [ ] 2.10 BEHAVIOR test: chevron click fires `reke-row-expand` with correct `detail.key` (completes spec "Event payload includes row key" started in 1.24).
-- [ ] 2.11 ACCESSIBILITY test: `runAxe()` passes on disabled/empty table with `expandable=true`.
-- [ ] 2.12 `npm run test:run`, `npm run lint`, `npm run build` — all green.
+- [x] 2.1 Add `@property({ type: Boolean, reflect: true }) expandable = false;` to `reke-table.ts`.
+- [x] 2.2 When `expandable === true`, prepend a leading toggle column in the header and each row; do NOT mutate the consumer-provided `columns` array.
+- [x] 2.3 Render chevron cell with `<button class="expand-toggle-button" part="expand-toggle-button" aria-expanded=${expanded} aria-controls=${hostId} @click=${...} @keydown=${enterSpaceHandler}>`. Expose `expand-toggle-cell` CSS part on the `<td>`.
+- [x] 2.4 Keyboard handler activates on `Enter` and `Space` (preventDefault on Space to avoid page scroll).
+- [x] 2.5 In `reke-table.styles.ts`, add `.expand-toggle-cell`, `.expand-toggle-button`, and `:focus-visible` styling using existing `--reke-*` tokens with fallbacks (no new tokens needed; reuse `--reke-color-primary`, `--reke-color-text`, `--reke-radius`).
+- [x] 2.6 Fix JSDoc on the class header — remove any claim that chevron is auto-rendered; document `expandable` prop, `expand-toggle-cell`/`expand-toggle-button` CSS parts, and Enter/Space activation (R1 from sdd-init).
+- [x] 2.7 ACCESSIBILITY test: `expandable=true` renders a leading `<button>` per row with `aria-expanded="false"` and `aria-controls` pointing to the host id; `runAxe()` zero violations (spec "Chevron ON renders accessible toggle" + axe portion).
+- [x] 2.8 ACCESSIBILITY test: pressing `Enter` toggles expand and flips `aria-expanded` to `"true"`; pressing `Space` same (spec "Chevron ON renders accessible toggle" — keyboard portion).
+- [x] 2.9 RENDERING test: without `expandable`, no leading column and no chevron button render (spec "Chevron OFF leaves rows unchanged").
+- [x] 2.10 BEHAVIOR test: chevron click fires `reke-row-expand` with correct `detail.key` (completes spec "Event payload includes row key" started in 1.24).
+- [x] 2.11 ACCESSIBILITY test: `runAxe()` passes on disabled/empty table with `expandable=true`.
+- [x] 2.12 `npm run test:run`, `npm run lint`, `npm run build` — all green.
 
 ## Phase 3: React Bridge + Exports + Docs + Vanilla Story (PR 3)
 
