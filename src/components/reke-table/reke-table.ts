@@ -219,16 +219,22 @@ export class RekeTable extends RekeElement {
     let index: number;
     let row: TableRow | undefined;
 
-    if (typeof target === 'number' && this.getRowKey && !this._warnedNumericTarget && _isDev()) {
+    const interpretedAsIndex =
+      typeof target === 'number' && target === Math.trunc(target) && target >= 0 && target < this.rows.length;
+
+    // Only warn when the numeric target is actually interpreted as an INDEX. An
+    // out-of-range number falls through to the key branch where it IS used as a key,
+    // so warning there would be inaccurate.
+    if (interpretedAsIndex && this.getRowKey && !this._warnedNumericTarget && _isDev()) {
       this._warnedNumericTarget = true;
       // eslint-disable-next-line no-console
       console.warn(
-        '[reke-table] toggleExpand received a numeric target while `getRowKey` is set; numeric targets are interpreted as row INDICES, not keys. Pass the resolved key to target by identity.',
+        '[reke-table] toggleExpand received a numeric target while `getRowKey` is set; in-range numeric targets are interpreted as row INDICES, not keys. Pass the resolved key to target by identity.',
       );
     }
 
-    if (typeof target === 'number' && target === Math.trunc(target) && target >= 0 && target < this.rows.length) {
-      index = target;
+    if (interpretedAsIndex) {
+      index = target as number;
       row = this.rows[index];
       key = this._resolveKey(row, index);
     } else {
@@ -383,28 +389,46 @@ export class RekeTable extends RekeElement {
     if (!this.expandedRowElement) {
       // No expand callback: drop any stale state.
       this._runAllCleanupsAndClear();
+      // Purge any expanded keys whose rows no longer exist so `isRowExpanded()`
+      // stays consistent with the C1 contract even on the no-callback path.
+      for (const key of Array.from(this.expandedRows)) {
+        if (!this._keyToRow.has(key)) {
+          this.expandedRows.delete(key);
+        }
+      }
       return;
     }
 
-    // 1. Cleanup orphans: keys in _hostCache that are no longer in _keyToRow
-    //    OR no longer in expandedRows.
-    for (const cachedKey of Array.from(this._hostCache.keys())) {
+    // 1. Cleanup orphans authoritatively over `expandedRows` ∪ `_hostCache.keys()`.
+    //    This covers BOTH windows:
+    //      - mounted-then-removed: key is in `_hostCache` but the row is gone.
+    //      - never-mounted-then-removed: key was added to `expandedRows` in the same
+    //        tick the row was dropped, so it NEVER entered `_hostCache`. Keying the
+    //        purge solely on `_hostCache` would miss it, leaving a phantom expanded key.
+    const keysToCheck = new Set<RowKey>([
+      ...this.expandedRows,
+      ...this._hostCache.keys(),
+    ]);
+    for (const cachedKey of keysToCheck) {
       const present = this._keyToRow.has(cachedKey);
       const stillExpanded = this.expandedRows.has(cachedKey);
-      if (!present || !stillExpanded) {
-        // Guard consumer cleanup against throws so our state stays consistent.
-        this._safeCleanup(cachedKey);
-        this._hostCache.delete(cachedKey);
-        this._mountedKeys.delete(cachedKey);
-        this._refCallbacks.delete(cachedKey);
-        // If the row was REMOVED (not a normal collapse), purge it from `expandedRows`
-        // so `isRowExpanded()` stops lying and a re-added row with the same key renders
-        // COLLAPSED instead of spontaneously re-expanding. The `!stillExpanded` (normal
-        // collapse) case already removed the key via `toggleExpand`. The row is already
-        // gone, so mutate the Set in place to avoid an extra reactive cycle.
-        if (!present) {
-          this.expandedRows.delete(cachedKey);
-        }
+      // A key needs purging when its row is gone (orphan) or it is cached but no
+      // longer expanded (normal collapse leftover).
+      if (present && stillExpanded) continue;
+
+      // Guard consumer cleanup against throws so our state stays consistent.
+      // `_safeCleanup` is idempotent (deletes after running) so no double-cleanup.
+      this._safeCleanup(cachedKey);
+      this._hostCache.delete(cachedKey);
+      this._mountedKeys.delete(cachedKey);
+      this._refCallbacks.delete(cachedKey);
+      // If the row was REMOVED (not a normal collapse), purge it from `expandedRows`
+      // so `isRowExpanded()` stops lying and a re-added row with the same key renders
+      // COLLAPSED instead of spontaneously re-expanding. The normal-collapse path (via
+      // `toggleExpand`, which clones the Set) already removed the key. The row is gone,
+      // so mutate the Set in place to avoid an extra reactive cycle.
+      if (!present) {
+        this.expandedRows.delete(cachedKey);
       }
     }
 
