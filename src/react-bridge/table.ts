@@ -33,6 +33,8 @@ import {
   RekeTable as RekeTableClass,
   type TableColumn,
   type TableRow,
+  type ExpandedRowElement,
+  type RowKey,
 } from '../components/reke-table/reke-table.js';
 
 const RawTable = createComponent({
@@ -43,7 +45,7 @@ const RawTable = createComponent({
     onRekeRowClick: 'reke-row-click' as EventName<CustomEvent<{ row: unknown; index: number }>>,
     onRekeSort: 'reke-sort' as EventName<CustomEvent<{ key: string; direction: 'asc' | 'desc' }>>,
     onRekeRowExpand: 'reke-row-expand' as EventName<
-      CustomEvent<{ row: unknown; index: number; expanded: boolean }>
+      CustomEvent<{ row: unknown; index: number; key: RowKey; expanded: boolean }>
     >,
   },
 });
@@ -79,7 +81,7 @@ export interface TableProps<TRow extends TableRow = TableRow> {
   sortKey?: string;
   sortDirection?: 'asc' | 'desc';
   expandedRowRender?: ReactExpandedRowRenderer<TRow>;
-  expandedRows?: Set<number>;
+  expandedRows?: Set<RowKey>;
   /**
    * Returns a stable identifier for a row, used to key React roots for
    * expanded content and cell renderers. Defaults to the row index, which
@@ -88,7 +90,7 @@ export interface TableProps<TRow extends TableRow = TableRow> {
   getRowKey?: (row: TRow, index: number) => string | number;
   onRekeRowClick?: (e: CustomEvent<{ row: unknown; index: number }>) => void;
   onRekeSort?: (e: CustomEvent<{ key: string; direction: 'asc' | 'desc' }>) => void;
-  onRekeRowExpand?: (e: CustomEvent<{ row: unknown; index: number; expanded: boolean }>) => void;
+  onRekeRowExpand?: (e: CustomEvent<{ row: unknown; index: number; key: RowKey; expanded: boolean }>) => void;
   children?: React.ReactNode;
 }
 
@@ -190,19 +192,32 @@ function TableInner<TRow extends TableRow = TableRow>(
     [columns, getRowKey],
   );
 
-  // Wrap expandedRowRender the same way.
-  const wrappedExpanded = useMemo(() => {
+  // Transitional adapter: wrap the React-flavored `expandedRowRender` prop into
+  // an `expandedRowElement(host, row, key)` host-callback that the underlying
+  // element now requires. Slice 3 will rewrite this with createRoot + flushSync
+  // + key-stable unmount; for now we route through the same React-root host map
+  // used for cells so existing consumers keep working.
+  const wrappedExpandedElement = useMemo<ExpandedRowElement | null>(() => {
     if (!expandedRowRender) return null;
-    return (row: TableRow, index: number) => {
-      const out = expandedRowRender(row as TRow, index);
+    return (host, row, key) => {
+      const out = expandedRowRender(row as TRow, key as unknown as number);
+      const mapKey = `${String(key)}::expanded`;
       if (!isReactRenderable(out)) {
-        // Assume TemplateResult; if undefined, render empty.
-        return (out ?? html``) as TemplateResult;
+        // Plain Node / string / TemplateResult fallback.
+        if (out instanceof Node) {
+          host.appendChild(out);
+          return () => {
+            if (out.parentNode === host) host.removeChild(out);
+          };
+        }
+        return undefined;
       }
-      const key = `${rowKeyOf(row as TRow, index)}::expanded`;
-      const entry = getOrCreateHost(key);
+      const entry = getOrCreateHost(mapKey);
       renderIntoHost(entry, out);
-      return html`${entry.host}`;
+      host.appendChild(entry.host);
+      return () => {
+        if (entry.host.parentNode === host) host.removeChild(entry.host);
+      };
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expandedRowRender, getRowKey]);
@@ -227,7 +242,8 @@ function TableInner<TRow extends TableRow = TableRow>(
       ref,
       columns: wrappedColumns,
       rows: rows as TableRow[],
-      expandedRowRender: wrappedExpanded ?? undefined,
+      expandedRowElement: wrappedExpandedElement ?? undefined,
+      getRowKey: getRowKey as ((row: TableRow, index: number) => RowKey) | undefined,
     } as unknown as React.ComponentProps<typeof RawTable>,
     children,
   );
