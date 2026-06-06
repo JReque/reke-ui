@@ -1062,4 +1062,166 @@ describe('reke-table', () => {
 
     wrapper.remove();
   });
+
+  // ============================================================
+  // Slice 2 addendum — `expandOnRowClick` opt-in
+  // ============================================================
+
+  // BEHAVIOR — `expandOnRowClick=true` toggles expand on row click
+  it('expandOnRowClick ON: clicking a row toggles expand (open then close)', async () => {
+    const wrapper = createElement('<reke-table expand-on-row-click></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    el.getRowKey = (row) => (row as { id: string }).id;
+    el.expandedRowElement = (host, row) => {
+      const n = document.createElement('div');
+      n.classList.add('detail-content');
+      n.textContent = `${(row as { name: string }).name} details`;
+      host.appendChild(n);
+      return () => n.remove();
+    };
+    await waitForUpdate(el);
+
+    expect(el.isRowExpanded('a')).toBe(false);
+
+    const rows = el.shadowRoot!.querySelectorAll('tbody .row');
+    (rows[0] as HTMLElement).click();
+    await waitForUpdate(el);
+
+    expect(el.isRowExpanded('a')).toBe(true);
+    const detail = el.shadowRoot!.querySelector('.detail-content');
+    expect(detail).toBeTruthy();
+    expect(detail!.textContent).toBe('Alice details');
+
+    // Click again — collapses.
+    const rowsAfter = el.shadowRoot!.querySelectorAll('tbody .row');
+    (rowsAfter[0] as HTMLElement).click();
+    await waitForUpdate(el);
+
+    expect(el.isRowExpanded('a')).toBe(false);
+    expect(el.shadowRoot!.querySelector('.expand-row')).toBeNull();
+
+    wrapper.remove();
+  });
+
+  // BEHAVIOR — default OFF: clicking a row does NOT toggle expand
+  it('expandOnRowClick OFF (default): clicking a row does not toggle expand', async () => {
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    el.getRowKey = (row) => (row as { id: string }).id;
+    el.expandedRowElement = (host) => {
+      host.appendChild(document.createElement('div'));
+      return () => {};
+    };
+    await waitForUpdate(el);
+
+    expect(el.expandOnRowClick).toBe(false);
+    expect(el.isRowExpanded('a')).toBe(false);
+
+    const rows = el.shadowRoot!.querySelectorAll('tbody .row');
+    (rows[0] as HTMLElement).click();
+    await waitForUpdate(el);
+
+    expect(el.isRowExpanded('a')).toBe(false);
+    expect(el.shadowRoot!.querySelector('.expand-row')).toBeNull();
+
+    wrapper.remove();
+  });
+
+  // BEHAVIOR — chevron + expandOnRowClick: chevron click toggles exactly once (no double toggle)
+  it('chevron + expandOnRowClick ON: chevron click toggles exactly once', async () => {
+    const wrapper = createElement(
+      '<reke-table expandable expand-on-row-click></reke-table>',
+    );
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    el.getRowKey = (row) => (row as { id: string }).id;
+    el.expandedRowElement = (host) => {
+      host.appendChild(document.createElement('div'));
+      return () => {};
+    };
+    await waitForUpdate(el);
+
+    const handler = vi.fn();
+    el.addEventListener('reke-row-expand', handler);
+
+    expect(el.isRowExpanded('a')).toBe(false);
+
+    const button = el.shadowRoot!.querySelector<HTMLButtonElement>(
+      'tbody .expand-toggle-button',
+    )!;
+    button.click();
+    await waitForUpdate(el);
+
+    // State flipped exactly once → now expanded.
+    expect(el.isRowExpanded('a')).toBe(true);
+    // Event fired exactly once (no double toggle bubbling into row handler).
+    expect(handler).toHaveBeenCalledOnce();
+    const detail = (handler.mock.calls[0][0] as CustomEvent).detail;
+    expect(detail.key).toBe('a');
+    expect(detail.expanded).toBe(true);
+
+    wrapper.remove();
+  });
+
+  // BEHAVIOR — `reke-row-click` still emitted on row click when `expandOnRowClick` is ON
+  it('expandOnRowClick ON: still emits reke-row-click on row click', async () => {
+    const wrapper = createElement('<reke-table expand-on-row-click></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    el.getRowKey = (row) => (row as { id: string }).id;
+    el.expandedRowElement = (host) => {
+      host.appendChild(document.createElement('div'));
+      return () => {};
+    };
+    await waitForUpdate(el);
+
+    const handler = vi.fn();
+    el.addEventListener('reke-row-click', handler);
+
+    const rows = el.shadowRoot!.querySelectorAll('tbody .row');
+    (rows[1] as HTMLElement).click();
+    await waitForUpdate(el);
+
+    expect(handler).toHaveBeenCalledOnce();
+    const detail = (handler.mock.calls[0][0] as CustomEvent).detail;
+    expect(detail.row).toEqual(testRows[1]);
+    expect(detail.index).toBe(1);
+    // And internal toggle still ran.
+    expect(el.isRowExpanded('b')).toBe(true);
+
+    wrapper.remove();
+  });
+
+  // ACCESSIBILITY — axe clean with both flags ON and expanded state
+  it('expandOnRowClick + expandable ON: passes a11y audit in expanded state', async () => {
+    const wrapper = createElement(
+      '<reke-table expandable expand-on-row-click></reke-table>',
+    );
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    el.getRowKey = (row) => (row as { id: string }).id;
+    el.expandedRowElement = (host, row) => {
+      const n = document.createElement('div');
+      n.textContent = `${(row as { name: string }).name} details`;
+      host.appendChild(n);
+      return () => n.remove();
+    };
+    await waitForUpdate(el);
+
+    el.toggleExpand('a');
+    await waitForUpdate(el);
+
+    const results = await runAxe(wrapper);
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
+    expect(violations).toEqual([]);
+
+    wrapper.remove();
+  });
 });

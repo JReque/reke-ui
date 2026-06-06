@@ -104,6 +104,7 @@ function _isDev(): boolean {
  * - `expandedRowElement`: Framework-agnostic expand render. Receives `(host, row, key)`. Mount any framework. Return cleanup or void.
  * - `getRowKey`: Optional `(row, index) => RowKey`. Defaults to `String(index)`. Use a stable domain id for identity-keyed expand state across sorts.
  * - `expandable`: Opt-in boolean (default `false`). When `true`, `reke-table` prepends a leading toggle column with an accessible chevron `<button>` per row: `aria-expanded` reflects the row's expand state, `aria-controls` points at the expand `<td>`, and `Enter`/`Space` activate the toggle. Consumers can also build their own toggles by leaving `expandable=false` (default) and calling `toggleExpand(key)` directly.
+ * - `expandOnRowClick` (attribute `expand-on-row-click`): Opt-in boolean (default `false`). When `true`, clicking anywhere on a row calls `toggleExpand(key)` internally. `reke-row-click` is STILL emitted on every row click. The chevron button calls `stopPropagation()` so chevron clicks do NOT double-toggle. Consumers MUST use EITHER this prop OR their own `reke-row-click` → `toggleExpand` handler, not both. For keyboard / screen-reader users, pair with `expandable`.
  */
 @customElement('reke-table')
 export class RekeTable extends RekeElement {
@@ -141,6 +142,32 @@ export class RekeTable extends RekeElement {
    */
   @property({ type: Boolean, reflect: true })
   expandable = false;
+
+  /**
+   * Opt-in: when `true`, clicking anywhere on a row (outside the chevron, if
+   * present) calls `toggleExpand(key)` internally using the row's identity
+   * key. The `reke-row-click` event is STILL emitted on every row click so
+   * consumers can react in addition to the built-in toggle.
+   *
+   * Default is `false` to preserve non-breaking behavior: existing consumers
+   * that wire their own `reke-row-click` → `toggleExpand` handlers are
+   * unaffected.
+   *
+   * A11y note: row clicks are a pointer convenience only. The `<tr>` does NOT
+   * receive `role="button"` or `tabindex` (that would be a clickable-row
+   * a11y anti-pattern). For keyboard / screen-reader users, pair this prop
+   * with `expandable` so the accessible chevron `<button>` is available.
+   *
+   * Double-wiring caveat: consumers MUST use EITHER `expandOnRowClick` OR
+   * their own `reke-row-click` → `toggleExpand` handler — not both — or the
+   * row will toggle twice and net to no change.
+   *
+   * Chevron interaction: the chevron `<button>` calls `stopPropagation()`, so
+   * clicking the chevron does NOT trigger the row-click toggle (no double
+   * toggle).
+   */
+  @property({ type: Boolean, reflect: true, attribute: 'expand-on-row-click' })
+  expandOnRowClick = false;
 
   @property({ reflect: true, attribute: 'sort-key' })
   sortKey = '';
@@ -223,7 +250,19 @@ export class RekeTable extends RekeElement {
   }
 
   private handleRowClick(row: TableRow, index: number) {
+    // Always emit the row-click event — even when `expandOnRowClick` is ON —
+    // so consumers can react in addition to the built-in toggle. This is the
+    // explicit non-breaking decision (see `expandOnRowClick` JSDoc).
     this.emit('reke-row-click', { row, index });
+
+    // Opt-in pointer convenience: toggle expand using the row's identity key
+    // (consistent with the rest of the expand state). The chevron button calls
+    // `stopPropagation()`, so chevron clicks never reach this handler — no
+    // double toggle.
+    if (this.expandOnRowClick) {
+      const key = this._resolveKey(row, index);
+      this.toggleExpand(key);
+    }
   }
 
   /**
