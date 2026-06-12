@@ -50,8 +50,9 @@
 
   /* Scrollbar */
   --reke-scrollbar-thumb: var(--reke-color-text-muted);
-  --reke-scrollbar-track: transparent;
-  --reke-scrollbar-width: thin;
+  --reke-scrollbar-thumb-hover: var(--reke-color-text-ghost);
+  --reke-scrollbar-track: color-mix(in srgb, var(--reke-color-surface) 50%, transparent);
+  --reke-scrollbar-width: 8px;
 
   /* Transitions — consistent speeds across all components */
   --reke-transition-fast: 0.12s ease;
@@ -113,9 +114,39 @@
 
 /* ===== Global scrollbar styling ===== */
 
+/* Standard (Firefox, Chrome 121+) */
 * {
   scrollbar-color: var(--reke-scrollbar-thumb) var(--reke-scrollbar-track);
-  scrollbar-width: var(--reke-scrollbar-width);
+  scrollbar-width: thin;
+}
+
+/* WebKit (Chrome, Safari, Edge) — more elaborate design */
+::-webkit-scrollbar {
+  width: var(--reke-scrollbar-width);
+  height: var(--reke-scrollbar-width);
+}
+
+::-webkit-scrollbar-track {
+  background: var(--reke-scrollbar-track);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--reke-scrollbar-thumb);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--reke-scrollbar-thumb-hover);
+  border-color: transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* ===== Auto-detect OS preference (opt-in) ===== */
