@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## Unreleased
+
+### BREAKING CHANGES
+
+* **reke-table:** the legacy `expandedRowRender` prop and the `ExpandedRowRenderer` type export are REMOVED.
+  Migrate to the framework-agnostic host-callback contract:
+  `expandedRowElement(host, row, key) => Cleanup | void`. The React bridge
+  (`reke-ui/react` → `Table`) now mounts React directly into the host node
+  via `createRoot` + `flushSync` and returns a cleanup that calls
+  `root.unmount()`. No `TemplateResult` travels through the bridge — this
+  is the definitive fix for the `[object Object]` rendering bug under a
+  duplicated `lit` instance (npm symlink / Module Federation). Pair
+  `expandable=true` with `getRowKey={r => r.id}` for accessible chevron
+  toggling and identity-stable expand state across sorts.
+  Downstream `pnl-track-frontend` migration ticket lives in that repo and
+  depends on this release.
+
 ## [0.1.2](https://github.com/JReque/reke-ui/compare/v0.1.1...v0.1.2) (2026-04-20)
 
 

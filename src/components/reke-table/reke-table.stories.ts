@@ -428,6 +428,105 @@ export const ExpandableRows: Story = {
   },
 };
 
+// --- Vanilla DOM conformance (framework-agnosticism proof) ---
+// This story uses NO Lit, NO React. It proves the host-callback contract
+// `expandedRowElement(host, row, key) => Cleanup | void` works with plain
+// DOM mutation — which is the regression guard against the `[object Object]`
+// bug that bit consumers under a duplicated `lit` instance.
+export const VanillaDomExpand: Story = {
+  args: { hoverable: true },
+  render: (args) => {
+    const id = 'table-vanilla-' + Math.random().toString(36).slice(2, 8);
+    setProps(id, sampleColumns, sampleRows, (el) => {
+      el.expandable = true;
+      el.getRowKey = (row) => row.id as string;
+      // Plain DOM: no Lit, no React, no html template. The host callback
+      // receives a real `HTMLElement` and we mutate it directly.
+      el.expandedRowElement = (host, row) => {
+        const panel = document.createElement('div');
+        panel.style.cssText =
+          'padding: 12px 16px; background: #111112; border-left: 2px solid #22C55E; color: #E5E5E5; font-family: monospace; font-size: 12px;';
+        panel.textContent = `// vanilla-DOM expand for ${row.name} (${row.id})`;
+        host.appendChild(panel);
+        return () => panel.remove();
+      };
+    });
+    return html`
+      <reke-table
+        id=${id}
+        ?striped=${args.striped}
+        ?dense=${args.dense}
+        ?hoverable=${args.hoverable}
+        ?bordered=${args.bordered}
+      ></reke-table>
+    `;
+  },
+};
+
+// --- Sort identity (getRowKey keeps the expanded row across sort) ---
+export const SortIdentity: Story = {
+  args: { hoverable: true },
+  render: (args) => {
+    const id = 'table-sort-identity-' + Math.random().toString(36).slice(2, 8);
+    const initialRows = [...sampleRows];
+    setProps(id, sampleColumns, initialRows, (el) => {
+      el.expandable = true;
+      el.getRowKey = (row) => row.id as string;
+      el.expandedRowElement = (host, row) => {
+        const panel = document.createElement('div');
+        panel.style.cssText =
+          'padding: 12px 16px; background: #111112; border-left: 2px solid #22C55E; color: #E5E5E5;';
+        panel.textContent = `expanded for ${row.name} — id ${row.id}`;
+        host.appendChild(panel);
+        return () => panel.remove();
+      };
+      // Re-sort by name DESC after a second so users can see the expanded row
+      // FOLLOW its identity across the reorder.
+      setTimeout(() => {
+        el.rows = [...initialRows].reverse();
+      }, 1500);
+    });
+    return html`
+      <reke-table
+        id=${id}
+        ?striped=${args.striped}
+        ?dense=${args.dense}
+        ?hoverable=${args.hoverable}
+        ?bordered=${args.bordered}
+      ></reke-table>
+    `;
+  },
+};
+
+// --- Chevron toggle (built-in accessible chevron column) ---
+export const ChevronToggle: Story = {
+  args: { hoverable: true },
+  render: (args) => {
+    const id = 'table-chevron-' + Math.random().toString(36).slice(2, 8);
+    setProps(id, sampleColumns, sampleRows, (el) => {
+      el.expandable = true;
+      el.getRowKey = (row) => row.id as string;
+      el.expandedRowElement = (host, row) => {
+        const panel = document.createElement('div');
+        panel.style.cssText =
+          'padding: 12px 16px; background: #111112; border-left: 2px solid #22C55E; color: #E5E5E5;';
+        panel.textContent = `Details for ${row.name} — role ${row.role}, status ${row.status}`;
+        host.appendChild(panel);
+        return () => panel.remove();
+      };
+    });
+    return html`
+      <reke-table
+        id=${id}
+        ?striped=${args.striped}
+        ?dense=${args.dense}
+        ?hoverable=${args.hoverable}
+        ?bordered=${args.bordered}
+      ></reke-table>
+    `;
+  },
+};
+
 export const WithToolbarAndFooter: Story = {
   args: { hoverable: true, striped: true },
   render: (args) => {
