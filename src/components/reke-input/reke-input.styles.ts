@@ -24,7 +24,8 @@ export const styles = [
     .input {
       display: block;
       width: 100%;
-      background-color: var(--reke-color-surface, #1A1A1A);
+      background: var(--reke-color-input-bg, var(--reke-color-surface, #1A1A1A));
+      box-shadow: var(--reke-shadow-input, none);
       color: var(--reke-color-text, #E5E5E5);
       border: 1px solid var(--reke-color-border, #252525);
       border-radius: var(--reke-radius, 4px);
