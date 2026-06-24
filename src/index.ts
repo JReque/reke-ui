@@ -17,7 +17,14 @@ export type { DialogVariant, DrawerPosition } from './components/reke-dialog/rek
 export { RekeSelect } from './components/reke-select/reke-select.js';
 export type { SelectSize } from './components/reke-select/reke-select.js';
 export { RekeTable } from './components/reke-table/reke-table.js';
-export type { TableColumn, TableRow, ExpandedRowRenderer } from './components/reke-table/reke-table.js';
+export type {
+  TableColumn,
+  TableRow,
+  RowKey,
+  Cleanup,
+  ExpandedRowElement,
+  GetRowKey,
+} from './components/reke-table/reke-table.js';
 export { RekeDateRange } from './components/reke-date-range/reke-date-range.js';
 export type { DatePickerMode } from './components/reke-date-range/reke-date-range.js';
 export { RekeFileUpload } from './components/reke-file-upload/reke-file-upload.js';

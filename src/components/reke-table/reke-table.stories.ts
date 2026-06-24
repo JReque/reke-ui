@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/web-components';
-import { html } from 'lit';
+import { html, render } from 'lit';
 import './reke-table.js';
 import type { RekeTable, TableColumn, TableRow } from './reke-table.js';
 
@@ -328,7 +328,8 @@ export const ExpandableRows: Story = {
           render: (val, _row, i) => {
             const ex = (val as string).toLowerCase();
             const colors = exchangeColors[ex] ?? { bg: 'rgba(82,82,82,0.1)', text: '#525252' };
-            const expanded = el.isRowExpanded(i);
+            // No getRowKey set on this story — default key is String(index).
+            const expanded = el.isRowExpanded(String(i));
             return html`
               <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px;">
                 <span style="
@@ -352,20 +353,28 @@ export const ExpandableRows: Story = {
 
       el.columns = makeColumns();
 
-      el.expandedRowRender = (row: TableRow) => html`
-        <div style="
-          background: #111112;
-          border-left: 2px solid rgba(34,197,94,0.19);
-          padding: 0 0 0 16px;
-        ">
-          <reke-table
-            borderless
-            dense
-            .columns=${subTradeColumns}
-            .rows=${(row.trades as TableRow[])}
-          ></reke-table>
-        </div>
-      `;
+      // Migrated to the new host-callback contract. Lit `render` mounts the
+      // sub-table template into the provided host; cleanup tears it down.
+      el.expandedRowElement = (host, row) => {
+        render(
+          html`
+            <div style="
+              background: #111112;
+              border-left: 2px solid rgba(34,197,94,0.19);
+              padding: 0 0 0 16px;
+            ">
+              <reke-table
+                borderless
+                dense
+                .columns=${subTradeColumns}
+                .rows=${(row.trades as TableRow[])}
+              ></reke-table>
+            </div>
+          `,
+          host,
+        );
+        return () => render(html``, host);
+      };
 
       // Re-render columns when expand state changes to update chevron
       el.addEventListener('reke-row-expand', () => {
