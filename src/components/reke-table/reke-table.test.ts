@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { html, render } from 'lit';
+import { html } from 'lit';
 import './reke-table.js';
 import type { RekeTable } from './reke-table.js';
 import { runAxe } from '../../test-utils/a11y.js';
@@ -24,9 +24,9 @@ const testColumns = [
 ];
 
 const testRows = [
-  { name: 'Alice', role: 'Engineer' },
-  { name: 'Bob', role: 'Designer' },
-  { name: 'Carol', role: 'Manager' },
+  { id: 'a', name: 'Alice', role: 'Engineer' },
+  { id: 'b', name: 'Bob', role: 'Designer' },
+  { id: 'c', name: 'Carol', role: 'Manager' },
 ];
 
 describe('reke-table', () => {
@@ -112,23 +112,8 @@ describe('reke-table', () => {
     expect(custom).toBeTruthy();
     expect(custom!.textContent).toBe('Alice');
 
-    // Second column still renders plain text
     const cells = el.shadowRoot!.querySelectorAll('.cell');
     expect(cells[1].textContent).toContain('Engineer');
-
-    wrapper.remove();
-  });
-
-  it('does not add extra columns when expandedRowRender is set', async () => {
-    const wrapper = createElement('<reke-table></reke-table>');
-    const el = wrapper.querySelector('reke-table')! as RekeTable;
-    el.columns = testColumns;
-    el.rows = testRows;
-    el.expandedRowRender = () => html`<div>Details</div>`;
-    await waitForUpdate(el);
-
-    const headers = el.shadowRoot!.querySelectorAll('.header-cell');
-    expect(headers.length).toBe(2);
 
     wrapper.remove();
   });
@@ -141,7 +126,6 @@ describe('reke-table', () => {
     el.columns = testColumns;
     el.rows = testRows;
     await waitForUpdate(el);
-    // Wait for slotchange
     await new Promise((r) => setTimeout(r, 50));
     await waitForUpdate(el);
 
@@ -184,6 +168,34 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
+  // Task 1.16: RENDERING — vanilla-DOM expandedRowElement mounts raw <div>
+  it('mounts vanilla DOM into the host via expandedRowElement', async () => {
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    el.expandedRowElement = (host) => {
+      const n = document.createElement('div');
+      n.textContent = 'raw';
+      n.classList.add('vanilla-content');
+      host.appendChild(n);
+      return () => n.remove();
+    };
+    await waitForUpdate(el);
+
+    el.toggleExpand(0);
+    await waitForUpdate(el);
+
+    const expandRow = el.shadowRoot!.querySelector('.expand-row');
+    expect(expandRow).toBeTruthy();
+
+    const content = el.shadowRoot!.querySelector('.vanilla-content');
+    expect(content).toBeTruthy();
+    expect(content!.textContent).toBe('raw');
+
+    wrapper.remove();
+  });
+
   // --- BEHAVIOR ---
 
   it('emits reke-row-click on row click', async () => {
@@ -201,7 +213,7 @@ describe('reke-table', () => {
 
     expect(handler).toHaveBeenCalledOnce();
     const detail = (handler.mock.calls[0][0] as CustomEvent).detail;
-    expect(detail.row).toEqual({ name: 'Alice', role: 'Engineer' });
+    expect(detail.row).toEqual({ id: 'a', name: 'Alice', role: 'Engineer' });
     expect(detail.index).toBe(0);
 
     wrapper.remove();
@@ -227,7 +239,6 @@ describe('reke-table', () => {
       direction: 'asc',
     });
 
-    // Click again to toggle direction
     (headers[0] as HTMLElement).click();
     await waitForUpdate(el);
 
@@ -286,81 +297,47 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
-  it('expands row via toggleExpand()', async () => {
+  it('expands and collapses a row via toggleExpand(index)', async () => {
     const wrapper = createElement('<reke-table></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
     el.columns = testColumns;
     el.rows = testRows;
-    el.expandedRowRender = (row) => html`<div class="detail-content">${row.name} details</div>`;
+    el.expandedRowElement = (host, row) => {
+      const n = document.createElement('div');
+      n.classList.add('detail-content');
+      n.textContent = `${(row as { name: string }).name} details`;
+      host.appendChild(n);
+      return () => n.remove();
+    };
     await waitForUpdate(el);
 
     el.toggleExpand(0);
     await waitForUpdate(el);
 
-    const expandRow = el.shadowRoot!.querySelector('.expand-row');
-    expect(expandRow).toBeTruthy();
-
+    expect(el.shadowRoot!.querySelector('.expand-row')).toBeTruthy();
     const detail = el.shadowRoot!.querySelector('.detail-content');
     expect(detail).toBeTruthy();
     expect(detail!.textContent).toBe('Alice details');
 
-    wrapper.remove();
-  });
-
-  it('collapses row on second toggleExpand()', async () => {
-    const wrapper = createElement('<reke-table></reke-table>');
-    const el = wrapper.querySelector('reke-table')! as RekeTable;
-    el.columns = testColumns;
-    el.rows = testRows;
-    el.expandedRowRender = (row) => html`<div>${row.name} details</div>`;
-    await waitForUpdate(el);
-
     el.toggleExpand(0);
     await waitForUpdate(el);
-    expect(el.shadowRoot!.querySelector('.expand-row')).toBeTruthy();
 
-    el.toggleExpand(0);
-    await waitForUpdate(el);
     expect(el.shadowRoot!.querySelector('.expand-row')).toBeNull();
 
     wrapper.remove();
   });
 
-  it('emits reke-row-expand on expand/collapse', async () => {
+  it('supports multiple simultaneously expanded rows', async () => {
     const wrapper = createElement('<reke-table></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
     el.columns = testColumns;
     el.rows = testRows;
-    el.expandedRowRender = () => html`<div>Details</div>`;
-    await waitForUpdate(el);
-
-    const handler = vi.fn();
-    el.addEventListener('reke-row-expand', handler);
-
-    el.toggleExpand(0);
-    await waitForUpdate(el);
-
-    expect(handler).toHaveBeenCalledOnce();
-    const detail1 = (handler.mock.calls[0][0] as CustomEvent).detail;
-    expect(detail1.index).toBe(0);
-    expect(detail1.expanded).toBe(true);
-
-    el.toggleExpand(0);
-    await waitForUpdate(el);
-
-    expect(handler).toHaveBeenCalledTimes(2);
-    const detail2 = (handler.mock.calls[1][0] as CustomEvent).detail;
-    expect(detail2.expanded).toBe(false);
-
-    wrapper.remove();
-  });
-
-  it('multiple rows can be expanded simultaneously', async () => {
-    const wrapper = createElement('<reke-table></reke-table>');
-    const el = wrapper.querySelector('reke-table')! as RekeTable;
-    el.columns = testColumns;
-    el.rows = testRows;
-    el.expandedRowRender = (row) => html`<div>${row.name}</div>`;
+    el.expandedRowElement = (host, row) => {
+      const n = document.createElement('div');
+      n.textContent = (row as { name: string }).name;
+      host.appendChild(n);
+      return () => n.remove();
+    };
     await waitForUpdate(el);
 
     el.toggleExpand(0);
@@ -374,21 +351,429 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
-  it('isRowExpanded returns correct state', async () => {
+  it('isRowExpanded returns correct state by key', async () => {
     const wrapper = createElement('<reke-table></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
     el.columns = testColumns;
     el.rows = testRows;
-    el.expandedRowRender = () => html`<div>Details</div>`;
+    el.getRowKey = (row) => (row as { id: string }).id;
+    el.expandedRowElement = (host) => {
+      const n = document.createElement('div');
+      host.appendChild(n);
+      return () => n.remove();
+    };
     await waitForUpdate(el);
 
-    expect(el.isRowExpanded(0)).toBe(false);
+    expect(el.isRowExpanded('a')).toBe(false);
+
+    el.toggleExpand('a');
+    await waitForUpdate(el);
+
+    expect(el.isRowExpanded('a')).toBe(true);
+    expect(el.isRowExpanded('b')).toBe(false);
+
+    wrapper.remove();
+  });
+
+  // Task 1.17: BEHAVIOR — collapse runs cleanup exactly once
+  it('collapse runs cleanup exactly once', async () => {
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    const cleanup = vi.fn();
+    el.expandedRowElement = (host) => {
+      host.appendChild(document.createElement('div'));
+      return cleanup;
+    };
+    await waitForUpdate(el);
 
     el.toggleExpand(0);
     await waitForUpdate(el);
+    expect(cleanup).not.toHaveBeenCalled();
 
-    expect(el.isRowExpanded(0)).toBe(true);
-    expect(el.isRowExpanded(1)).toBe(false);
+    el.toggleExpand(0);
+    await waitForUpdate(el);
+    expect(cleanup).toHaveBeenCalledOnce();
+
+    wrapper.remove();
+  });
+
+  // Task 1.18: BEHAVIOR — rapid expand→collapse→expand runs old cleanup BEFORE new mount
+  it('rapid expand→collapse→expand runs old cleanup before new mount', async () => {
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+
+    const order: string[] = [];
+    let mountCount = 0;
+    el.expandedRowElement = (host) => {
+      mountCount += 1;
+      const id = mountCount;
+      order.push(`mount-${id}`);
+      const n = document.createElement('div');
+      host.appendChild(n);
+      return () => {
+        order.push(`cleanup-${id}`);
+        n.remove();
+      };
+    };
+    await waitForUpdate(el);
+
+    el.toggleExpand(0); // expand
+    await waitForUpdate(el);
+    el.toggleExpand(0); // collapse
+    await waitForUpdate(el);
+    el.toggleExpand(0); // re-expand
+    await waitForUpdate(el);
+
+    expect(mountCount).toBe(2);
+    expect(order).toEqual(['mount-1', 'cleanup-1', 'mount-2']);
+
+    wrapper.remove();
+  });
+
+  // Task 1.18b: BEHAVIOR — collapse + re-expand WITHIN THE SAME TASK runs old cleanup before new mount
+  it('same-task collapse then re-expand runs old cleanup before new mount', async () => {
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+
+    const order: string[] = [];
+    let mountCount = 0;
+    el.expandedRowElement = (host) => {
+      mountCount += 1;
+      const id = mountCount;
+      order.push(`mount-${id}`);
+      const n = document.createElement('div');
+      host.appendChild(n);
+      return () => {
+        order.push(`cleanup-${id}`);
+        n.remove();
+      };
+    };
+    await waitForUpdate(el);
+
+    el.toggleExpand(0); // expand
+    await waitForUpdate(el);
+
+    // Collapse and re-expand synchronously, no waitForUpdate between them.
+    el.toggleExpand(0); // collapse — cleanup runs synchronously inside toggleExpand
+    el.toggleExpand(0); // re-expand — mount deferred to updated()
+    await waitForUpdate(el);
+
+    expect(mountCount).toBe(2);
+    expect(order).toEqual(['mount-1', 'cleanup-1', 'mount-2']);
+
+    wrapper.remove();
+  });
+
+  // Task 1.19: BEHAVIOR — removing <reke-table> invokes cleanup for every expanded row once
+  it('disconnectedCallback invokes cleanup for every expanded row once', async () => {
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    el.getRowKey = (row) => (row as { id: string }).id;
+    const cleanups: Record<string, ReturnType<typeof vi.fn>> = {
+      a: vi.fn(),
+      b: vi.fn(),
+    };
+    el.expandedRowElement = (host, _row, key) => {
+      host.appendChild(document.createElement('div'));
+      return cleanups[key as string] as () => void;
+    };
+    await waitForUpdate(el);
+
+    el.toggleExpand('a');
+    await waitForUpdate(el);
+    el.toggleExpand('b');
+    await waitForUpdate(el);
+
+    el.remove();
+    await Promise.resolve();
+
+    expect(cleanups.a).toHaveBeenCalledOnce();
+    expect(cleanups.b).toHaveBeenCalledOnce();
+  });
+
+  // Task 1.20: BEHAVIOR — getRowKey keeps B expanded across [A,B,C] → [B,C,A]
+  it('identity-keyed expand survives row reordering and reuses host', async () => {
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    el.getRowKey = (row) => (row as { id: string }).id;
+
+    let mountCount = 0;
+    const hosts = new Map<string, HTMLElement>();
+    el.expandedRowElement = (host, _row, key) => {
+      mountCount += 1;
+      hosts.set(key as string, host);
+      const n = document.createElement('div');
+      n.classList.add('detail-content');
+      n.dataset.key = key as string;
+      host.appendChild(n);
+      return () => n.remove();
+    };
+    await waitForUpdate(el);
+
+    el.toggleExpand('b');
+    await waitForUpdate(el);
+
+    expect(mountCount).toBe(1);
+    const firstHost = hosts.get('b');
+    expect(firstHost).toBeTruthy();
+
+    // Reorder rows so that the expanded row 'b' ACTUALLY changes index (1 → 0).
+    el.rows = [testRows[1], testRows[2], testRows[0]];
+    await waitForUpdate(el);
+
+    // 'b' still expanded
+    expect(el.isRowExpanded('b')).toBe(true);
+    // Other keys are NOT expanded
+    expect(el.isRowExpanded('a')).toBe(false);
+    expect(el.isRowExpanded('c')).toBe(false);
+    // No remount
+    expect(mountCount).toBe(1);
+    // Host identity preserved (same DOM node reused)
+    expect(hosts.get('b')).toBe(firstHost);
+
+    // Detail content is still in the DOM under the new B row, on the SAME node
+    const detail = el.shadowRoot!.querySelector('.detail-content');
+    expect(detail).toBeTruthy();
+    expect((detail as HTMLElement).dataset.key).toBe('b');
+    expect((firstHost as HTMLElement).contains(detail)).toBe(true);
+
+    wrapper.remove();
+  });
+
+  // Task 1.21: BEHAVIOR — parent re-render with unchanged keys preserves host and skips cleanup
+  it('parent re-render with unchanged keys preserves host and skips cleanup', async () => {
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    el.getRowKey = (row) => (row as { id: string }).id;
+
+    const cleanup = vi.fn();
+    let mountCount = 0;
+    let lastHost: HTMLElement | null = null;
+    el.expandedRowElement = (host) => {
+      mountCount += 1;
+      lastHost = host;
+      host.appendChild(document.createElement('div'));
+      return cleanup;
+    };
+    await waitForUpdate(el);
+
+    el.toggleExpand('b');
+    await waitForUpdate(el);
+
+    expect(mountCount).toBe(1);
+    const hostBefore = lastHost;
+
+    // Trigger an unrelated re-render by changing a non-row property
+    el.striped = true;
+    await waitForUpdate(el);
+    el.striped = false;
+    await waitForUpdate(el);
+
+    expect(mountCount).toBe(1);
+    expect(cleanup).not.toHaveBeenCalled();
+    expect(lastHost).toBe(hostBefore);
+
+    wrapper.remove();
+  });
+
+  // Task 1.22: BEHAVIOR — removing B invokes B's cleanup once and clears caches
+  it('removing an expanded row invokes its cleanup once', async () => {
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    el.getRowKey = (row) => (row as { id: string }).id;
+
+    const cleanup = vi.fn();
+    el.expandedRowElement = (host, _row, key) => {
+      host.appendChild(document.createElement('div'));
+      if (key === 'b') return cleanup;
+      return () => {};
+    };
+    await waitForUpdate(el);
+
+    el.toggleExpand('b');
+    await waitForUpdate(el);
+    expect(cleanup).not.toHaveBeenCalled();
+
+    // Remove row B
+    el.rows = [testRows[0], testRows[2]];
+    await waitForUpdate(el);
+
+    expect(cleanup).toHaveBeenCalledOnce();
+
+    wrapper.remove();
+  });
+
+  // Task 1.22b: BEHAVIOR — removing an expanded row purges expandedRows; re-add renders collapsed
+  it('removing an expanded row purges expand state and re-add does not auto-expand', async () => {
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    el.getRowKey = (row) => (row as { id: string }).id;
+
+    const cleanup = vi.fn();
+    let mountCount = 0;
+    el.expandedRowElement = (host, _row, key) => {
+      if (key === 'b') mountCount += 1;
+      host.appendChild(document.createElement('div'));
+      return key === 'b' ? cleanup : () => {};
+    };
+    await waitForUpdate(el);
+
+    el.toggleExpand('b');
+    await waitForUpdate(el);
+    expect(el.isRowExpanded('b')).toBe(true);
+    expect(mountCount).toBe(1);
+
+    // Remove row B
+    el.rows = [testRows[0], testRows[2]];
+    await waitForUpdate(el);
+
+    // Cleanup fired once AND expand state purged
+    expect(cleanup).toHaveBeenCalledOnce();
+    expect(el.isRowExpanded('b')).toBe(false);
+
+    // Re-add a row with key 'b' — it must render COLLAPSED, not auto-expanded or re-mounted
+    el.rows = [testRows[0], testRows[1], testRows[2]];
+    await waitForUpdate(el);
+
+    expect(el.isRowExpanded('b')).toBe(false);
+    expect(mountCount).toBe(1);
+    expect(el.shadowRoot!.querySelector('.expand-row')).toBeNull();
+
+    wrapper.remove();
+  });
+
+  // Task 1.22c: BEHAVIOR — never-mounted expand key purged when row removed in same tick
+  it('purges a never-mounted expand key removed in the same tick and re-add stays collapsed', async () => {
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    el.getRowKey = (row) => (row as { id: string }).id;
+
+    let mountCount = 0;
+    el.expandedRowElement = (host, _row, key) => {
+      if (key === 'b') mountCount += 1;
+      host.appendChild(document.createElement('div'));
+      return () => {};
+    };
+    await waitForUpdate(el);
+
+    // Expand 'b' and remove 'b' in the SAME tick: 'b' enters expandedRows but its
+    // row never renders, so the host is never created (never enters _hostCache).
+    el.toggleExpand('b');
+    el.rows = [testRows[0], testRows[2]];
+    await waitForUpdate(el);
+
+    // Phantom key must be purged even though it was never mounted.
+    expect(el.isRowExpanded('b')).toBe(false);
+    expect(mountCount).toBe(0);
+    expect(el.shadowRoot!.querySelector('.expand-row')).toBeNull();
+
+    // Re-add a row with key 'b' — must render COLLAPSED and stay unmounted.
+    el.rows = [testRows[0], testRows[1], testRows[2]];
+    await waitForUpdate(el);
+
+    expect(el.isRowExpanded('b')).toBe(false);
+    expect(mountCount).toBe(0);
+    expect(el.shadowRoot!.querySelector('.expand-row')).toBeNull();
+
+    wrapper.remove();
+  });
+
+  // Task 1.23: BEHAVIOR — duplicate getRowKey emits one-shot dev warn; last wins
+  it('duplicate getRowKey values emit a one-shot dev warning and last wins', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = [
+      { id: 'dup', name: 'First', role: 'A' },
+      { id: 'dup', name: 'Last', role: 'B' },
+      { id: 'unique', name: 'Carol', role: 'C' },
+    ];
+    el.getRowKey = (row) => (row as { id: string }).id;
+    el.expandedRowElement = (host, row) => {
+      const n = document.createElement('div');
+      n.classList.add('detail-content');
+      n.textContent = (row as { name: string }).name;
+      host.appendChild(n);
+      return () => n.remove();
+    };
+    await waitForUpdate(el);
+
+    expect(warnSpy).toHaveBeenCalled();
+    const warnMessages = warnSpy.mock.calls.map((c) => String(c[0]));
+    expect(warnMessages.some((m) => m.includes('dup'))).toBe(true);
+
+    // Force a re-render — warning still fires only once for this key
+    const beforeCount = warnSpy.mock.calls.length;
+    el.striped = true;
+    await waitForUpdate(el);
+    expect(warnSpy.mock.calls.length).toBe(beforeCount);
+
+    // Last wins: expanding 'dup' should mount with the "Last" row
+    el.toggleExpand('dup');
+    await waitForUpdate(el);
+
+    const detail = el.shadowRoot!.querySelector('.detail-content');
+    expect(detail).toBeTruthy();
+    expect(detail!.textContent).toBe('Last');
+
+    warnSpy.mockRestore();
+    wrapper.remove();
+  });
+
+  // Task 1.24: BEHAVIOR — reke-row-expand detail includes { row, index, key, expanded }
+  it('reke-row-expand event detail includes row, index, key, expanded', async () => {
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    el.getRowKey = (row) => (row as { id: string }).id;
+    el.expandedRowElement = (host) => {
+      host.appendChild(document.createElement('div'));
+      return () => {};
+    };
+    await waitForUpdate(el);
+
+    const handler = vi.fn();
+    el.addEventListener('reke-row-expand', handler);
+
+    el.toggleExpand('b');
+    await waitForUpdate(el);
+
+    expect(handler).toHaveBeenCalledOnce();
+    const expandDetail = (handler.mock.calls[0][0] as CustomEvent).detail;
+    expect(expandDetail.row).toEqual(testRows[1]);
+    expect(expandDetail.index).toBe(1);
+    expect(expandDetail.key).toBe('b');
+    expect(expandDetail.expanded).toBe(true);
+
+    el.toggleExpand('b');
+    await waitForUpdate(el);
+
+    const collapseDetail = (handler.mock.calls[1][0] as CustomEvent).detail;
+    expect(collapseDetail.row).toEqual(testRows[1]);
+    expect(collapseDetail.index).toBe(1);
+    expect(collapseDetail.key).toBe('b');
+    expect(collapseDetail.expanded).toBe(false);
 
     wrapper.remove();
   });
@@ -432,8 +817,13 @@ describe('reke-table', () => {
     const el = wrapper.querySelector('reke-table')! as RekeTable;
     el.columns = testColumns;
     el.rows = testRows;
-    el.expandedRowRender = (row) => html`<div>${row.name} details</div>`;
-    el.expandedRows = new Set([0]);
+    el.expandedRowElement = (host, row) => {
+      const n = document.createElement('div');
+      n.textContent = `${(row as { name: string }).name} details`;
+      host.appendChild(n);
+      return () => n.remove();
+    };
+    el.toggleExpand(0);
     await waitForUpdate(el);
 
     const results = await runAxe(wrapper);
