@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file. See [commit
 
 ## Unreleased
 
+### Features
+
+* **tokens:** add `--reke-color-input-bg` and `--reke-shadow-input` tokens.
+  `reke-input` and `reke-select` now read their control surface from
+  `--reke-color-input-bg` (defaults to `var(--reke-color-surface)`) and an
+  optional `--reke-shadow-input` (defaults to `none`). The internal
+  `background-color` became `background` so consumers can apply a gradient
+  surface + inset highlight to form controls without touching the shadow DOM.
+  Fully backward-compatible (defaults preserve the flat surface look).
+  Origin: `pnl-track-frontend` import-card redesign (Claude Design handoff).
+
 ### BREAKING CHANGES
 
 * **reke-table:** the legacy `expandedRowRender` prop and the `ExpandedRowRenderer` type export are REMOVED.

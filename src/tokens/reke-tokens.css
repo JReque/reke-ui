@@ -48,6 +48,10 @@
   /* Radii */
   --reke-radius: 4px;
 
+  /* Form control surface (override to theme inputs/selects) */
+  --reke-color-input-bg: var(--reke-color-surface);
+  --reke-shadow-input: none;
+
   /* Scrollbar */
   --reke-scrollbar-thumb: var(--reke-color-text-muted);
   --reke-scrollbar-thumb-hover: var(--reke-color-text-ghost);
