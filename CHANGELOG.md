@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file. Releases are managed automatically by [release-please](https://github.com/googleapis/release-please) from Conventional Commits.
 
+## [0.2.0](https://github.com/JReque/reke-ui/compare/reke-ui-v0.1.2...reke-ui-v0.2.0) (2026-06-24)
+
+
+### Features
+
+* add reke-badge component ([e2d6dc8](https://github.com/JReque/reke-ui/commit/e2d6dc811dff77be29635731fed55ce94e2ac324))
+* add reke-card component ([94add0b](https://github.com/JReque/reke-ui/commit/94add0b522d4857e5c1e7c6124256683e39a7dfc))
+* add reke-checkbox component ([92408eb](https://github.com/JReque/reke-ui/commit/92408eba373d5ee04d99bad4d55db1af1d7e2c32))
+* add reke-dialog component ([d54e7bc](https://github.com/JReque/reke-ui/commit/d54e7bc8ae096413b4a3738a42985804f7f2620c))
+* add reke-input component ([c6494a5](https://github.com/JReque/reke-ui/commit/c6494a576c47890243868918c29b37ae2e6e9c3a))
+* add reke-select component ([4fc2ead](https://github.com/JReque/reke-ui/commit/4fc2eadfd73658cfb0748fb72f91d39808038e7d))
+* add reke-table component ([32e3500](https://github.com/JReque/reke-ui/commit/32e3500d95af4d1b19d5cf65894588547984086c))
+* add reke-textarea component ([b4b9360](https://github.com/JReque/reke-ui/commit/b4b936099594f4db598b699fac9dfc7e6a038948))
+* add reke-toggle component ([b1840a0](https://github.com/JReque/reke-ui/commit/b1840a061c8efc78cff92a1f52418ca17dcfb290))
+* add reke-tooltip component ([f4e22d3](https://github.com/JReque/reke-ui/commit/f4e22d31df614bb2dcc9eeeabc1915f67fa76f61))
+* integrate Tailwind CSS + Vite build + skills system ([55bbde3](https://github.com/JReque/reke-ui/commit/55bbde33a67c6c9aa79810fb2f0a79626cc16371))
+* register all component exports in index.ts and package.json ([be43f45](https://github.com/JReque/reke-ui/commit/be43f4576a198ab0f9986a88f20b0b5198ccf1e5))
+* scaffold reke-ui component library with reke-button ([aefc080](https://github.com/JReque/reke-ui/commit/aefc080105bc774d4553e9a58ad14b20a3ed391d))
+
+
+### Bug Fixes
+
+* remove --provenance flag from npm publish ([4a386c0](https://github.com/JReque/reke-ui/commit/4a386c0983cc542c49c45424b067c2ee646f95f6))
+* remove id-token permission to prevent auto-provenance signing ([087cee9](https://github.com/JReque/reke-ui/commit/087cee9f309bd24123e8e07d86db6c210e170a63))
+* update color values for consistency across components ([cc07b16](https://github.com/JReque/reke-ui/commit/cc07b16459352f79ceb05fab2b775594c7c3907a))
+* update package.json and vite.config.ts for consistent entry points ([1302d1e](https://github.com/JReque/reke-ui/commit/1302d1ea30c67e613a9e66259fc623228d84433f))
+
 ## [0.1.2](https://github.com/JReque/reke-ui/compare/v0.1.1...v0.1.2) (2026-04-20)
 
 
