@@ -2,38 +2,6 @@
 
 All notable changes to this project will be documented in this file. Releases are managed automatically by [release-please](https://github.com/googleapis/release-please) from Conventional Commits.
 
-## [0.2.0](https://github.com/JReque/reke-ui/compare/v0.1.2...v0.2.0) (2026-06-24)
-
-
-### ⚠ BREAKING CHANGES
-
-* **react-bridge:** `expandedRowRender` prop and `ExpandedRowRenderer` type export are removed. Migrate to `expandedRowElement` and pair `expandable=true` with `getRowKey`.
-* **reke-table:** `expandedRowRender` and the `ExpandedRowRenderer` type are removed. Consumers migrate to `expandedRowElement(host, row, key)`. React bridge migration lands in Slice 3.
-
-### Features
-
-* add react-bridge, cli skill installer and skills distribution ([636b57f](https://github.com/JReque/reke-ui/commit/636b57f1dfa5434992780d9dc138ff25bd1a4d7d))
-* **react-bridge:** host-callback expand contract for React ([420df30](https://github.com/JReque/reke-ui/commit/420df30932f0c75d5aac86e13992b303f8d48c17))
-* **reke-table:** complete host-callback feature into dev (Slices 2+3) ([7b2208e](https://github.com/JReque/reke-ui/commit/7b2208e8071a252f7ddb4e43e897f0da22ad18ee))
-* **reke-table:** host-callback expand contract ([1092b65](https://github.com/JReque/reke-ui/commit/1092b65bbb671e94679d394f9074d390bda291be))
-* **reke-table:** opt-in `expandOnRowClick` for pointer-driven row toggle ([0013396](https://github.com/JReque/reke-ui/commit/00133961978cf5f85e461b95ac52b340453bf0ef))
-* **reke-table:** opt-in chevron column with ARIA + keyboard activation ([2ae4d46](https://github.com/JReque/reke-ui/commit/2ae4d4657db55feae8233838d87cbdf020b2c330))
-* **tokens:** add global scrollbar styling with Tailwind 4.3 ([7b41864](https://github.com/JReque/reke-ui/commit/7b418645b2ae64b54ab49e99bd1e7df57d72e17c))
-* **tokens:** professional scrollbar design with WebKit pseudo-elements ([b21b3ba](https://github.com/JReque/reke-ui/commit/b21b3bad498f403cbb6e23bf2fc03269211b77a4))
-* **tokens:** themeable input/select control surface ([586ba85](https://github.com/JReque/reke-ui/commit/586ba85f949645c3cb17b2055a4cf94468d77d43))
-
-
-### Bug Fixes
-
-* **ci:** keep 0.x semantics so breaking changes bump minor not major ([#15](https://github.com/JReque/reke-ui/issues/15)) ([e1a38ca](https://github.com/JReque/reke-ui/commit/e1a38cadcdf1d0e8e277268ac1da0eca34fc0c11))
-* **ci:** scope PR title lint to PRs targeting develop ([#11](https://github.com/JReque/reke-ui/issues/11)) ([c4b7bba](https://github.com/JReque/reke-ui/commit/c4b7bba494bf487996897dcf00eb198f97c56e83))
-* **ci:** use v-prefixed tags without component name in release-please ([#13](https://github.com/JReque/reke-ui/issues/13)) ([dbd2ebf](https://github.com/JReque/reke-ui/commit/dbd2ebfe3c4726b16c3f2725b39c87eaaeab6626))
-* **reke-chip:** a11y test on dark surface + CI test gate on PRs ([ce80f45](https://github.com/JReque/reke-ui/commit/ce80f454ee4fd7a346faa2299061f0da8229f2e6))
-* **reke-chip:** test a11y contrast on the intended dark surface ([74ccdce](https://github.com/JReque/reke-ui/commit/74ccdcefb2701ed1ee8a10e22643461e756dbe7c))
-* **reke-table:** address review — orphan state purge, dev guard, cleanup safety, stable ref ([0ac164d](https://github.com/JReque/reke-ui/commit/0ac164dc45bac5137d0247149bc1dcdaf5fa11a9))
-* **reke-table:** purge phantom expanded keys on row removal (residual C1) ([c6d56aa](https://github.com/JReque/reke-ui/commit/c6d56aa41fbbae9ec5692831bb22269f755a2243))
-* remove a dead `? false : false` ternary in reke-date-range. ([6013ec9](https://github.com/JReque/reke-ui/commit/6013ec959b048f6e061918765ef1ca80f0e4d485))
-
 ## [0.1.2](https://github.com/JReque/reke-ui/compare/v0.1.1...v0.1.2) (2026-04-20)
 
 
