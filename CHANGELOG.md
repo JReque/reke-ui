@@ -1,34 +1,6 @@
 # Changelog
 
-All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
-
-## Unreleased
-
-### Features
-
-* **tokens:** add `--reke-color-input-bg` and `--reke-shadow-input` tokens.
-  `reke-input` and `reke-select` now read their control surface from
-  `--reke-color-input-bg` (defaults to `var(--reke-color-surface)`) and an
-  optional `--reke-shadow-input` (defaults to `none`). The internal
-  `background-color` became `background` so consumers can apply a gradient
-  surface + inset highlight to form controls without touching the shadow DOM.
-  Fully backward-compatible (defaults preserve the flat surface look).
-  Origin: `pnl-track-frontend` import-card redesign (Claude Design handoff).
-
-### BREAKING CHANGES
-
-* **reke-table:** the legacy `expandedRowRender` prop and the `ExpandedRowRenderer` type export are REMOVED.
-  Migrate to the framework-agnostic host-callback contract:
-  `expandedRowElement(host, row, key) => Cleanup | void`. The React bridge
-  (`reke-ui/react` → `Table`) now mounts React directly into the host node
-  via `createRoot` + `flushSync` and returns a cleanup that calls
-  `root.unmount()`. No `TemplateResult` travels through the bridge — this
-  is the definitive fix for the `[object Object]` rendering bug under a
-  duplicated `lit` instance (npm symlink / Module Federation). Pair
-  `expandable=true` with `getRowKey={r => r.id}` for accessible chevron
-  toggling and identity-stable expand state across sorts.
-  Downstream `pnl-track-frontend` migration ticket lives in that repo and
-  depends on this release.
+All notable changes to this project will be documented in this file. Releases are managed automatically by [release-please](https://github.com/googleapis/release-please) from Conventional Commits.
 
 ## [0.1.2](https://github.com/JReque/reke-ui/compare/v0.1.1...v0.1.2) (2026-04-20)
 
