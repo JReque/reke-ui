@@ -2,33 +2,51 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
-## Unreleased
+## 0.2.0 (2026-06-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* **react-bridge:** `expandedRowRender` prop and `ExpandedRowRenderer` type
+export are removed. Migrate to `expandedRowElement` and pair
+`expandable=true` with `getRowKey`.
+* **reke-table:** `expandedRowRender` and the `ExpandedRowRenderer` type are
+removed. Consumers migrate to `expandedRowElement(host, row, key)`. React
+bridge migration lands in Slice 3.
 
 ### Features
 
-* **tokens:** add `--reke-color-input-bg` and `--reke-shadow-input` tokens.
-  `reke-input` and `reke-select` now read their control surface from
-  `--reke-color-input-bg` (defaults to `var(--reke-color-surface)`) and an
-  optional `--reke-shadow-input` (defaults to `none`). The internal
-  `background-color` became `background` so consumers can apply a gradient
-  surface + inset highlight to form controls without touching the shadow DOM.
-  Fully backward-compatible (defaults preserve the flat surface look).
-  Origin: `pnl-track-frontend` import-card redesign (Claude Design handoff).
+* add react-bridge, cli skill installer and skills distribution ([636b57f](https://github.com/JReque/reke-ui/commit/636b57f1dfa5434992780d9dc138ff25bd1a4d7d))
+* add reke-badge component ([e2d6dc8](https://github.com/JReque/reke-ui/commit/e2d6dc811dff77be29635731fed55ce94e2ac324))
+* add reke-card component ([94add0b](https://github.com/JReque/reke-ui/commit/94add0b522d4857e5c1e7c6124256683e39a7dfc))
+* add reke-checkbox component ([92408eb](https://github.com/JReque/reke-ui/commit/92408eba373d5ee04d99bad4d55db1af1d7e2c32))
+* add reke-dialog component ([d54e7bc](https://github.com/JReque/reke-ui/commit/d54e7bc8ae096413b4a3738a42985804f7f2620c))
+* add reke-input component ([c6494a5](https://github.com/JReque/reke-ui/commit/c6494a576c47890243868918c29b37ae2e6e9c3a))
+* add reke-select component ([4fc2ead](https://github.com/JReque/reke-ui/commit/4fc2eadfd73658cfb0748fb72f91d39808038e7d))
+* add reke-table component ([32e3500](https://github.com/JReque/reke-ui/commit/32e3500d95af4d1b19d5cf65894588547984086c))
+* add reke-textarea component ([b4b9360](https://github.com/JReque/reke-ui/commit/b4b936099594f4db598b699fac9dfc7e6a038948))
+* add reke-toggle component ([b1840a0](https://github.com/JReque/reke-ui/commit/b1840a061c8efc78cff92a1f52418ca17dcfb290))
+* add reke-tooltip component ([f4e22d3](https://github.com/JReque/reke-ui/commit/f4e22d31df614bb2dcc9eeeabc1915f67fa76f61))
+* integrate Tailwind CSS + Vite build + skills system ([55bbde3](https://github.com/JReque/reke-ui/commit/55bbde33a67c6c9aa79810fb2f0a79626cc16371))
+* **react-bridge:** host-callback expand contract for React ([7a59153](https://github.com/JReque/reke-ui/commit/7a59153e65d05e990539eba4bef13c7db55f5dd5))
+* register all component exports in index.ts and package.json ([be43f45](https://github.com/JReque/reke-ui/commit/be43f4576a198ab0f9986a88f20b0b5198ccf1e5))
+* **reke-table:** host-callback expand contract ([1092b65](https://github.com/JReque/reke-ui/commit/1092b65bbb671e94679d394f9074d390bda291be))
+* **reke-table:** opt-in `expandOnRowClick` for pointer-driven row toggle ([efc15e3](https://github.com/JReque/reke-ui/commit/efc15e37d6ae86a28e9589d80effaabbbaf6b647))
+* **reke-table:** opt-in chevron column with ARIA + keyboard activation ([5799269](https://github.com/JReque/reke-ui/commit/5799269aece1e918e82d8daaf38717707c0b642d))
+* scaffold reke-ui component library with reke-button ([aefc080](https://github.com/JReque/reke-ui/commit/aefc080105bc774d4553e9a58ad14b20a3ed391d))
+* **tokens:** add global scrollbar styling with Tailwind 4.3 ([6fb6735](https://github.com/JReque/reke-ui/commit/6fb6735956e99b9492810387d5b7aa29bd4d9130))
+* **tokens:** professional scrollbar design with WebKit pseudo-elements ([c233750](https://github.com/JReque/reke-ui/commit/c2337507c345f705e041d93ea28eaf34561186d8))
+* **tokens:** themeable input/select control surface ([0316efb](https://github.com/JReque/reke-ui/commit/0316efb0708d8d85ea48ff11bd455121e3293b31))
 
-### BREAKING CHANGES
 
-* **reke-table:** the legacy `expandedRowRender` prop and the `ExpandedRowRenderer` type export are REMOVED.
-  Migrate to the framework-agnostic host-callback contract:
-  `expandedRowElement(host, row, key) => Cleanup | void`. The React bridge
-  (`reke-ui/react` → `Table`) now mounts React directly into the host node
-  via `createRoot` + `flushSync` and returns a cleanup that calls
-  `root.unmount()`. No `TemplateResult` travels through the bridge — this
-  is the definitive fix for the `[object Object]` rendering bug under a
-  duplicated `lit` instance (npm symlink / Module Federation). Pair
-  `expandable=true` with `getRowKey={r => r.id}` for accessible chevron
-  toggling and identity-stable expand state across sorts.
-  Downstream `pnl-track-frontend` migration ticket lives in that repo and
-  depends on this release.
+### Bug Fixes
+
+* **reke-table:** address review — orphan state purge, dev guard, cleanup safety, stable ref ([2f59569](https://github.com/JReque/reke-ui/commit/2f595698ce0f8d29f3b426e216269e25bf5e6de2))
+* **reke-table:** purge phantom expanded keys on row removal (residual C1) ([c8e3c97](https://github.com/JReque/reke-ui/commit/c8e3c9730bc21a136d4a2435061c39521d690420))
+* remove --provenance flag from npm publish ([4a386c0](https://github.com/JReque/reke-ui/commit/4a386c0983cc542c49c45424b067c2ee646f95f6))
+* remove id-token permission to prevent auto-provenance signing ([087cee9](https://github.com/JReque/reke-ui/commit/087cee9f309bd24123e8e07d86db6c210e170a63))
+* update color values for consistency across components ([cc07b16](https://github.com/JReque/reke-ui/commit/cc07b16459352f79ceb05fab2b775594c7c3907a))
+* update package.json and vite.config.ts for consistent entry points ([1302d1e](https://github.com/JReque/reke-ui/commit/1302d1ea30c67e613a9e66259fc623228d84433f))
 
 ## [0.1.2](https://github.com/JReque/reke-ui/compare/v0.1.1...v0.1.2) (2026-04-20)
 
