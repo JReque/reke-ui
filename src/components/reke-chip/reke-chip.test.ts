@@ -153,6 +153,10 @@ describe('reke-chip', () => {
 
   it('passes axe-core a11y audit', async () => {
     const wrapper = createElement('<reke-chip>Accessible</reke-chip>');
+    // reke-ui is a dark design system; chips render the ghost text token on a
+    // dark surface. Give axe the intended background so contrast is measured
+    // against the real usage context, not the white test canvas.
+    wrapper.style.background = '#0A0A0A';
     const el = wrapper.querySelector('reke-chip')! as RekeChip;
     await waitForUpdate(el);
 
