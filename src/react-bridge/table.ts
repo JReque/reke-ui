@@ -1,30 +1,16 @@
 /**
- * React-native wrapper around `reke-table`.
+ * React wrapper around `reke-table`.
  *
- * Why this exists:
- * The underlying `<reke-table>` web component (Lit) accepts render functions
- * that return `TemplateResult | string`. Exposing that contract directly to
- * React consumers leaks Lit into application code and breaks the workspace
- * rule "do not rely on reke-ui web components for reactivity — only consume
- * tokens / structural elements". This wrapper hides the bridge so React apps
- * pass plain `React.ReactNode` everywhere.
+ * Lets React consumers pass `React.ReactNode` for cells and expanded rows
+ * while the underlying Lit element gets raw DOM nodes (cells) and a
+ * `expandedRowElement(host, row, key) => Cleanup` host callback (expand).
  *
- * How the bridge works:
- *  - For each cell render or expanded-row render, we maintain a host `<div>`
- *    keyed by a stable id (`getRowKey(row, i)` for rows, plus column key for
- *    cells).
- *  - We mount a React root into the host (`createRoot` + `flushSync`) with
- *    the user's `ReactNode`.
- *  - We return a Lit `html\`${host}\`` template — Lit accepts raw DOM nodes
- *    in interpolation, so the host is moved into the table cell unchanged.
- *  - On unmount we tear down every root.
- *
- * Backward compatibility:
- * If a render function returns a string or a `TemplateResult` (anything that
- * is not a valid React element), it is passed through untouched.
+ * Returning raw DOM nodes instead of `html\`${host}\`` is deliberate: a
+ * `TemplateResult` from a duplicated `lit` instance (npm symlink, Module
+ * Federation) fails Lit's brand check and renders as `[object Object]`.
  */
 import { createComponent, type EventName } from '@lit/react';
-import { html, type TemplateResult } from 'lit';
+import type { TemplateResult } from 'lit';
 import React, { useEffect, useMemo, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { flushSync } from 'react-dom';
@@ -54,7 +40,7 @@ export interface ReactTableColumn<TRow extends TableRow = TableRow>
   extends Omit<TableColumn, 'render'> {
   /**
    * Cell renderer. Return any of:
-   *  - `ReactNode` (JSX) — bridged via React root
+   *  - `ReactNode` (JSX) — bridged via React root, returned to Lit as a raw DOM node
    *  - `Node` / `HTMLElement` — passed through (escape hatch for hand-built DOM)
    *  - `string` / `TemplateResult` — passed through (Lit-native)
    */
@@ -65,10 +51,11 @@ export interface ReactTableColumn<TRow extends TableRow = TableRow>
   ) => React.ReactNode | TemplateResult | string | Node;
 }
 
+/** Expanded-row renderer. Return any `React.ReactNode`. */
 export type ReactExpandedRowRenderer<TRow extends TableRow = TableRow> = (
   row: TRow,
-  index: number,
-) => React.ReactNode | TemplateResult | Node;
+  key: RowKey,
+) => React.ReactNode;
 
 export interface TableProps<TRow extends TableRow = TableRow> {
   columns: ReactTableColumn<TRow>[];
@@ -78,44 +65,54 @@ export interface TableProps<TRow extends TableRow = TableRow> {
   hoverable?: boolean;
   bordered?: boolean;
   borderless?: boolean;
+  /** Opt-in: render a leading chevron column with built-in a11y + keyboard activation. */
+  expandable?: boolean;
+  /** Opt-in: clicking a row toggles expand. The chevron, if present, calls `stopPropagation()`. */
+  expandOnRowClick?: boolean;
   sortKey?: string;
   sortDirection?: 'asc' | 'desc';
   expandedRowRender?: ReactExpandedRowRenderer<TRow>;
   expandedRows?: Set<RowKey>;
   /**
-   * Returns a stable identifier for a row, used to key React roots for
-   * expanded content and cell renderers. Defaults to the row index, which
-   * works but causes remounts on sort. Prefer a domain id (e.g. `row.id`).
+   * Returns a stable identifier for a row. Defaults to the row index (which
+   * causes remounts on sort). Prefer a domain id (e.g. `r => r.id`) so the
+   * expanded React root survives sorts, filters, and unrelated re-renders.
    */
-  getRowKey?: (row: TRow, index: number) => string | number;
+  getRowKey?: (row: TRow, index: number) => RowKey;
   onRekeRowClick?: (e: CustomEvent<{ row: unknown; index: number }>) => void;
   onRekeSort?: (e: CustomEvent<{ key: string; direction: 'asc' | 'desc' }>) => void;
   onRekeRowExpand?: (e: CustomEvent<{ row: unknown; index: number; key: RowKey; expanded: boolean }>) => void;
   children?: React.ReactNode;
 }
 
-type HostEntry = { root: Root; host: HTMLDivElement };
+type CellHostEntry = { root: Root; host: HTMLDivElement };
 
-function isReactRenderable(value: unknown): value is React.ReactNode {
-  if (value === null || value === undefined) return false;
-  if (typeof value === 'string' || typeof value === 'number') return false;
-  // Raw DOM nodes are passed through (Lit accepts them in interpolation)
-  if (value instanceof Node) return false;
-  if (React.isValidElement(value)) return true;
-  // Arrays / fragments of React nodes also qualify
-  if (Array.isArray(value)) return value.some(React.isValidElement);
+/** Strings, numbers, raw nodes and `TemplateResult`s go to Lit untouched; everything else mounts via a React root. */
+function passThroughNonReact(value: unknown): boolean {
+  if (value === null || value === undefined) return true;
+  if (typeof value === 'string' || typeof value === 'number') return true;
+  if (value instanceof Node) return true;
   return false;
 }
 
-function renderIntoHost(entry: HostEntry, element: React.ReactNode): void {
-  // flushSync so the host has committed DOM before Lit attaches it.
-  // Guarded: throws if invoked during another React render — fall back to async.
+function renderIntoRoot(root: Root, element: React.ReactNode): void {
+  // flushSync commits the host's DOM before Lit reads it. It throws if called
+  // mid-render, so fall back to async render in that case.
   try {
     flushSync(() => {
-      entry.root.render(element as React.ReactElement);
+      root.render(element as React.ReactElement);
     });
   } catch {
-    entry.root.render(element as React.ReactElement);
+    root.render(element as React.ReactElement);
+  }
+}
+
+/** Unmounting an already-unmounted root throws; swallow it. */
+function safeUnmount(root: Root): void {
+  try {
+    root.unmount();
+  } catch {
+    /* already unmounted */
   }
 }
 
@@ -132,41 +129,77 @@ function TableInner<TRow extends TableRow = TableRow>(
     ...rest
   } = props;
 
-  // Stable host map across renders. Key format:
-  //   `${rowKey}::cell::${colKey}` for cells
-  //   `${rowKey}::expanded`        for expanded rows
-  const hostsRef = useRef<Map<string, HostEntry>>(new Map());
-  // Tracks which keys were used in the current render, so we can GC stale roots.
-  const usedKeysRef = useRef<Set<string>>(new Set());
+  // Cell roots, keyed `${rowKey}::cell::${colKey}`. Stable across re-renders
+  // so sort/filter that preserve rowKey don't remount roots.
+  const cellHostsRef = useRef<Map<string, CellHostEntry>>(new Map());
+  const usedCellKeysRef = useRef<Set<string>>(new Set());
 
-  // Cleanup all roots on unmount.
+  // Expand roots, keyed by row key. The host comes from the core component's
+  // callback, so we only cache the Root here.
+  const expandRootsRef = useRef<Map<string, Root>>(new Map());
+
+  // The element captures `expandedRowElement` once, but we want the latest
+  // renderer closure on every commit without remounting. The cached callback
+  // reads this ref instead of closing over the prop.
+  const expandRenderRef = useRef<ReactExpandedRowRenderer<TRow> | undefined>(expandedRowRender);
+  expandRenderRef.current = expandedRowRender;
+
+  // Re-render open expand roots after each commit so they reflect the latest
+  // renderer/props instead of stale content.
   useEffect(() => {
-    const hosts = hostsRef.current;
+    if (!expandedRowRender) return;
+    const roots = expandRootsRef.current;
+    for (const [key, root] of roots) {
+      // ponytail: linear scan; rows are small. Index by key if tables grow large.
+      let row: TRow | undefined;
+      for (let i = 0; i < rows.length; i += 1) {
+        const r = rows[i];
+        const k = String(getRowKey ? getRowKey(r, i) : i);
+        if (k === key) {
+          row = r;
+          break;
+        }
+      }
+      if (!row) continue;
+      const out = expandedRowRender(row, key);
+      if (passThroughNonReact(out)) continue;
+      renderIntoRoot(root, out);
+    }
+  });
+
+  // Unmount all roots (cells + expands) when the bridge unmounts.
+  useEffect(() => {
+    const cells = cellHostsRef.current;
+    const expands = expandRootsRef.current;
     return () => {
-      for (const { root } of hosts.values()) root.unmount();
-      hosts.clear();
+      for (const { root } of cells.values()) safeUnmount(root);
+      cells.clear();
+      for (const root of expands.values()) safeUnmount(root);
+      expands.clear();
     };
   }, []);
 
   const rowKeyOf = (row: TRow, i: number): string =>
     String(getRowKey ? getRowKey(row, i) : i);
 
-  const getOrCreateHost = (key: string): HostEntry => {
-    let entry = hostsRef.current.get(key);
+  const getOrCreateCellHost = (key: string): CellHostEntry => {
+    let entry = cellHostsRef.current.get(key);
     if (!entry) {
       const host = document.createElement('div');
+      // display: contents so the host adds no layout box — React children
+      // render as direct children of the <td>.
+      host.style.cssText = 'display: contents;';
       const root = createRoot(host);
       entry = { root, host };
-      hostsRef.current.set(key, entry);
+      cellHostsRef.current.set(key, entry);
     }
-    usedKeysRef.current.add(key);
+    usedCellKeysRef.current.add(key);
     return entry;
   };
 
-  // Reset usage tracker before computing this render's outputs.
-  usedKeysRef.current = new Set();
+  usedCellKeysRef.current = new Set();
 
-  // Wrap columns so the underlying element gets Lit-shaped renders.
+  // Wrap columns so React cell renderers return raw DOM nodes to Lit.
   const wrappedColumns = useMemo<TableColumn[]>(
     () =>
       columns.map((col) => {
@@ -175,61 +208,68 @@ function TableInner<TRow extends TableRow = TableRow>(
           ...col,
           render: (value: unknown, row: TableRow, index: number) => {
             const out = col.render?.(value, row as TRow, index);
-            if (!isReactRenderable(out)) {
-              // string | TemplateResult | null | undefined → pass through
-              return (out ?? '') as TemplateResult | string;
+            if (passThroughNonReact(out)) {
+              return (out ?? '') as TemplateResult | string | Node;
             }
             const key = `${rowKeyOf(row as TRow, index)}::cell::${col.key}`;
-            const entry = getOrCreateHost(key);
-            renderIntoHost(entry, out);
-            return html`${entry.host}`;
+            const entry = getOrCreateCellHost(key);
+            renderIntoRoot(entry.root, out as React.ReactNode);
+            return entry.host;
           },
         } satisfies TableColumn;
       }),
-    // Re-wrap whenever the column set or rowKey strategy changes.
-    // We do NOT depend on rows: stable rowKeys keep hosts stable across data updates.
+    // Host map is stable across rows changes, so only columns/rowKey matter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [columns, getRowKey],
   );
 
-  // Transitional adapter: wrap the React-flavored `expandedRowRender` prop into
-  // an `expandedRowElement(host, row, key)` host-callback that the underlying
-  // element now requires. Slice 3 will rewrite this with createRoot + flushSync
-  // + key-stable unmount; for now we route through the same React-root host map
-  // used for cells so existing consumers keep working.
-  const wrappedExpandedElement = useMemo<ExpandedRowElement | null>(() => {
-    if (!expandedRowRender) return null;
+  // expandedRowElement callback: mount a React root into the host the core
+  // component owns, cache it by key, return a cleanup that unmounts it.
+  const wrappedExpandedElement = useMemo<ExpandedRowElement | undefined>(() => {
+    if (!expandedRowRender) return undefined;
     return (host, row, key) => {
-      const out = expandedRowRender(row as TRow, key as unknown as number);
-      const mapKey = `${String(key)}::expanded`;
-      if (!isReactRenderable(out)) {
-        // Plain Node / string / TemplateResult fallback.
-        if (out instanceof Node) {
-          host.appendChild(out);
-          return () => {
-            if (out.parentNode === host) host.removeChild(out);
-          };
-        }
-        return undefined;
+      const callback = expandRenderRef.current;
+      if (!callback) return undefined;
+      const mapKey = String(key);
+      // Reuse a root if one already exists (defensive: core usually cleans up first).
+      let root = expandRootsRef.current.get(mapKey);
+      if (!root) {
+        root = createRoot(host);
+        expandRootsRef.current.set(mapKey, root);
       }
-      const entry = getOrCreateHost(mapKey);
-      renderIntoHost(entry, out);
-      host.appendChild(entry.host);
+      const out = callback(row as TRow, key);
+      if (!passThroughNonReact(out)) {
+        renderIntoRoot(root, out);
+      } else if (out instanceof Node) {
+        host.appendChild(out);
+        return () => {
+          if (out.parentNode === host) host.removeChild(out);
+        };
+      } else if (typeof out === 'string' || typeof out === 'number') {
+        host.textContent = String(out);
+        return () => {
+          host.textContent = '';
+        };
+      }
       return () => {
-        if (entry.host.parentNode === host) host.removeChild(entry.host);
+        const cached = expandRootsRef.current.get(mapKey);
+        if (cached) {
+          safeUnmount(cached);
+          expandRootsRef.current.delete(mapKey);
+        }
       };
     };
+    // Identity flips only on toggle on/off; closure updates go via expandRenderRef.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [expandedRowRender, getRowKey]);
+  }, [!!expandedRowRender]);
 
-  // GC roots that were not used this render (e.g. row removed, sort changed key).
-  // Defer to a microtask so Lit has finished consuming the previous render's hosts.
+  // GC cell roots not used in this render (column or row removed).
   useEffect(() => {
-    const used = usedKeysRef.current;
-    const hosts = hostsRef.current;
+    const used = usedCellKeysRef.current;
+    const hosts = cellHostsRef.current;
     for (const [key, entry] of hosts) {
       if (!used.has(key)) {
-        entry.root.unmount();
+        safeUnmount(entry.root);
         hosts.delete(key);
       }
     }
@@ -242,17 +282,24 @@ function TableInner<TRow extends TableRow = TableRow>(
       ref,
       columns: wrappedColumns,
       rows: rows as TableRow[],
-      expandedRowElement: wrappedExpandedElement ?? undefined,
+      expandedRowElement: wrappedExpandedElement,
       getRowKey: getRowKey as ((row: TableRow, index: number) => RowKey) | undefined,
     } as unknown as React.ComponentProps<typeof RawTable>,
     children,
   );
 }
 
-// forwardRef preserves the generic TRow signature for consumers.
+// forwardRef cast preserves the generic TRow signature.
 export const Table = React.forwardRef(TableInner) as <TRow extends TableRow = TableRow>(
   props: TableProps<TRow> & { ref?: React.Ref<RekeTable> },
 ) => React.ReactElement;
 
 export { RekeTable } from '../components/reke-table/reke-table.js';
-export type { TableColumn, TableRow } from '../components/reke-table/reke-table.js';
+export type {
+  TableColumn,
+  TableRow,
+  RowKey,
+  Cleanup,
+  ExpandedRowElement,
+  GetRowKey,
+} from '../components/reke-table/reke-table.js';

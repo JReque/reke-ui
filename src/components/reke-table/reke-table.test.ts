@@ -168,7 +168,6 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
-  // Task 1.16: RENDERING — vanilla-DOM expandedRowElement mounts raw <div>
   it('mounts vanilla DOM into the host via expandedRowElement', async () => {
     const wrapper = createElement('<reke-table></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
@@ -375,7 +374,35 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
-  // Task 1.17: BEHAVIOR — collapse runs cleanup exactly once
+  it('vanilla-DOM expandedRowElement cleanup removes the appended node on collapse', async () => {
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    el.expandedRowElement = (host) => {
+      const n = document.createElement('div');
+      n.textContent = 'raw';
+      n.classList.add('vanilla-cleanup-test');
+      host.appendChild(n);
+      return () => n.remove();
+    };
+    await waitForUpdate(el);
+
+    el.toggleExpand(0);
+    await waitForUpdate(el);
+    expect(el.shadowRoot!.querySelector('.vanilla-cleanup-test')).toBeTruthy();
+
+    el.toggleExpand(0);
+    await waitForUpdate(el);
+    // The vanilla-DOM node returned by `cleanup` removed itself, so it MUST
+    // no longer be in the shadow DOM.
+    expect(el.shadowRoot!.querySelector('.vanilla-cleanup-test')).toBeNull();
+    // And the expand `<tr>` is gone entirely.
+    expect(el.shadowRoot!.querySelector('.expand-row')).toBeNull();
+
+    wrapper.remove();
+  });
+
   it('collapse runs cleanup exactly once', async () => {
     const wrapper = createElement('<reke-table></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
@@ -399,7 +426,6 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
-  // Task 1.18: BEHAVIOR — rapid expand→collapse→expand runs old cleanup BEFORE new mount
   it('rapid expand→collapse→expand runs old cleanup before new mount', async () => {
     const wrapper = createElement('<reke-table></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
@@ -434,7 +460,6 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
-  // Task 1.18b: BEHAVIOR — collapse + re-expand WITHIN THE SAME TASK runs old cleanup before new mount
   it('same-task collapse then re-expand runs old cleanup before new mount', async () => {
     const wrapper = createElement('<reke-table></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
@@ -470,7 +495,6 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
-  // Task 1.19: BEHAVIOR — removing <reke-table> invokes cleanup for every expanded row once
   it('disconnectedCallback invokes cleanup for every expanded row once', async () => {
     const wrapper = createElement('<reke-table></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
@@ -499,7 +523,6 @@ describe('reke-table', () => {
     expect(cleanups.b).toHaveBeenCalledOnce();
   });
 
-  // Task 1.20: BEHAVIOR — getRowKey keeps B expanded across [A,B,C] → [B,C,A]
   it('identity-keyed expand survives row reordering and reuses host', async () => {
     const wrapper = createElement('<reke-table></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
@@ -550,7 +573,6 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
-  // Task 1.21: BEHAVIOR — parent re-render with unchanged keys preserves host and skips cleanup
   it('parent re-render with unchanged keys preserves host and skips cleanup', async () => {
     const wrapper = createElement('<reke-table></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
@@ -588,7 +610,6 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
-  // Task 1.22: BEHAVIOR — removing B invokes B's cleanup once and clears caches
   it('removing an expanded row invokes its cleanup once', async () => {
     const wrapper = createElement('<reke-table></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
@@ -617,7 +638,6 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
-  // Task 1.22b: BEHAVIOR — removing an expanded row purges expandedRows; re-add renders collapsed
   it('removing an expanded row purges expand state and re-add does not auto-expand', async () => {
     const wrapper = createElement('<reke-table></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
@@ -658,7 +678,6 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
-  // Task 1.22c: BEHAVIOR — never-mounted expand key purged when row removed in same tick
   it('purges a never-mounted expand key removed in the same tick and re-add stays collapsed', async () => {
     const wrapper = createElement('<reke-table></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
@@ -696,7 +715,6 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
-  // Task 1.23: BEHAVIOR — duplicate getRowKey emits one-shot dev warn; last wins
   it('duplicate getRowKey values emit a one-shot dev warning and last wins', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -740,7 +758,6 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
-  // Task 1.24: BEHAVIOR — reke-row-expand detail includes { row, index, key, expanded }
   it('reke-row-expand event detail includes row, index, key, expanded', async () => {
     const wrapper = createElement('<reke-table></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
@@ -836,10 +853,8 @@ describe('reke-table', () => {
   });
 
   // ============================================================
-  // Slice 2 — Opt-In Chevron Column + A11y
   // ============================================================
 
-  // Task 2.9: RENDERING — without `expandable`, no leading column and no chevron button
   it('chevron OFF: no leading toggle column or chevron button is rendered', async () => {
     const wrapper = createElement('<reke-table></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
@@ -859,7 +874,6 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
-  // Task 2.7: RENDERING + ACCESSIBILITY — chevron ON renders accessible toggle per row
   it('chevron ON: renders a leading <button> per row with aria-expanded and aria-controls', async () => {
     const wrapper = createElement('<reke-table expandable></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
@@ -902,7 +916,6 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
-  // Task 2.7/2.8: RENDERING — aria-expanded flips when row expands; axe stays clean
   it('chevron ON: aria-expanded reflects expanded state and axe stays clean when expanded', async () => {
     const wrapper = createElement('<reke-table expandable></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
@@ -947,7 +960,6 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
-  // Task 2.8: ACCESSIBILITY — Enter and Space toggle expand state
   it('chevron ON: Enter and Space activate the toggle button', async () => {
     const wrapper = createElement('<reke-table expandable></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
@@ -989,7 +1001,6 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
-  // Task 2.10: BEHAVIOR — chevron click fires reke-row-expand with correct detail.key
   it('chevron click fires reke-row-expand with the correct row key', async () => {
     const wrapper = createElement('<reke-table expandable></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
@@ -1021,7 +1032,6 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
-  // Task 2.10b: BEHAVIOR — chevron click does NOT also fire reke-row-click (no row bubbling)
   it('chevron click does not also trigger reke-row-click', async () => {
     const wrapper = createElement('<reke-table expandable></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
@@ -1048,7 +1058,6 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
-  // Task 2.11: ACCESSIBILITY — runAxe() passes on empty table with expandable=true
   it('chevron ON: passes a11y audit on an empty table', async () => {
     const wrapper = createElement('<reke-table expandable></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
@@ -1064,7 +1073,6 @@ describe('reke-table', () => {
   });
 
   // ============================================================
-  // Slice 2 addendum — `expandOnRowClick` opt-in
   // ============================================================
 
   // BEHAVIOR — `expandOnRowClick=true` toggles expand on row click
