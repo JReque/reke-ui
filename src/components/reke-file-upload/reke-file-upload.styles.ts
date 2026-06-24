@@ -82,7 +82,7 @@ export const styles = [
     .text__secondary {
       font-family: var(--reke-font-mono, 'JetBrains Mono', ui-monospace, monospace);
       font-size: var(--reke-font-size-2xs, 11px);
-      color: var(--reke-color-text-disabled, #3b3b3b);
+      color: var(--reke-color-text-ghost, #7A7A7A);
     }
 
     .text__file {

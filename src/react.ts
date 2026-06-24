@@ -11,7 +11,6 @@ import { RekeCard } from './components/reke-card/reke-card.js';
 import { RekeTooltip } from './components/reke-tooltip/reke-tooltip.js';
 import { RekeDialog } from './components/reke-dialog/reke-dialog.js';
 import { RekeSelect } from './components/reke-select/reke-select.js';
-import { RekeTable } from './components/reke-table/reke-table.js';
 import { RekeDateRange } from './components/reke-date-range/reke-date-range.js';
 import { RekeFileUpload } from './components/reke-file-upload/reke-file-upload.js';
 import { RekeAlert } from './components/reke-alert/reke-alert.js';
@@ -101,16 +100,14 @@ export const Select = createComponent({
   },
 });
 
-export const Table = createComponent({
-  tagName: 'reke-table',
-  elementClass: RekeTable,
-  react: React,
-  events: {
-    onRekeRowClick: 'reke-row-click' as EventName<CustomEvent<{ row: unknown; index: number }>>,
-    onRekeSort: 'reke-sort' as EventName<CustomEvent<{ key: string; direction: 'asc' | 'desc' }>>,
-    onRekeRowExpand: 'reke-row-expand' as EventName<CustomEvent<{ row: unknown; index: number; expanded: boolean }>>,
-  },
-});
+export { Table } from './react-bridge/table.js';
+export type {
+  TableProps,
+  ReactTableColumn,
+  ReactExpandedRowRenderer,
+  TableColumn,
+  TableRow,
+} from './react-bridge/table.js';
 
 export const DateRange = createComponent({
   tagName: 'reke-date-range',

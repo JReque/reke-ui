@@ -21,7 +21,7 @@ export const styles = [
       display: block;
       margin-bottom: 6px;
       font-size: 12px;
-      color: var(--reke-color-text-ghost, #737373);
+      color: var(--reke-color-text-ghost, #7A7A7A);
       transition: color 0.15s ease;
     }
 
@@ -49,7 +49,7 @@ export const styles = [
     }
 
     .trigger:hover {
-      border-color: var(--reke-color-text-muted, #525252);
+      border-color: var(--reke-color-border-hover, #3A3A3A);
     }
 
     .trigger--open {
@@ -166,7 +166,7 @@ export const styles = [
       border: none;
       border-radius: var(--reke-radius, 4px);
       background: transparent;
-      color: var(--reke-color-text-muted, #525252);
+      color: var(--reke-color-text-ghost, #7A7A7A);
       cursor: pointer;
       font-family: inherit;
     }
@@ -174,6 +174,11 @@ export const styles = [
     .calendar__nav-btn:hover {
       color: var(--reke-color-text, #E5E5E5);
       background: color-mix(in srgb, var(--reke-color-surface, #1A1A1A) 75%, var(--reke-color-border, #252525));
+    }
+
+    .calendar__nav-btn:focus-visible {
+      outline: 2px solid var(--reke-color-primary, #22C55E);
+      outline-offset: 2px;
     }
 
     .calendar__nav-btn svg {
@@ -198,7 +203,7 @@ export const styles = [
       text-align: center;
       font-size: 9px;
       font-weight: 600;
-      color: var(--reke-color-text-disabled, #3B3B3B);
+      color: var(--reke-color-text-label, #8A8A8A);
       padding: 4px 0;
       text-transform: uppercase;
     }
@@ -231,8 +236,13 @@ export const styles = [
       background: color-mix(in srgb, var(--reke-color-surface, #1A1A1A) 70%, var(--reke-color-border, #252525));
     }
 
+    .calendar__day:focus-visible {
+      outline: 2px solid var(--reke-color-primary, #22C55E);
+      outline-offset: -2px;
+    }
+
     .calendar__day--other {
-      color: var(--reke-color-text-disabled, #3B3B3B);
+      color: var(--reke-color-text-ghost, #7A7A7A);
     }
 
     .calendar__day--today {
@@ -308,8 +318,14 @@ export const styles = [
       text-decoration: underline;
     }
 
+    .calendar__action--today:focus-visible,
+    .calendar__action--clear:focus-visible {
+      outline: 2px solid var(--reke-color-primary, #22C55E);
+      outline-offset: 2px;
+    }
+
     .calendar__action--clear {
-      color: var(--reke-color-text-muted, #525252);
+      color: var(--reke-color-text-label, #8A8A8A);
       font-weight: 400;
     }
 

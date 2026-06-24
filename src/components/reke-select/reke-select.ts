@@ -121,6 +121,7 @@ export class RekeSelect extends RekeElement {
         ?disabled=${this.disabled}
         aria-expanded=${this._open}
         aria-haspopup="listbox"
+        aria-invalid=${this.error}
         aria-label=${this.label || nothing}
         @click=${this.handleTriggerClick}
       >

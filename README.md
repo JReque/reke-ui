@@ -106,6 +106,8 @@ function App() {
 }
 ```
 
+> **Components with render props** (e.g. `Table` with `expandedRowRender` or `columns[].render`) use a React-native bridge: return `ReactNode` (JSX), pass `getRowKey` for stable keying, and never `import { html } from 'lit'` in app code. See `README-DOC.md` → reke-table → React usage, or install the agent skills below for the full contract.
+
 ### Vanilla JS
 
 ```html
@@ -145,6 +147,25 @@ Override any CSS custom property to match your brand:
 ```
 
 See all available tokens in [`src/tokens/reke-tokens.css`](src/tokens/reke-tokens.css).
+
+## Agent skills
+
+reke-ui ships **LLM-first skills** that teach AI coding agents how to consume the library correctly (3-layer token system, component APIs, React bridge contract for components with render props).
+
+```bash
+npm install reke-ui
+npx reke-ui install-skills
+```
+
+This copies three consumer skills into your project's `.claude/skills/` directory:
+
+- `reke-ui-consumer` — install, imports, framework integration, full component reference, React bridge contract
+- `reke-design-system` — 3-layer token architecture for Tailwind v4 projects (microfrontend-safe scoping)
+- `reke-bridge` — when and how to bridge web components to your framework (React today; pattern documented for Vue/Svelte)
+
+After install, ask your agent to refresh its skill index: **"update skill registry"** (or **"actualizá las skills"**). The agent will then know how to use reke-ui idiomatically — no more guessing or copy-pasted anti-patterns.
+
+Options: `--force` reinstalls even if versions match, `--dry-run` previews without writing files.
 
 ## Development
 
