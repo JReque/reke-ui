@@ -16,14 +16,7 @@ const meta: Meta<ButtonArgs> = {
   argTypes: {
     variant: {
       control: 'select',
-      options: [
-        'primary',
-        'secondary',
-        'ghost',
-        'danger',
-        'danger-outline',
-        'icon-only',
-      ],
+      options: ['primary', 'secondary', 'ghost', 'danger', 'danger-outline', 'icon-only'],
     },
     size: {
       control: 'select',

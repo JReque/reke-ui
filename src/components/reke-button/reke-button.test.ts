@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import './reke-button.js';
-import type { RekeButton } from './reke-button.js';
 import { runAxe } from '../../test-utils/a11y.js';
+import type { RekeButton } from './reke-button.js';
 
 function createElement(html: string): HTMLElement {
   const wrapper = document.createElement('div');
@@ -66,9 +66,7 @@ describe('reke-button', () => {
     ] as const;
 
     for (const variant of variants) {
-      const wrapper = createElement(
-        `<reke-button variant="${variant}">btn</reke-button>`,
-      );
+      const wrapper = createElement(`<reke-button variant="${variant}">btn</reke-button>`);
       const el = wrapper.querySelector('reke-button')! as RekeButton;
       await waitForUpdate(el);
 
@@ -128,9 +126,7 @@ describe('reke-button', () => {
   });
 
   it('does not emit reke-click when disabled', async () => {
-    const wrapper = createElement(
-      '<reke-button disabled>Click</reke-button>',
-    );
+    const wrapper = createElement('<reke-button disabled>Click</reke-button>');
     const el = wrapper.querySelector('reke-button')! as RekeButton;
     await waitForUpdate(el);
 
@@ -187,9 +183,7 @@ describe('reke-button', () => {
   });
 
   it('passes a11y audit for disabled button', async () => {
-    const wrapper = createElement(
-      '<reke-button disabled>Disabled</reke-button>',
-    );
+    const wrapper = createElement('<reke-button disabled>Disabled</reke-button>');
     const el = wrapper.querySelector('reke-button')! as RekeButton;
     await waitForUpdate(el);
 

@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import './reke-select.js';
-import type { RekeSelect } from './reke-select.js';
 import { runAxe } from '../../test-utils/a11y.js';
+import type { RekeSelect } from './reke-select.js';
 
 function createElement(html: string): HTMLElement {
   const wrapper = document.createElement('div');
@@ -39,9 +39,7 @@ describe('reke-select', () => {
   });
 
   it('shows selected value label', async () => {
-    const wrapper = createElement(
-      '<reke-select value="b"></reke-select>',
-    );
+    const wrapper = createElement('<reke-select value="b"></reke-select>');
     const el = wrapper.querySelector('reke-select')! as RekeSelect;
     el.options = testOptions;
     await waitForUpdate(el);
@@ -121,9 +119,7 @@ describe('reke-select', () => {
   });
 
   it('does not open when disabled', async () => {
-    const wrapper = createElement(
-      '<reke-select disabled></reke-select>',
-    );
+    const wrapper = createElement('<reke-select disabled></reke-select>');
     const el = wrapper.querySelector('reke-select')! as RekeSelect;
     el.options = testOptions;
     await waitForUpdate(el);
@@ -141,34 +137,26 @@ describe('reke-select', () => {
   // --- ACCESSIBILITY ---
 
   it('passes axe-core a11y audit', async () => {
-    const wrapper = createElement(
-      '<reke-select label="Choose option"></reke-select>',
-    );
+    const wrapper = createElement('<reke-select label="Choose option"></reke-select>');
     const el = wrapper.querySelector('reke-select')! as RekeSelect;
     el.options = testOptions;
     await waitForUpdate(el);
 
     const results = await runAxe(wrapper);
-    const violations = results.violations.filter(
-      (v) => v.id !== 'color-contrast',
-    );
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
     expect(violations).toEqual([]);
 
     wrapper.remove();
   });
 
   it('passes a11y audit for disabled select', async () => {
-    const wrapper = createElement(
-      '<reke-select label="Choose option" disabled></reke-select>',
-    );
+    const wrapper = createElement('<reke-select label="Choose option" disabled></reke-select>');
     const el = wrapper.querySelector('reke-select')! as RekeSelect;
     el.options = testOptions;
     await waitForUpdate(el);
 
     const results = await runAxe(wrapper);
-    const nonContrastViolations = results.violations.filter(
-      (v) => v.id !== 'color-contrast',
-    );
+    const nonContrastViolations = results.violations.filter((v) => v.id !== 'color-contrast');
     expect(nonContrastViolations).toEqual([]);
 
     wrapper.remove();

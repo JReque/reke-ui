@@ -48,8 +48,9 @@ export class RekeAlert extends RekeElement {
         <span class="alert__content">
           <slot></slot>
         </span>
-        ${this.dismissible
-          ? html`
+        ${
+          this.dismissible
+            ? html`
               <button
                 class="alert__close"
                 @click=${this.handleClose}
@@ -58,7 +59,8 @@ export class RekeAlert extends RekeElement {
                 &times;
               </button>
             `
-          : nothing}
+            : nothing
+        }
       </div>
     `;
   }

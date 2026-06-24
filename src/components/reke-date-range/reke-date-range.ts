@@ -7,8 +7,18 @@ import { styles } from './reke-date-range.styles.js';
 export type DatePickerMode = 'single' | 'range';
 
 const MONTH_NAMES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Septiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
 ];
 
 const WEEKDAY_LABELS = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do'];
@@ -37,7 +47,11 @@ function formatDisplay(date: Date): string {
 }
 
 function isSameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
 }
 
 interface CalendarDay {
@@ -342,7 +356,7 @@ export class RekeDateRange extends RekeElement {
       calendar__day: true,
       'calendar__day--other': day.otherMonth,
       'calendar__day--today': isToday && !isRangeStart && !isRangeEnd,
-      'calendar__day--selected': this.mode === 'range' ? false : false,
+      'calendar__day--selected': false,
       'calendar__day--in-range': inRange,
       'calendar__day--range-start': isRangeStart,
       'calendar__day--range-end': isRangeEnd,
@@ -353,7 +367,7 @@ export class RekeDateRange extends RekeElement {
   private _getDisplayText(): TemplateResult | string {
     if (this.mode === 'single') {
       const d = parseDate(this.value);
-      return d ? formatDisplay(d) : (this.placeholder || 'Seleccionar fecha');
+      return d ? formatDisplay(d) : this.placeholder || 'Seleccionar fecha';
     }
 
     const fromDate = parseDate(this.from);
@@ -423,8 +437,9 @@ export class RekeDateRange extends RekeElement {
         ${this._renderChevron()}
       </button>
 
-      ${this._open
-        ? html`
+      ${
+        this._open
+          ? html`
             <div part="calendar" class="calendar" role="dialog" aria-label="Calendar">
               <div class="calendar__header">
                 <span class="calendar__title">${title}</span>
@@ -465,9 +480,7 @@ export class RekeDateRange extends RekeElement {
               </div>
 
               <div class="calendar__weekdays">
-                ${WEEKDAY_LABELS.map(
-                  (wd) => html`<span class="calendar__weekday">${wd}</span>`,
-                )}
+                ${WEEKDAY_LABELS.map((wd) => html`<span class="calendar__weekday">${wd}</span>`)}
               </div>
 
               <div class="calendar__grid">
@@ -496,7 +509,8 @@ export class RekeDateRange extends RekeElement {
               </div>
             </div>
           `
-        : nothing}
+          : nothing
+      }
     `;
   }
 }

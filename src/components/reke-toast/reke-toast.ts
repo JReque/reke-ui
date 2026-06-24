@@ -100,8 +100,9 @@ export class RekeToast extends RekeElement {
           <span class="toast__message">${this.message}</span>
         </div>
         <div class="toast__right">
-          ${this.action
-            ? html`
+          ${
+            this.action
+              ? html`
                 <button
                   class="toast__action"
                   type="button"
@@ -110,7 +111,8 @@ export class RekeToast extends RekeElement {
                   ${this.action}
                 </button>
               `
-            : nothing}
+              : nothing
+          }
           <button
             class="toast__close"
             @click=${() => this.dismiss()}

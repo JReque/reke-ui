@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import './reke-date-range.js';
-import type { RekeDateRange } from './reke-date-range.js';
 import { runAxe } from '../../test-utils/a11y.js';
+import type { RekeDateRange } from './reke-date-range.js';
 
 function createElement(html: string): HTMLElement {
   const wrapper = document.createElement('div');
@@ -37,9 +37,7 @@ describe('reke-date-range', () => {
   });
 
   it('renders in single mode', async () => {
-    const wrapper = createElement(
-      '<reke-date-range mode="single"></reke-date-range>',
-    );
+    const wrapper = createElement('<reke-date-range mode="single"></reke-date-range>');
     const el = wrapper.querySelector('reke-date-range')! as RekeDateRange;
     await waitForUpdate(el);
 
@@ -52,9 +50,7 @@ describe('reke-date-range', () => {
   });
 
   it('renders label when provided', async () => {
-    const wrapper = createElement(
-      '<reke-date-range label="Period"></reke-date-range>',
-    );
+    const wrapper = createElement('<reke-date-range label="Period"></reke-date-range>');
     const el = wrapper.querySelector('reke-date-range')! as RekeDateRange;
     await waitForUpdate(el);
 
@@ -141,9 +137,7 @@ describe('reke-date-range', () => {
   });
 
   it('does not open when disabled', async () => {
-    const wrapper = createElement(
-      '<reke-date-range disabled></reke-date-range>',
-    );
+    const wrapper = createElement('<reke-date-range disabled></reke-date-range>');
     const el = wrapper.querySelector('reke-date-range')! as RekeDateRange;
     await waitForUpdate(el);
 
@@ -157,9 +151,7 @@ describe('reke-date-range', () => {
   });
 
   it('shows error style on trigger', async () => {
-    const wrapper = createElement(
-      '<reke-date-range error></reke-date-range>',
-    );
+    const wrapper = createElement('<reke-date-range error></reke-date-range>');
     const el = wrapper.querySelector('reke-date-range')! as RekeDateRange;
     await waitForUpdate(el);
 
@@ -172,9 +164,7 @@ describe('reke-date-range', () => {
   // --- BEHAVIOR ---
 
   it('selects a single date and emits reke-change', async () => {
-    const wrapper = createElement(
-      '<reke-date-range mode="single"></reke-date-range>',
-    );
+    const wrapper = createElement('<reke-date-range mode="single"></reke-date-range>');
     const el = wrapper.querySelector('reke-date-range')! as RekeDateRange;
     await waitForUpdate(el);
 
@@ -186,7 +176,9 @@ describe('reke-date-range', () => {
     await waitForUpdate(el);
 
     // Click a day that is not other-month
-    const days = el.shadowRoot!.querySelectorAll('.calendar__day:not(.calendar__day--other):not(.calendar__day--disabled)');
+    const days = el.shadowRoot!.querySelectorAll(
+      '.calendar__day:not(.calendar__day--other):not(.calendar__day--disabled)',
+    );
     (days[10] as HTMLButtonElement).click();
     await waitForUpdate(el);
 
@@ -212,7 +204,9 @@ describe('reke-date-range', () => {
     await waitForUpdate(el);
 
     // Get non-other-month days
-    const days = el.shadowRoot!.querySelectorAll('.calendar__day:not(.calendar__day--other):not(.calendar__day--disabled)');
+    const days = el.shadowRoot!.querySelectorAll(
+      '.calendar__day:not(.calendar__day--other):not(.calendar__day--disabled)',
+    );
 
     // First click — sets start
     (days[5] as HTMLButtonElement).click();
@@ -243,7 +237,9 @@ describe('reke-date-range', () => {
     (el.shadowRoot!.querySelector('.trigger')! as HTMLButtonElement).click();
     await waitForUpdate(el);
 
-    const days = el.shadowRoot!.querySelectorAll('.calendar__day:not(.calendar__day--other):not(.calendar__day--disabled)');
+    const days = el.shadowRoot!.querySelectorAll(
+      '.calendar__day:not(.calendar__day--other):not(.calendar__day--disabled)',
+    );
 
     // Click later day first
     (days[15] as HTMLButtonElement).click();
@@ -288,9 +284,7 @@ describe('reke-date-range', () => {
   });
 
   it('"Hoy" button sets today in single mode', async () => {
-    const wrapper = createElement(
-      '<reke-date-range mode="single"></reke-date-range>',
-    );
+    const wrapper = createElement('<reke-date-range mode="single"></reke-date-range>');
     const el = wrapper.querySelector('reke-date-range')! as RekeDateRange;
     await waitForUpdate(el);
 
@@ -406,25 +400,19 @@ describe('reke-date-range', () => {
   });
 
   it('passes axe-core a11y audit (closed)', async () => {
-    const wrapper = createElement(
-      '<reke-date-range label="Date"></reke-date-range>',
-    );
+    const wrapper = createElement('<reke-date-range label="Date"></reke-date-range>');
     const el = wrapper.querySelector('reke-date-range')! as RekeDateRange;
     await waitForUpdate(el);
 
     const results = await runAxe(wrapper);
-    const violations = results.violations.filter(
-      (v) => v.id !== 'color-contrast',
-    );
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
     expect(violations).toEqual([]);
 
     wrapper.remove();
   });
 
   it('passes axe-core a11y audit (open)', async () => {
-    const wrapper = createElement(
-      '<reke-date-range label="Date"></reke-date-range>',
-    );
+    const wrapper = createElement('<reke-date-range label="Date"></reke-date-range>');
     const el = wrapper.querySelector('reke-date-range')! as RekeDateRange;
     await waitForUpdate(el);
 
@@ -432,25 +420,19 @@ describe('reke-date-range', () => {
     await waitForUpdate(el);
 
     const results = await runAxe(wrapper);
-    const violations = results.violations.filter(
-      (v) => v.id !== 'color-contrast',
-    );
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
     expect(violations).toEqual([]);
 
     wrapper.remove();
   });
 
   it('passes a11y audit for disabled state', async () => {
-    const wrapper = createElement(
-      '<reke-date-range label="Date" disabled></reke-date-range>',
-    );
+    const wrapper = createElement('<reke-date-range label="Date" disabled></reke-date-range>');
     const el = wrapper.querySelector('reke-date-range')! as RekeDateRange;
     await waitForUpdate(el);
 
     const results = await runAxe(wrapper);
-    const violations = results.violations.filter(
-      (v) => v.id !== 'color-contrast',
-    );
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
     expect(violations).toEqual([]);
 
     wrapper.remove();

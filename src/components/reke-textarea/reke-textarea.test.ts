@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import './reke-textarea.js';
-import type { RekeTextarea } from './reke-textarea.js';
 import { runAxe } from '../../test-utils/a11y.js';
+import type { RekeTextarea } from './reke-textarea.js';
 
 function createElement(html: string): HTMLElement {
   const wrapper = document.createElement('div');
@@ -60,9 +60,7 @@ describe('reke-textarea', () => {
   });
 
   it('renders label when provided', async () => {
-    const wrapper = createElement(
-      '<reke-textarea label="Description"></reke-textarea>',
-    );
+    const wrapper = createElement('<reke-textarea label="Description"></reke-textarea>');
     const el = wrapper.querySelector('reke-textarea')! as RekeTextarea;
     await waitForUpdate(el);
 
@@ -122,9 +120,7 @@ describe('reke-textarea', () => {
   // --- ACCESSIBILITY ---
 
   it('passes axe-core a11y audit', async () => {
-    const wrapper = createElement(
-      '<reke-textarea label="Comments"></reke-textarea>',
-    );
+    const wrapper = createElement('<reke-textarea label="Comments"></reke-textarea>');
     const el = wrapper.querySelector('reke-textarea')! as RekeTextarea;
     await waitForUpdate(el);
 
@@ -135,16 +131,12 @@ describe('reke-textarea', () => {
   });
 
   it('passes a11y audit for disabled textarea', async () => {
-    const wrapper = createElement(
-      '<reke-textarea label="Comments" disabled></reke-textarea>',
-    );
+    const wrapper = createElement('<reke-textarea label="Comments" disabled></reke-textarea>');
     const el = wrapper.querySelector('reke-textarea')! as RekeTextarea;
     await waitForUpdate(el);
 
     const results = await runAxe(wrapper);
-    const nonContrastViolations = results.violations.filter(
-      (v) => v.id !== 'color-contrast',
-    );
+    const nonContrastViolations = results.violations.filter((v) => v.id !== 'color-contrast');
     expect(nonContrastViolations).toEqual([]);
 
     wrapper.remove();

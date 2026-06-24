@@ -128,8 +128,9 @@ export class RekeSelect extends RekeElement {
         <span class="trigger__text">${displayLabel ?? this.placeholder}</span>
         <span class="trigger__chevron" aria-hidden="true">&#9660;</span>
       </button>
-      ${this._open
-        ? html`
+      ${
+        this._open
+          ? html`
             <ul
               part="dropdown"
               class="dropdown"
@@ -150,7 +151,8 @@ export class RekeSelect extends RekeElement {
               )}
             </ul>
           `
-        : nothing}
+          : nothing
+      }
     `;
   }
 }

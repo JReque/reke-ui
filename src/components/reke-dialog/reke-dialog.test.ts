@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import './reke-dialog.js';
-import type { RekeDialog } from './reke-dialog.js';
 import { runAxe } from '../../test-utils/a11y.js';
+import type { RekeDialog } from './reke-dialog.js';
 
 function createElement(html: string): HTMLElement {
   const wrapper = document.createElement('div');
@@ -21,9 +21,7 @@ describe('reke-dialog', () => {
   // --- RENDERING ---
 
   it('is not visible when closed', async () => {
-    const wrapper = createElement(
-      '<reke-dialog heading="Test Dialog"><p>Body</p></reke-dialog>',
-    );
+    const wrapper = createElement('<reke-dialog heading="Test Dialog"><p>Body</p></reke-dialog>');
     const el = wrapper.querySelector('reke-dialog')! as RekeDialog;
     await waitForUpdate(el);
 
@@ -174,9 +172,7 @@ describe('reke-dialog', () => {
     await waitForUpdate(el);
 
     const results = await runAxe(wrapper);
-    const violations = results.violations.filter(
-      (v) => v.id !== 'color-contrast',
-    );
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
     expect(violations).toEqual([]);
 
     wrapper.remove();

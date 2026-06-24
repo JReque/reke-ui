@@ -90,8 +90,9 @@ export class RekeDialog extends RekeElement {
           aria-label=${this.heading}
           @click=${(e: Event) => e.stopPropagation()}
         >
-          ${this.heading
-            ? html`
+          ${
+            this.heading
+              ? html`
                 <div class="dialog-header">
                   <h2 class="dialog-title">${this.heading}</h2>
                   <button
@@ -103,7 +104,8 @@ export class RekeDialog extends RekeElement {
                   </button>
                 </div>
               `
-            : nothing}
+              : nothing
+          }
           <div class="dialog-body">
             <slot></slot>
           </div>

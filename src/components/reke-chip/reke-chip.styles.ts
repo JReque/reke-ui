@@ -1,5 +1,5 @@
-import { tailwindStyles } from '../../shared/tailwind-styles.js';
 import { css } from 'lit';
+import { tailwindStyles } from '../../shared/tailwind-styles.js';
 
 export const styles = [
   tailwindStyles,

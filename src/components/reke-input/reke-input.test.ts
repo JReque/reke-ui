@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import './reke-input.js';
-import type { RekeInput } from './reke-input.js';
 import { runAxe } from '../../test-utils/a11y.js';
+import type { RekeInput } from './reke-input.js';
 
 function createElement(html: string): HTMLElement {
   const wrapper = document.createElement('div');
@@ -56,9 +56,7 @@ describe('reke-input', () => {
   });
 
   it('renders label when provided', async () => {
-    const wrapper = createElement(
-      '<reke-input label="Username"></reke-input>',
-    );
+    const wrapper = createElement('<reke-input label="Username"></reke-input>');
     const el = wrapper.querySelector('reke-input')! as RekeInput;
     await waitForUpdate(el);
 
@@ -129,9 +127,7 @@ describe('reke-input', () => {
   // --- ACCESSIBILITY ---
 
   it('passes axe-core a11y audit', async () => {
-    const wrapper = createElement(
-      '<reke-input label="Email"></reke-input>',
-    );
+    const wrapper = createElement('<reke-input label="Email"></reke-input>');
     const el = wrapper.querySelector('reke-input')! as RekeInput;
     await waitForUpdate(el);
 
@@ -142,16 +138,12 @@ describe('reke-input', () => {
   });
 
   it('passes a11y audit for disabled input', async () => {
-    const wrapper = createElement(
-      '<reke-input label="Email" disabled></reke-input>',
-    );
+    const wrapper = createElement('<reke-input label="Email" disabled></reke-input>');
     const el = wrapper.querySelector('reke-input')! as RekeInput;
     await waitForUpdate(el);
 
     const results = await runAxe(wrapper);
-    const nonContrastViolations = results.violations.filter(
-      (v) => v.id !== 'color-contrast',
-    );
+    const nonContrastViolations = results.violations.filter((v) => v.id !== 'color-contrast');
     expect(nonContrastViolations).toEqual([]);
 
     wrapper.remove();
