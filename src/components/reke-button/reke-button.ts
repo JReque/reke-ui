@@ -78,13 +78,9 @@ export class RekeButton extends RekeElement {
         @click=${this.handleClick}
       >
         <span class="spinner" aria-hidden="true"></span>
-        ${this.variant !== 'icon-only'
-          ? html`<slot name="prefix"></slot>`
-          : nothing}
+        ${this.variant !== 'icon-only' ? html`<slot name="prefix"></slot>` : nothing}
         <slot></slot>
-        ${this.variant !== 'icon-only'
-          ? html`<slot name="suffix"></slot>`
-          : nothing}
+        ${this.variant !== 'icon-only' ? html`<slot name="suffix"></slot>` : nothing}
       </button>
     `;
   }

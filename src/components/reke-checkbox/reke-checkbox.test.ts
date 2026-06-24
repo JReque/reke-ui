@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import './reke-checkbox.js';
-import type { RekeCheckbox } from './reke-checkbox.js';
 import { runAxe } from '../../test-utils/a11y.js';
+import type { RekeCheckbox } from './reke-checkbox.js';
 
 function createElement(html: string): HTMLElement {
   const wrapper = document.createElement('div');
@@ -37,9 +37,7 @@ describe('reke-checkbox', () => {
   });
 
   it('renders checked state', async () => {
-    const wrapper = createElement(
-      '<reke-checkbox checked></reke-checkbox>',
-    );
+    const wrapper = createElement('<reke-checkbox checked></reke-checkbox>');
     const el = wrapper.querySelector('reke-checkbox')! as RekeCheckbox;
     await waitForUpdate(el);
 
@@ -55,9 +53,7 @@ describe('reke-checkbox', () => {
   });
 
   it('renders label when provided', async () => {
-    const wrapper = createElement(
-      '<reke-checkbox label="Accept terms"></reke-checkbox>',
-    );
+    const wrapper = createElement('<reke-checkbox label="Accept terms"></reke-checkbox>');
     const el = wrapper.querySelector('reke-checkbox')! as RekeCheckbox;
     await waitForUpdate(el);
 
@@ -111,9 +107,7 @@ describe('reke-checkbox', () => {
   });
 
   it('does not toggle when disabled', async () => {
-    const wrapper = createElement(
-      '<reke-checkbox disabled></reke-checkbox>',
-    );
+    const wrapper = createElement('<reke-checkbox disabled></reke-checkbox>');
     const el = wrapper.querySelector('reke-checkbox')! as RekeCheckbox;
     await waitForUpdate(el);
 
@@ -132,32 +126,24 @@ describe('reke-checkbox', () => {
   // --- ACCESSIBILITY ---
 
   it('passes axe-core a11y audit', async () => {
-    const wrapper = createElement(
-      '<reke-checkbox label="Subscribe"></reke-checkbox>',
-    );
+    const wrapper = createElement('<reke-checkbox label="Subscribe"></reke-checkbox>');
     const el = wrapper.querySelector('reke-checkbox')! as RekeCheckbox;
     await waitForUpdate(el);
 
     const results = await runAxe(wrapper);
-    const violations = results.violations.filter(
-      (v) => v.id !== 'color-contrast',
-    );
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
     expect(violations).toEqual([]);
 
     wrapper.remove();
   });
 
   it('passes a11y audit for disabled checkbox', async () => {
-    const wrapper = createElement(
-      '<reke-checkbox label="Subscribe" disabled></reke-checkbox>',
-    );
+    const wrapper = createElement('<reke-checkbox label="Subscribe" disabled></reke-checkbox>');
     const el = wrapper.querySelector('reke-checkbox')! as RekeCheckbox;
     await waitForUpdate(el);
 
     const results = await runAxe(wrapper);
-    const nonContrastViolations = results.violations.filter(
-      (v) => v.id !== 'color-contrast',
-    );
+    const nonContrastViolations = results.violations.filter((v) => v.id !== 'color-contrast');
     expect(nonContrastViolations).toEqual([]);
 
     wrapper.remove();

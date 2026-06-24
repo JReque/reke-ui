@@ -49,9 +49,7 @@ export class RekeCheckbox extends RekeElement {
   }
 
   override render() {
-    const ariaChecked = this.indeterminate
-      ? 'mixed'
-      : String(this.checked);
+    const ariaChecked = this.indeterminate ? 'mixed' : String(this.checked);
 
     return html`
       <div
@@ -65,20 +63,22 @@ export class RekeCheckbox extends RekeElement {
         @keydown=${this.handleKeyDown}
       >
         <span part="box" class="box ${this.checked ? 'box--checked' : ''} ${this.indeterminate ? 'box--indeterminate' : ''}">
-          ${this.checked
-            ? html`<svg class="checkmark" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          ${
+            this.checked
+              ? html`<svg class="checkmark" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>`
-            : nothing}
-          ${this.indeterminate && !this.checked
-            ? html`<svg class="indeterminate-mark" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              : nothing
+          }
+          ${
+            this.indeterminate && !this.checked
+              ? html`<svg class="indeterminate-mark" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <path d="M3 6H9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
               </svg>`
-            : nothing}
+              : nothing
+          }
         </span>
-        ${this.label
-          ? html`<span part="label" class="label">${this.label}</span>`
-          : nothing}
+        ${this.label ? html`<span part="label" class="label">${this.label}</span>` : nothing}
       </div>
     `;
   }

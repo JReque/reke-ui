@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import './reke-badge.js';
-import type { RekeBadge } from './reke-badge.js';
 import { runAxe } from '../../test-utils/a11y.js';
+import type { RekeBadge } from './reke-badge.js';
 
 function createElement(html: string): HTMLElement {
   const wrapper = document.createElement('div');
@@ -37,19 +37,10 @@ describe('reke-badge', () => {
   });
 
   it('renders all variant classes', async () => {
-    const variants = [
-      'default',
-      'primary',
-      'secondary',
-      'danger',
-      'warning',
-      'success',
-    ] as const;
+    const variants = ['default', 'primary', 'secondary', 'danger', 'warning', 'success'] as const;
 
     for (const variant of variants) {
-      const wrapper = createElement(
-        `<reke-badge variant="${variant}">${variant}</reke-badge>`,
-      );
+      const wrapper = createElement(`<reke-badge variant="${variant}">${variant}</reke-badge>`);
       const el = wrapper.querySelector('reke-badge')! as RekeBadge;
       await waitForUpdate(el);
 
@@ -64,9 +55,7 @@ describe('reke-badge', () => {
     const sizes = ['sm', 'md'] as const;
 
     for (const size of sizes) {
-      const wrapper = createElement(
-        `<reke-badge size="${size}">${size}</reke-badge>`,
-      );
+      const wrapper = createElement(`<reke-badge size="${size}">${size}</reke-badge>`);
       const el = wrapper.querySelector('reke-badge')! as RekeBadge;
       await waitForUpdate(el);
 
@@ -78,9 +67,7 @@ describe('reke-badge', () => {
   });
 
   it('reflects attributes correctly', async () => {
-    const wrapper = createElement(
-      '<reke-badge variant="danger" size="sm">Error</reke-badge>',
-    );
+    const wrapper = createElement('<reke-badge variant="danger" size="sm">Error</reke-badge>');
     const el = wrapper.querySelector('reke-badge')! as RekeBadge;
     await waitForUpdate(el);
 

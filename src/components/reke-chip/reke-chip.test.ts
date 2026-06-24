@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import './reke-chip.js';
-import type { RekeChip } from './reke-chip.js';
 import { runAxe } from '../../test-utils/a11y.js';
+import type { RekeChip } from './reke-chip.js';
 
 function createElement(html: string): HTMLElement {
   const wrapper = document.createElement('div');

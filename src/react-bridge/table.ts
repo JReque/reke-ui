@@ -12,15 +12,15 @@
 import { createComponent, type EventName } from '@lit/react';
 import type { TemplateResult } from 'lit';
 import React, { useEffect, useMemo, useRef } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
 import { flushSync } from 'react-dom';
+import { createRoot, type Root } from 'react-dom/client';
 import {
+  type ExpandedRowElement,
   type RekeTable,
   RekeTable as RekeTableClass,
+  type RowKey,
   type TableColumn,
   type TableRow,
-  type ExpandedRowElement,
-  type RowKey,
 } from '../components/reke-table/reke-table.js';
 
 const RawTable = createComponent({
@@ -81,7 +81,9 @@ export interface TableProps<TRow extends TableRow = TableRow> {
   getRowKey?: (row: TRow, index: number) => RowKey;
   onRekeRowClick?: (e: CustomEvent<{ row: unknown; index: number }>) => void;
   onRekeSort?: (e: CustomEvent<{ key: string; direction: 'asc' | 'desc' }>) => void;
-  onRekeRowExpand?: (e: CustomEvent<{ row: unknown; index: number; key: RowKey; expanded: boolean }>) => void;
+  onRekeRowExpand?: (
+    e: CustomEvent<{ row: unknown; index: number; key: RowKey; expanded: boolean }>,
+  ) => void;
   children?: React.ReactNode;
 }
 
@@ -120,14 +122,7 @@ function TableInner<TRow extends TableRow = TableRow>(
   props: TableProps<TRow>,
   ref: React.Ref<RekeTable>,
 ): React.ReactElement {
-  const {
-    columns,
-    rows,
-    expandedRowRender,
-    getRowKey,
-    children,
-    ...rest
-  } = props;
+  const { columns, rows, expandedRowRender, getRowKey, children, ...rest } = props;
 
   // Cell roots, keyed `${rowKey}::cell::${colKey}`. Stable across re-renders
   // so sort/filter that preserve rowKey don't remount roots.
@@ -179,8 +174,7 @@ function TableInner<TRow extends TableRow = TableRow>(
     };
   }, []);
 
-  const rowKeyOf = (row: TRow, i: number): string =>
-    String(getRowKey ? getRowKey(row, i) : i);
+  const rowKeyOf = (row: TRow, i: number): string => String(getRowKey ? getRowKey(row, i) : i);
 
   const getOrCreateCellHost = (key: string): CellHostEntry => {
     let entry = cellHostsRef.current.get(key);
@@ -294,12 +288,12 @@ export const Table = React.forwardRef(TableInner) as <TRow extends TableRow = Ta
   props: TableProps<TRow> & { ref?: React.Ref<RekeTable> },
 ) => React.ReactElement;
 
-export { RekeTable } from '../components/reke-table/reke-table.js';
 export type {
-  TableColumn,
-  TableRow,
-  RowKey,
   Cleanup,
   ExpandedRowElement,
   GetRowKey,
+  RowKey,
+  TableColumn,
+  TableRow,
 } from '../components/reke-table/reke-table.js';
+export { RekeTable } from '../components/reke-table/reke-table.js';

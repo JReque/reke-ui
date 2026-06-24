@@ -46,7 +46,12 @@ const meta: Meta<TableArgs> = {
 export default meta;
 type Story = StoryObj<TableArgs>;
 
-function setProps(id: string, columns: TableColumn[], rows: TableRow[], extra?: (el: RekeTable) => void) {
+function setProps(
+  id: string,
+  columns: TableColumn[],
+  rows: TableRow[],
+  extra?: (el: RekeTable) => void,
+) {
   setTimeout(() => {
     const el = document.getElementById(id) as unknown as RekeTable | null;
     if (el) {
@@ -211,51 +216,167 @@ const exchangeColors: Record<string, { bg: string; text: string }> = {
 
 const tradeRows: TableRow[] = [
   {
-    pair: 'INJ/USDT', dateRange: '01/12 — 31/12', ops: 4,
-    buyCount: 3, buyAvg: '$20.04', buyTotal: '$58.12',
-    sellCount: 1, sellAvg: '$22.50', sellTotal: '$22.50',
-    pnl: '+$4.38 (+7.52%)', pnlPositive: true, curr: 'curr $21.82',
+    pair: 'INJ/USDT',
+    dateRange: '01/12 — 31/12',
+    ops: 4,
+    buyCount: 3,
+    buyAvg: '$20.04',
+    buyTotal: '$58.12',
+    sellCount: 1,
+    sellAvg: '$22.50',
+    sellTotal: '$22.50',
+    pnl: '+$4.38 (+7.52%)',
+    pnlPositive: true,
+    curr: 'curr $21.82',
     exchange: 'mexc',
     trades: [
-      { date: '31/12/2024', side: 'BUY', qty: '0.4900', price: '$20.04', total: '$9.82', fee: '0.0049 USDT' },
-      { date: '28/12/2024', side: 'BUY', qty: '0.3200', price: '$19.80', total: '$6.34', fee: '0.0032 USDT' },
-      { date: '15/12/2024', side: 'BUY', qty: '0.5500', price: '$20.32', total: '$11.18', fee: '0.0056 USDT' },
-      { date: '22/12/2024', side: 'SELL', qty: '0.3000', price: '$22.50', total: '$6.75', fee: '0.0034 USDT' },
+      {
+        date: '31/12/2024',
+        side: 'BUY',
+        qty: '0.4900',
+        price: '$20.04',
+        total: '$9.82',
+        fee: '0.0049 USDT',
+      },
+      {
+        date: '28/12/2024',
+        side: 'BUY',
+        qty: '0.3200',
+        price: '$19.80',
+        total: '$6.34',
+        fee: '0.0032 USDT',
+      },
+      {
+        date: '15/12/2024',
+        side: 'BUY',
+        qty: '0.5500',
+        price: '$20.32',
+        total: '$11.18',
+        fee: '0.0056 USDT',
+      },
+      {
+        date: '22/12/2024',
+        side: 'SELL',
+        qty: '0.3000',
+        price: '$22.50',
+        total: '$6.75',
+        fee: '0.0034 USDT',
+      },
     ],
   },
   {
-    pair: 'BTC/USDT', dateRange: '15/12 — 30/12', ops: 3,
-    buyCount: 2, buyAvg: '$93,200', buyTotal: '$466.00',
-    sellCount: 1, sellAvg: '$93,450', sellTotal: '$233.63',
-    pnl: '-$12.45 (-2.67%)', pnlPositive: false, curr: 'curr $94,120',
+    pair: 'BTC/USDT',
+    dateRange: '15/12 — 30/12',
+    ops: 3,
+    buyCount: 2,
+    buyAvg: '$93,200',
+    buyTotal: '$466.00',
+    sellCount: 1,
+    sellAvg: '$93,450',
+    sellTotal: '$233.63',
+    pnl: '-$12.45 (-2.67%)',
+    pnlPositive: false,
+    curr: 'curr $94,120',
     exchange: 'binance',
     trades: [
-      { date: '30/12/2024', side: 'BUY', qty: '0.0050', price: '$93,000', total: '$465', fee: '0.23 USDT' },
-      { date: '22/12/2024', side: 'BUY', qty: '0.0001', price: '$93,400', total: '$9.34', fee: '0.005 USDT' },
-      { date: '15/12/2024', side: 'SELL', qty: '0.0025', price: '$93,450', total: '$233.63', fee: '0.12 USDT' },
+      {
+        date: '30/12/2024',
+        side: 'BUY',
+        qty: '0.0050',
+        price: '$93,000',
+        total: '$465',
+        fee: '0.23 USDT',
+      },
+      {
+        date: '22/12/2024',
+        side: 'BUY',
+        qty: '0.0001',
+        price: '$93,400',
+        total: '$9.34',
+        fee: '0.005 USDT',
+      },
+      {
+        date: '15/12/2024',
+        side: 'SELL',
+        qty: '0.0025',
+        price: '$93,450',
+        total: '$233.63',
+        fee: '0.12 USDT',
+      },
     ],
   },
   {
-    pair: 'ETH/USDT', dateRange: '10/12 — 28/12', ops: 2,
-    buyCount: 1, buyAvg: '$3,180', buyTotal: '$318.00',
-    sellCount: 1, sellAvg: '$3,220', sellTotal: '$322.00',
-    pnl: '+$4.00 (+1.26%)', pnlPositive: true, curr: 'curr $3,195',
+    pair: 'ETH/USDT',
+    dateRange: '10/12 — 28/12',
+    ops: 2,
+    buyCount: 1,
+    buyAvg: '$3,180',
+    buyTotal: '$318.00',
+    sellCount: 1,
+    sellAvg: '$3,220',
+    sellTotal: '$322.00',
+    pnl: '+$4.00 (+1.26%)',
+    pnlPositive: true,
+    curr: 'curr $3,195',
     exchange: 'binance',
     trades: [
-      { date: '10/12/2024', side: 'BUY', qty: '0.1000', price: '$3,180', total: '$318', fee: '0.16 USDT' },
-      { date: '28/12/2024', side: 'SELL', qty: '0.1000', price: '$3,220', total: '$322', fee: '0.16 USDT' },
+      {
+        date: '10/12/2024',
+        side: 'BUY',
+        qty: '0.1000',
+        price: '$3,180',
+        total: '$318',
+        fee: '0.16 USDT',
+      },
+      {
+        date: '28/12/2024',
+        side: 'SELL',
+        qty: '0.1000',
+        price: '$3,220',
+        total: '$322',
+        fee: '0.16 USDT',
+      },
     ],
   },
   {
-    pair: 'SOL/USDT', dateRange: '05/12 — 20/12', ops: 3,
-    buyCount: 2, buyAvg: '$107.31', buyTotal: '$214.62',
-    sellCount: 1, sellAvg: '$110.50', sellTotal: '$110.50',
-    pnl: '+$6.38 (+2.97%)', pnlPositive: true, curr: 'curr $108.20',
+    pair: 'SOL/USDT',
+    dateRange: '05/12 — 20/12',
+    ops: 3,
+    buyCount: 2,
+    buyAvg: '$107.31',
+    buyTotal: '$214.62',
+    sellCount: 1,
+    sellAvg: '$110.50',
+    sellTotal: '$110.50',
+    pnl: '+$6.38 (+2.97%)',
+    pnlPositive: true,
+    curr: 'curr $108.20',
     exchange: 'mexc',
     trades: [
-      { date: '05/12/2024', side: 'BUY', qty: '1.0000', price: '$106.12', total: '$106.12', fee: '0.053 USDT' },
-      { date: '12/12/2024', side: 'BUY', qty: '1.0000', price: '$108.50', total: '$108.50', fee: '0.054 USDT' },
-      { date: '20/12/2024', side: 'SELL', qty: '1.0000', price: '$110.50', total: '$110.50', fee: '0.055 USDT' },
+      {
+        date: '05/12/2024',
+        side: 'BUY',
+        qty: '1.0000',
+        price: '$106.12',
+        total: '$106.12',
+        fee: '0.053 USDT',
+      },
+      {
+        date: '12/12/2024',
+        side: 'BUY',
+        qty: '1.0000',
+        price: '$108.50',
+        total: '$108.50',
+        fee: '0.054 USDT',
+      },
+      {
+        date: '20/12/2024',
+        side: 'SELL',
+        qty: '1.0000',
+        price: '$110.50',
+        total: '$110.50',
+        fee: '0.055 USDT',
+      },
     ],
   },
 ];
@@ -263,7 +384,9 @@ const tradeRows: TableRow[] = [
 const subTradeColumns: TableColumn[] = [
   { key: 'date', header: 'fecha', width: '100px' },
   {
-    key: 'side', header: 'side', width: '60px',
+    key: 'side',
+    header: 'side',
+    width: '60px',
     render: (val) => {
       const isBuy = val === 'BUY';
       return html`
@@ -288,7 +411,9 @@ export const ExpandableRows: Story = {
     setProps(id, [], tradeRows, (el) => {
       const makeColumns = (): TableColumn[] => [
         {
-          key: 'ticker', header: 'ticker', width: '200px',
+          key: 'ticker',
+          header: 'ticker',
+          width: '200px',
           render: (_, row) => html`
             <div style="display: flex; flex-direction: column; gap: 2px;">
               <span style="font-weight: 500; font-size: 13px;">${row.pair}</span>
@@ -297,7 +422,8 @@ export const ExpandableRows: Story = {
           `,
         },
         {
-          key: 'buys', header: 'compras',
+          key: 'buys',
+          header: 'compras',
           render: (_, row) => html`
             <div style="display: flex; flex-direction: column; gap: 2px;">
               <span style="color: #22C55E; font-size: 11px;">${row.buyCount} buys · avg ${row.buyAvg}</span>
@@ -306,7 +432,8 @@ export const ExpandableRows: Story = {
           `,
         },
         {
-          key: 'sells', header: 'ventas',
+          key: 'sells',
+          header: 'ventas',
           render: (_, row) => html`
             <div style="display: flex; flex-direction: column; gap: 2px;">
               <span style="color: #EF4444; font-size: 11px;">${row.sellCount} sell · avg ${row.sellAvg}</span>
@@ -315,7 +442,9 @@ export const ExpandableRows: Story = {
           `,
         },
         {
-          key: 'pnl', header: 'pnl', width: '200px',
+          key: 'pnl',
+          header: 'pnl',
+          width: '200px',
           render: (_, row) => html`
             <div style="display: flex; flex-direction: column; gap: 2px;">
               <span style="font-weight: 500; font-size: 12px; color: ${row.pnlPositive ? '#22C55E' : '#EF4444'};">${row.pnl}</span>
@@ -324,7 +453,11 @@ export const ExpandableRows: Story = {
           `,
         },
         {
-          key: 'exchange', header: 'exchange', width: '140px', sortable: false, align: 'right' as const,
+          key: 'exchange',
+          header: 'exchange',
+          width: '140px',
+          sortable: false,
+          align: 'right' as const,
           render: (val, _row, i) => {
             const ex = (val as string).toLowerCase();
             const colors = exchangeColors[ex] ?? { bg: 'rgba(82,82,82,0.1)', text: '#525252' };
@@ -337,7 +470,10 @@ export const ExpandableRows: Story = {
                   background: ${colors.bg}; color: ${colors.text};
                 ">${ex}</span>
                 <button
-                  @click=${(e: Event) => { e.stopPropagation(); el.toggleExpand(i); }}
+                  @click=${(e: Event) => {
+                    e.stopPropagation();
+                    el.toggleExpand(i);
+                  }}
                   aria-expanded=${expanded}
                   aria-label=${expanded ? 'Collapse row' : 'Expand row'}
                   style="
@@ -367,7 +503,7 @@ export const ExpandableRows: Story = {
                 borderless
                 dense
                 .columns=${subTradeColumns}
-                .rows=${(row.trades as TableRow[])}
+                .rows=${row.trades as TableRow[]}
               ></reke-table>
             </div>
           `,

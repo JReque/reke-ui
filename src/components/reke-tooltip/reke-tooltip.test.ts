@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import './reke-tooltip.js';
-import type { RekeTooltip } from './reke-tooltip.js';
 import { runAxe } from '../../test-utils/a11y.js';
+import type { RekeTooltip } from './reke-tooltip.js';
 
 function createElement(html: string): HTMLElement {
   const wrapper = document.createElement('div');

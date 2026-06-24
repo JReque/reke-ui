@@ -14,12 +14,13 @@
  * the core component's `expandedRowElement(host, row, key)` callback. NO
  * `TemplateResult` may travel through the bridge's hot path.
  */
-import { describe, it, expect, vi } from 'vitest';
+
 import React from 'react';
-import { Table } from './table.js';
-import type { ReactTableColumn } from './table.js';
-import type { RekeTable, TableRow } from '../components/reke-table/reke-table.js';
 import * as ReactDOMClient from 'react-dom/client';
+import { describe, expect, it, vi } from 'vitest';
+import type { RekeTable, TableRow } from '../components/reke-table/reke-table.js';
+import type { ReactTableColumn } from './table.js';
+import { Table } from './table.js';
 
 type Row = { id: string; name: string; role: string };
 
@@ -48,7 +49,9 @@ async function mountBridge<TRow extends TableRow = TableRow>(
   document.body.appendChild(wrapper);
 
   const root = ReactDOMClient.createRoot(wrapper);
-  root.render(React.createElement(Table as unknown as React.ComponentType<typeof initialProps>, initialProps));
+  root.render(
+    React.createElement(Table as unknown as React.ComponentType<typeof initialProps>, initialProps),
+  );
 
   const flush = async () => {
     // React commit + Lit updateComplete + microtask drain.
@@ -94,11 +97,7 @@ describe('react-bridge / Table', () => {
     ];
 
     const ExpandedPanel: React.FC<{ row: Row }> = ({ row }) =>
-      React.createElement(
-        'div',
-        { 'data-testid': 'expanded-panel' },
-        `details-for-${row.name}`,
-      );
+      React.createElement('div', { 'data-testid': 'expanded-panel' }, `details-for-${row.name}`);
 
     const { wrapper, getTable, unmount } = await mountBridge<Row>({
       columns,

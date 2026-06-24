@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import './reke-card.js';
-import type { RekeCard } from './reke-card.js';
 import { runAxe } from '../../test-utils/a11y.js';
+import type { RekeCard } from './reke-card.js';
 
 function createElement(html: string): HTMLElement {
   const wrapper = document.createElement('div');
@@ -40,9 +40,7 @@ describe('reke-card', () => {
     const variants = ['default', 'elevated', 'outlined'] as const;
 
     for (const variant of variants) {
-      const wrapper = createElement(
-        `<reke-card variant="${variant}">Content</reke-card>`,
-      );
+      const wrapper = createElement(`<reke-card variant="${variant}">Content</reke-card>`);
       const el = wrapper.querySelector('reke-card')! as RekeCard;
       await waitForUpdate(el);
 
@@ -80,16 +78,12 @@ describe('reke-card', () => {
   // --- ACCESSIBILITY ---
 
   it('passes axe-core a11y audit', async () => {
-    const wrapper = createElement(
-      '<reke-card>Accessible card content</reke-card>',
-    );
+    const wrapper = createElement('<reke-card>Accessible card content</reke-card>');
     const el = wrapper.querySelector('reke-card')! as RekeCard;
     await waitForUpdate(el);
 
     const results = await runAxe(wrapper);
-    const violations = results.violations.filter(
-      (v) => v.id !== 'color-contrast',
-    );
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
     expect(violations).toEqual([]);
 
     wrapper.remove();

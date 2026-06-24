@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import './reke-file-upload.js';
-import type { RekeFileUpload } from './reke-file-upload.js';
 import { runAxe } from '../../test-utils/a11y.js';
+import type { RekeFileUpload } from './reke-file-upload.js';
 
 function createElement(html: string): HTMLElement {
   const wrapper = document.createElement('div');
@@ -36,9 +36,7 @@ describe('reke-file-upload', () => {
   });
 
   it('renders hint text', async () => {
-    const wrapper = createElement(
-      '<reke-file-upload hint="Max 10MB"></reke-file-upload>',
-    );
+    const wrapper = createElement('<reke-file-upload hint="Max 10MB"></reke-file-upload>');
     const el = wrapper.querySelector('reke-file-upload')! as RekeFileUpload;
     await waitForUpdate(el);
 
@@ -50,9 +48,7 @@ describe('reke-file-upload', () => {
   });
 
   it('renders compact variant', async () => {
-    const wrapper = createElement(
-      '<reke-file-upload compact></reke-file-upload>',
-    );
+    const wrapper = createElement('<reke-file-upload compact></reke-file-upload>');
     const el = wrapper.querySelector('reke-file-upload')! as RekeFileUpload;
     await waitForUpdate(el);
 
@@ -102,9 +98,7 @@ describe('reke-file-upload', () => {
     await waitForUpdate(el);
 
     expect(handler).toHaveBeenCalledOnce();
-    expect((handler.mock.calls[0][0] as CustomEvent).detail.file.name).toBe(
-      'test.csv',
-    );
+    expect((handler.mock.calls[0][0] as CustomEvent).detail.file.name).toBe('test.csv');
 
     wrapper.remove();
   });
@@ -121,9 +115,7 @@ describe('reke-file-upload', () => {
     dataTransfer.items.add(file);
 
     const dropzone = el.shadowRoot!.querySelector('.dropzone')!;
-    dropzone.dispatchEvent(
-      new DragEvent('drop', { bubbles: true, dataTransfer }),
-    );
+    dropzone.dispatchEvent(new DragEvent('drop', { bubbles: true, dataTransfer }));
     await waitForUpdate(el);
 
     const fileName = el.shadowRoot!.querySelector('.text__file');
@@ -143,9 +135,7 @@ describe('reke-file-upload', () => {
     const dataTransfer = new DataTransfer();
     dataTransfer.items.add(file);
     const dropzone = el.shadowRoot!.querySelector('.dropzone')!;
-    dropzone.dispatchEvent(
-      new DragEvent('drop', { bubbles: true, dataTransfer }),
-    );
+    dropzone.dispatchEvent(new DragEvent('drop', { bubbles: true, dataTransfer }));
     await waitForUpdate(el);
 
     const clearHandler = vi.fn();
@@ -162,9 +152,7 @@ describe('reke-file-upload', () => {
   });
 
   it('does not trigger on drop when disabled', async () => {
-    const wrapper = createElement(
-      '<reke-file-upload disabled></reke-file-upload>',
-    );
+    const wrapper = createElement('<reke-file-upload disabled></reke-file-upload>');
     const el = wrapper.querySelector('reke-file-upload')! as RekeFileUpload;
     await waitForUpdate(el);
 
@@ -176,9 +164,7 @@ describe('reke-file-upload', () => {
     dataTransfer.items.add(file);
 
     const dropzone = el.shadowRoot!.querySelector('.dropzone')!;
-    dropzone.dispatchEvent(
-      new DragEvent('drop', { bubbles: true, dataTransfer }),
-    );
+    dropzone.dispatchEvent(new DragEvent('drop', { bubbles: true, dataTransfer }));
     await waitForUpdate(el);
 
     expect(handler).not.toHaveBeenCalled();
@@ -194,25 +180,19 @@ describe('reke-file-upload', () => {
     await waitForUpdate(el);
 
     const results = await runAxe(wrapper);
-    const violations = results.violations.filter(
-      (v) => v.id !== 'color-contrast',
-    );
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
     expect(violations).toEqual([]);
 
     wrapper.remove();
   });
 
   it('passes a11y audit for disabled state', async () => {
-    const wrapper = createElement(
-      '<reke-file-upload disabled></reke-file-upload>',
-    );
+    const wrapper = createElement('<reke-file-upload disabled></reke-file-upload>');
     const el = wrapper.querySelector('reke-file-upload')! as RekeFileUpload;
     await waitForUpdate(el);
 
     const results = await runAxe(wrapper);
-    const violations = results.violations.filter(
-      (v) => v.id !== 'color-contrast',
-    );
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
     expect(violations).toEqual([]);
 
     wrapper.remove();

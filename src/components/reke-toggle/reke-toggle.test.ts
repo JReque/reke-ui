@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import './reke-toggle.js';
-import type { RekeToggle } from './reke-toggle.js';
 import { runAxe } from '../../test-utils/a11y.js';
+import type { RekeToggle } from './reke-toggle.js';
 
 function createElement(html: string): HTMLElement {
   const wrapper = document.createElement('div');
@@ -21,9 +21,7 @@ describe('reke-toggle', () => {
   // --- RENDERING ---
 
   it('renders unchecked by default', async () => {
-    const wrapper = createElement(
-      '<reke-toggle label="Toggle me"></reke-toggle>',
-    );
+    const wrapper = createElement('<reke-toggle label="Toggle me"></reke-toggle>');
     const el = wrapper.querySelector('reke-toggle')! as RekeToggle;
     await waitForUpdate(el);
 
@@ -41,9 +39,7 @@ describe('reke-toggle', () => {
   });
 
   it('renders checked when checked attribute is set', async () => {
-    const wrapper = createElement(
-      '<reke-toggle label="Toggle me" checked></reke-toggle>',
-    );
+    const wrapper = createElement('<reke-toggle label="Toggle me" checked></reke-toggle>');
     const el = wrapper.querySelector('reke-toggle')! as RekeToggle;
     await waitForUpdate(el);
 
@@ -64,9 +60,7 @@ describe('reke-toggle', () => {
   // --- BEHAVIOR ---
 
   it('toggles on click', async () => {
-    const wrapper = createElement(
-      '<reke-toggle label="Toggle me"></reke-toggle>',
-    );
+    const wrapper = createElement('<reke-toggle label="Toggle me"></reke-toggle>');
     const el = wrapper.querySelector('reke-toggle')! as RekeToggle;
     await waitForUpdate(el);
 
@@ -85,9 +79,7 @@ describe('reke-toggle', () => {
   });
 
   it('emits reke-change with checked detail', async () => {
-    const wrapper = createElement(
-      '<reke-toggle label="Toggle me"></reke-toggle>',
-    );
+    const wrapper = createElement('<reke-toggle label="Toggle me"></reke-toggle>');
     const el = wrapper.querySelector('reke-toggle')! as RekeToggle;
     await waitForUpdate(el);
 
@@ -106,9 +98,7 @@ describe('reke-toggle', () => {
   });
 
   it('does not toggle when disabled', async () => {
-    const wrapper = createElement(
-      '<reke-toggle label="Toggle me" disabled></reke-toggle>',
-    );
+    const wrapper = createElement('<reke-toggle label="Toggle me" disabled></reke-toggle>');
     const el = wrapper.querySelector('reke-toggle')! as RekeToggle;
     await waitForUpdate(el);
 
@@ -128,9 +118,7 @@ describe('reke-toggle', () => {
   // --- ACCESSIBILITY ---
 
   it('passes axe-core a11y audit', async () => {
-    const wrapper = createElement(
-      '<reke-toggle label="Toggle me"></reke-toggle>',
-    );
+    const wrapper = createElement('<reke-toggle label="Toggle me"></reke-toggle>');
     const el = wrapper.querySelector('reke-toggle')! as RekeToggle;
     await waitForUpdate(el);
 
@@ -141,16 +129,12 @@ describe('reke-toggle', () => {
   });
 
   it('passes a11y audit for disabled toggle', async () => {
-    const wrapper = createElement(
-      '<reke-toggle label="Toggle me" disabled></reke-toggle>',
-    );
+    const wrapper = createElement('<reke-toggle label="Toggle me" disabled></reke-toggle>');
     const el = wrapper.querySelector('reke-toggle')! as RekeToggle;
     await waitForUpdate(el);
 
     const results = await runAxe(wrapper);
-    const nonContrastViolations = results.violations.filter(
-      (v) => v.id !== 'color-contrast',
-    );
+    const nonContrastViolations = results.violations.filter((v) => v.id !== 'color-contrast');
     expect(nonContrastViolations).toEqual([]);
 
     wrapper.remove();
