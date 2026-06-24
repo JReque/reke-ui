@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import './reke-alert.js';
-import type { RekeAlert } from './reke-alert.js';
 import { runAxe } from '../../test-utils/a11y.js';
+import type { RekeAlert } from './reke-alert.js';
 
 function createElement(html: string): HTMLElement {
   const wrapper = document.createElement('div');
@@ -36,9 +36,7 @@ describe('reke-alert', () => {
   it('renders all variants', async () => {
     const variants = ['success', 'error', 'warning', 'info'] as const;
     for (const variant of variants) {
-      const wrapper = createElement(
-        `<reke-alert variant="${variant}">Test</reke-alert>`,
-      );
+      const wrapper = createElement(`<reke-alert variant="${variant}">Test</reke-alert>`);
       const el = wrapper.querySelector('reke-alert')! as RekeAlert;
       await waitForUpdate(el);
 
@@ -50,9 +48,7 @@ describe('reke-alert', () => {
   });
 
   it('renders close button when dismissible', async () => {
-    const wrapper = createElement(
-      '<reke-alert dismissible>Dismiss me</reke-alert>',
-    );
+    const wrapper = createElement('<reke-alert dismissible>Dismiss me</reke-alert>');
     const el = wrapper.querySelector('reke-alert')! as RekeAlert;
     await waitForUpdate(el);
 
@@ -76,18 +72,14 @@ describe('reke-alert', () => {
   // --- BEHAVIOR ---
 
   it('emits reke-close and removes itself when dismissed', async () => {
-    const wrapper = createElement(
-      '<reke-alert dismissible>Bye</reke-alert>',
-    );
+    const wrapper = createElement('<reke-alert dismissible>Bye</reke-alert>');
     const el = wrapper.querySelector('reke-alert')! as RekeAlert;
     await waitForUpdate(el);
 
     const handler = vi.fn();
     el.addEventListener('reke-close', handler);
 
-    const closeBtn = el.shadowRoot!.querySelector(
-      '.alert__close',
-    )! as HTMLElement;
+    const closeBtn = el.shadowRoot!.querySelector('.alert__close')! as HTMLElement;
     closeBtn.click();
 
     expect(handler).toHaveBeenCalledOnce();
@@ -99,9 +91,7 @@ describe('reke-alert', () => {
   // --- ACCESSIBILITY ---
 
   it('has role="alert"', async () => {
-    const wrapper = createElement(
-      '<reke-alert variant="error">Error!</reke-alert>',
-    );
+    const wrapper = createElement('<reke-alert variant="error">Error!</reke-alert>');
     const el = wrapper.querySelector('reke-alert')! as RekeAlert;
     await waitForUpdate(el);
 
@@ -112,32 +102,24 @@ describe('reke-alert', () => {
   });
 
   it('passes axe-core a11y audit', async () => {
-    const wrapper = createElement(
-      '<reke-alert variant="success">Build completed</reke-alert>',
-    );
+    const wrapper = createElement('<reke-alert variant="success">Build completed</reke-alert>');
     const el = wrapper.querySelector('reke-alert')! as RekeAlert;
     await waitForUpdate(el);
 
     const results = await runAxe(wrapper);
-    const violations = results.violations.filter(
-      (v) => v.id !== 'color-contrast',
-    );
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
     expect(violations).toEqual([]);
 
     wrapper.remove();
   });
 
   it('passes a11y audit for dismissible variant', async () => {
-    const wrapper = createElement(
-      '<reke-alert variant="warning" dismissible>Warning</reke-alert>',
-    );
+    const wrapper = createElement('<reke-alert variant="warning" dismissible>Warning</reke-alert>');
     const el = wrapper.querySelector('reke-alert')! as RekeAlert;
     await waitForUpdate(el);
 
     const results = await runAxe(wrapper);
-    const violations = results.violations.filter(
-      (v) => v.id !== 'color-contrast',
-    );
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
     expect(violations).toEqual([]);
 
     wrapper.remove();

@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import './reke-toast.js';
-import type { RekeToast } from './reke-toast.js';
 import { runAxe } from '../../test-utils/a11y.js';
+import type { RekeToast } from './reke-toast.js';
 
 function createElement(html: string): HTMLElement {
   const wrapper = document.createElement('div');
@@ -21,9 +21,7 @@ describe('reke-toast', () => {
   // --- RENDERING ---
 
   it('renders with default props', async () => {
-    const wrapper = createElement(
-      '<reke-toast message="File saved"></reke-toast>',
-    );
+    const wrapper = createElement('<reke-toast message="File saved"></reke-toast>');
     const el = wrapper.querySelector('reke-toast')! as RekeToast;
     await waitForUpdate(el);
 
@@ -69,9 +67,7 @@ describe('reke-toast', () => {
   });
 
   it('does not render action button by default', async () => {
-    const wrapper = createElement(
-      '<reke-toast message="Success"></reke-toast>',
-    );
+    const wrapper = createElement('<reke-toast message="Success"></reke-toast>');
     const el = wrapper.querySelector('reke-toast')! as RekeToast;
     await waitForUpdate(el);
 
@@ -82,9 +78,7 @@ describe('reke-toast', () => {
   });
 
   it('always renders close button', async () => {
-    const wrapper = createElement(
-      '<reke-toast message="Info"></reke-toast>',
-    );
+    const wrapper = createElement('<reke-toast message="Info"></reke-toast>');
     const el = wrapper.querySelector('reke-toast')! as RekeToast;
     await waitForUpdate(el);
 
@@ -97,18 +91,14 @@ describe('reke-toast', () => {
   // --- BEHAVIOR ---
 
   it('emits reke-close and removes itself on dismiss', async () => {
-    const wrapper = createElement(
-      '<reke-toast message="Bye"></reke-toast>',
-    );
+    const wrapper = createElement('<reke-toast message="Bye"></reke-toast>');
     const el = wrapper.querySelector('reke-toast')! as RekeToast;
     await waitForUpdate(el);
 
     const handler = vi.fn();
     el.addEventListener('reke-close', handler);
 
-    const closeBtn = el.shadowRoot!.querySelector(
-      '.toast__close',
-    )! as HTMLElement;
+    const closeBtn = el.shadowRoot!.querySelector('.toast__close')! as HTMLElement;
     closeBtn.click();
 
     expect(handler).toHaveBeenCalledOnce();
@@ -118,18 +108,14 @@ describe('reke-toast', () => {
   });
 
   it('emits reke-action when action button is clicked', async () => {
-    const wrapper = createElement(
-      '<reke-toast message="Failed" action="retry()"></reke-toast>',
-    );
+    const wrapper = createElement('<reke-toast message="Failed" action="retry()"></reke-toast>');
     const el = wrapper.querySelector('reke-toast')! as RekeToast;
     await waitForUpdate(el);
 
     const handler = vi.fn();
     el.addEventListener('reke-action', handler);
 
-    const actionBtn = el.shadowRoot!.querySelector(
-      '.toast__action',
-    )! as HTMLElement;
+    const actionBtn = el.shadowRoot!.querySelector('.toast__action')! as HTMLElement;
     actionBtn.click();
 
     expect(handler).toHaveBeenCalledOnce();
@@ -138,9 +124,7 @@ describe('reke-toast', () => {
   });
 
   it('auto-dismisses after duration', async () => {
-    const wrapper = createElement(
-      '<reke-toast message="Auto" duration="100"></reke-toast>',
-    );
+    const wrapper = createElement('<reke-toast message="Auto" duration="100"></reke-toast>');
     const el = wrapper.querySelector('reke-toast')! as RekeToast;
     await waitForUpdate(el);
 
@@ -157,9 +141,7 @@ describe('reke-toast', () => {
   // --- ACCESSIBILITY ---
 
   it('has role="status"', async () => {
-    const wrapper = createElement(
-      '<reke-toast message="Saved"></reke-toast>',
-    );
+    const wrapper = createElement('<reke-toast message="Saved"></reke-toast>');
     const el = wrapper.querySelector('reke-toast')! as RekeToast;
     await waitForUpdate(el);
 
@@ -170,16 +152,12 @@ describe('reke-toast', () => {
   });
 
   it('passes axe-core a11y audit', async () => {
-    const wrapper = createElement(
-      '<reke-toast message="Operation completed"></reke-toast>',
-    );
+    const wrapper = createElement('<reke-toast message="Operation completed"></reke-toast>');
     const el = wrapper.querySelector('reke-toast')! as RekeToast;
     await waitForUpdate(el);
 
     const results = await runAxe(wrapper);
-    const violations = results.violations.filter(
-      (v) => v.id !== 'color-contrast',
-    );
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
     expect(violations).toEqual([]);
 
     wrapper.remove();
@@ -193,9 +171,7 @@ describe('reke-toast', () => {
     await waitForUpdate(el);
 
     const results = await runAxe(wrapper);
-    const violations = results.violations.filter(
-      (v) => v.id !== 'color-contrast',
-    );
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
     expect(violations).toEqual([]);
 
     wrapper.remove();

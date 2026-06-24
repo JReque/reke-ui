@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
 import { html } from 'lit';
+import { describe, expect, it, vi } from 'vitest';
 import './reke-table.js';
-import type { RekeTable } from './reke-table.js';
 import { runAxe } from '../../test-utils/a11y.js';
+import type { RekeTable } from './reke-table.js';
 
 function createElement(markup: string): HTMLElement {
   const wrapper = document.createElement('div');
@@ -136,9 +136,7 @@ describe('reke-table', () => {
   });
 
   it('renders footer slot when content is provided', async () => {
-    const wrapper = createElement(
-      '<reke-table><div slot="footer">Page 1 of 5</div></reke-table>',
-    );
+    const wrapper = createElement('<reke-table><div slot="footer">Page 1 of 5</div></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
     el.columns = testColumns;
     el.rows = testRows;
@@ -805,9 +803,7 @@ describe('reke-table', () => {
     await waitForUpdate(el);
 
     const results = await runAxe(wrapper);
-    const violations = results.violations.filter(
-      (v) => v.id !== 'color-contrast',
-    );
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
     expect(violations).toEqual([]);
 
     wrapper.remove();
@@ -821,9 +817,7 @@ describe('reke-table', () => {
     await waitForUpdate(el);
 
     const results = await runAxe(wrapper);
-    const violations = results.violations.filter(
-      (v) => v.id !== 'color-contrast',
-    );
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
     expect(violations).toEqual([]);
 
     wrapper.remove();
@@ -844,9 +838,7 @@ describe('reke-table', () => {
     await waitForUpdate(el);
 
     const results = await runAxe(wrapper);
-    const violations = results.violations.filter(
-      (v) => v.id !== 'color-contrast',
-    );
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
     expect(violations).toEqual([]);
 
     wrapper.remove();
@@ -893,7 +885,9 @@ describe('reke-table', () => {
     expect(buttons.length).toBe(testRows.length);
 
     // Header has a leading empty toggle header cell as well, to keep column alignment.
-    const headers = el.shadowRoot!.querySelectorAll('thead .header-cell, thead .expand-toggle-header-cell');
+    const headers = el.shadowRoot!.querySelectorAll(
+      'thead .header-cell, thead .expand-toggle-header-cell',
+    );
     expect(headers.length).toBe(testColumns.length + 1);
 
     // Each row has columns.length + 1 cells (leading toggle cell first).
@@ -973,9 +967,7 @@ describe('reke-table', () => {
     await waitForUpdate(el);
 
     const getButton = () =>
-      el.shadowRoot!.querySelector<HTMLButtonElement>(
-        'tbody .row .expand-toggle-button',
-      )!;
+      el.shadowRoot!.querySelector<HTMLButtonElement>('tbody .row .expand-toggle-button')!;
 
     // Enter expands.
     getButton().focus();
@@ -1047,9 +1039,7 @@ describe('reke-table', () => {
     const rowClickHandler = vi.fn();
     el.addEventListener('reke-row-click', rowClickHandler);
 
-    const button = el.shadowRoot!.querySelector<HTMLButtonElement>(
-      'tbody .expand-toggle-button',
-    )!;
+    const button = el.shadowRoot!.querySelector<HTMLButtonElement>('tbody .expand-toggle-button')!;
     button.click();
     await waitForUpdate(el);
 
@@ -1141,9 +1131,7 @@ describe('reke-table', () => {
 
   // BEHAVIOR — chevron + expandOnRowClick: chevron click toggles exactly once (no double toggle)
   it('chevron + expandOnRowClick ON: chevron click toggles exactly once', async () => {
-    const wrapper = createElement(
-      '<reke-table expandable expand-on-row-click></reke-table>',
-    );
+    const wrapper = createElement('<reke-table expandable expand-on-row-click></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
     el.columns = testColumns;
     el.rows = testRows;
@@ -1159,9 +1147,7 @@ describe('reke-table', () => {
 
     expect(el.isRowExpanded('a')).toBe(false);
 
-    const button = el.shadowRoot!.querySelector<HTMLButtonElement>(
-      'tbody .expand-toggle-button',
-    )!;
+    const button = el.shadowRoot!.querySelector<HTMLButtonElement>('tbody .expand-toggle-button')!;
     button.click();
     await waitForUpdate(el);
 
@@ -1208,9 +1194,7 @@ describe('reke-table', () => {
 
   // ACCESSIBILITY — axe clean with both flags ON and expanded state
   it('expandOnRowClick + expandable ON: passes a11y audit in expanded state', async () => {
-    const wrapper = createElement(
-      '<reke-table expandable expand-on-row-click></reke-table>',
-    );
+    const wrapper = createElement('<reke-table expandable expand-on-row-click></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
     el.columns = testColumns;
     el.rows = testRows;

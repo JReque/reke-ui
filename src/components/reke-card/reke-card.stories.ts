@@ -59,8 +59,8 @@ export const WithHeaderAndFooter: Story = {
 
 export const AllVariants: Story = {
   args: {
-    variant: "elevated",
-    padding: "sm"
+    variant: 'elevated',
+    padding: 'sm',
   },
 
   render: () => html`
@@ -78,7 +78,7 @@ export const AllVariants: Story = {
         <p style="margin: 0; color: #A3A3A3;">Outlined variant card.</p>
       </reke-card>
     </div>
-  `
+  `,
 };
 
 export const Elevated: Story = {

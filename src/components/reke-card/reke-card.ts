@@ -62,19 +62,27 @@ export class RekeCard extends RekeElement {
 
     return html`
       <div class=${classMap(classes)}>
-        ${this._hasHeader ? html`
+        ${
+          this._hasHeader
+            ? html`
           <div class="card-header">
             <slot name="header" @slotchange=${(e: Event) => this._onSlotChange('header', e)}></slot>
           </div>
-        ` : html`<slot name="header" @slotchange=${(e: Event) => this._onSlotChange('header', e)} style="display:none"></slot>`}
+        `
+            : html`<slot name="header" @slotchange=${(e: Event) => this._onSlotChange('header', e)} style="display:none"></slot>`
+        }
         <div class="card-body">
           <slot></slot>
         </div>
-        ${this._hasFooter ? html`
+        ${
+          this._hasFooter
+            ? html`
           <div class="card-footer">
             <slot name="footer" @slotchange=${(e: Event) => this._onSlotChange('footer', e)}></slot>
           </div>
-        ` : html`<slot name="footer" @slotchange=${(e: Event) => this._onSlotChange('footer', e)} style="display:none"></slot>`}
+        `
+            : html`<slot name="footer" @slotchange=${(e: Event) => this._onSlotChange('footer', e)} style="display:none"></slot>`
+        }
       </div>
     `;
   }

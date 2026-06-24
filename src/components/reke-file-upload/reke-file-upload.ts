@@ -1,5 +1,5 @@
 import { html, nothing } from 'lit';
-import { customElement, property, state, query } from 'lit/decorators.js';
+import { customElement, property, query, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { RekeElement } from '../../shared/base-element.js';
 import { styles } from './reke-file-upload.styles.js';
@@ -126,16 +126,20 @@ export class RekeFileUpload extends RekeElement {
       >
         <div class="icon" aria-hidden="true">&#8593;</div>
         <div class="text">
-          ${this._fileName
-            ? html`<span class="text__file">${this._fileName}</span>`
-            : html`<span class="text__primary">
+          ${
+            this._fileName
+              ? html`<span class="text__file">${this._fileName}</span>`
+              : html`<span class="text__primary">
                 ${this._dragging ? 'drop file here' : 'drag or select file'}
-              </span>`}
-          ${this.error && this.errorMessage
-            ? html`<span class="text__error">${this.errorMessage}</span>`
-            : this.hint
-              ? html`<span class="text__secondary">${this.hint}</span>`
-              : nothing}
+              </span>`
+          }
+          ${
+            this.error && this.errorMessage
+              ? html`<span class="text__error">${this.errorMessage}</span>`
+              : this.hint
+                ? html`<span class="text__secondary">${this.hint}</span>`
+                : nothing
+          }
         </div>
       </div>
       <input

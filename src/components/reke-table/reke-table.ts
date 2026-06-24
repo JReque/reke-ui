@@ -1,4 +1,4 @@
-import { html, nothing, type TemplateResult, type PropertyValues } from 'lit';
+import { html, nothing, type PropertyValues, type TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { ref } from 'lit/directives/ref.js';
@@ -13,7 +13,11 @@ export interface TableColumn {
   /** Set to false to disable sorting on this column. Default: true. */
   sortable?: boolean;
   /** Custom render function for cell content. Falls back to row[col.key] if omitted. */
-  render?: (value: unknown, row: TableRow, index: number) => TemplateResult | string | HTMLElement | Node;
+  render?: (
+    value: unknown,
+    row: TableRow,
+    index: number,
+  ) => TemplateResult | string | HTMLElement | Node;
 }
 
 export type TableRow = Record<string, unknown>;
@@ -30,11 +34,7 @@ export type Cleanup = () => void;
  * Mount any framework's content into the host and return a cleanup function
  * (called on collapse, row removal, or table disconnect), or `void`.
  */
-export type ExpandedRowElement = (
-  host: HTMLElement,
-  row: TableRow,
-  key: RowKey,
-) => Cleanup | void;
+export type ExpandedRowElement = (host: HTMLElement, row: TableRow, key: RowKey) => Cleanup | void;
 
 /** Resolve a row to a stable identifier. Defaults to `String(index)`. */
 export type GetRowKey = (row: TableRow, index: number) => RowKey;
@@ -302,7 +302,10 @@ export class RekeTable extends RekeElement {
     let row: TableRow | undefined;
 
     const interpretedAsIndex =
-      typeof target === 'number' && target === Math.trunc(target) && target >= 0 && target < this.rows.length;
+      typeof target === 'number' &&
+      target === Math.trunc(target) &&
+      target >= 0 &&
+      target < this.rows.length;
 
     // Only warn when the numeric target is actually interpreted as an INDEX. An
     // out-of-range number falls through to the key branch where it IS used as a key,
@@ -401,8 +404,9 @@ export class RekeTable extends RekeElement {
         class="row ${i % 2 === 1 ? 'row--even' : ''} ${isExpanded ? 'row--expanded' : ''}"
         @click=${() => this.handleRowClick(row, i)}
       >
-        ${this.expandable
-          ? html`
+        ${
+          this.expandable
+            ? html`
               <td
                 part="expand-toggle-cell"
                 class="expand-toggle-cell"
@@ -421,7 +425,8 @@ export class RekeTable extends RekeElement {
                 </button>
               </td>
             `
-          : nothing}
+            : nothing
+        }
         ${this.columns.map(
           (col) => html`
             <td
@@ -434,8 +439,9 @@ export class RekeTable extends RekeElement {
           `,
         )}
       </tr>
-      ${this.expandedRowElement && isExpanded && this._keyToRow.get(key) === row
-        ? html`
+      ${
+        this.expandedRowElement && isExpanded && this._keyToRow.get(key) === row
+          ? html`
             <tr part="expand-row" class="expand-row">
               <td
                 part="expand-content"
@@ -446,7 +452,8 @@ export class RekeTable extends RekeElement {
               ></td>
             </tr>
           `
-        : nothing}
+          : nothing
+      }
     `;
   }
 
@@ -510,10 +517,7 @@ export class RekeTable extends RekeElement {
     //      - never-mounted-then-removed: key was added to `expandedRows` in the same
     //        tick the row was dropped, so it NEVER entered `_hostCache`. Keying the
     //        purge solely on `_hostCache` would miss it, leaving a phantom expanded key.
-    const keysToCheck = new Set<RowKey>([
-      ...this.expandedRows,
-      ...this._hostCache.keys(),
-    ]);
+    const keysToCheck = new Set<RowKey>([...this.expandedRows, ...this._hostCache.keys()]);
     for (const cachedKey of keysToCheck) {
       const present = this._keyToRow.has(cachedKey);
       const stillExpanded = this.expandedRows.has(cachedKey);
@@ -599,27 +603,31 @@ export class RekeTable extends RekeElement {
 
     return html`
       <div class="table-container">
-        ${this._hasToolbar
-          ? html`
+        ${
+          this._hasToolbar
+            ? html`
               <div part="toolbar" class="table-toolbar">
                 <slot name="toolbar" @slotchange=${this._onToolbarSlotChange}></slot>
               </div>
             `
-          : html`<slot name="toolbar" @slotchange=${this._onToolbarSlotChange} style="display:none"></slot>`}
+            : html`<slot name="toolbar" @slotchange=${this._onToolbarSlotChange} style="display:none"></slot>`
+        }
 
         <div class="table-wrapper">
           <table part="table" class=${classMap(tableClasses)} role="table">
             <thead part="header">
               <tr>
-                ${this.expandable
-                  ? html`
+                ${
+                  this.expandable
+                    ? html`
                       <th
                         part="expand-toggle-header-cell"
                         class="expand-toggle-header-cell"
                         aria-hidden="true"
                       ></th>
                     `
-                  : nothing}
+                    : nothing
+                }
                 ${this.columns.map(
                   (col) => html`
                     <th
@@ -631,9 +639,11 @@ export class RekeTable extends RekeElement {
                     >
                       <span class="header-content">
                         ${col.header}
-                        ${this.sortKey === col.key
-                          ? html`<span class="sort-indicator" aria-hidden="true">${this.sortDirection === 'asc' ? '↑' : '↓'}</span>`
-                          : nothing}
+                        ${
+                          this.sortKey === col.key
+                            ? html`<span class="sort-indicator" aria-hidden="true">${this.sortDirection === 'asc' ? '↑' : '↓'}</span>`
+                            : nothing
+                        }
                       </span>
                     </th>
                   `,
@@ -645,8 +655,9 @@ export class RekeTable extends RekeElement {
                 const key = this._resolveKey(row, i);
                 return this._renderRow(row, i, key);
               })}
-              ${this.rows.length === 0
-                ? html`
+              ${
+                this.rows.length === 0
+                  ? html`
                     <tr class="row row--empty">
                       <td
                         class="cell cell--empty"
@@ -656,18 +667,21 @@ export class RekeTable extends RekeElement {
                       </td>
                     </tr>
                   `
-                : nothing}
+                  : nothing
+              }
             </tbody>
           </table>
         </div>
 
-        ${this._hasFooter
-          ? html`
+        ${
+          this._hasFooter
+            ? html`
               <div part="footer" class="table-footer">
                 <slot name="footer" @slotchange=${this._onFooterSlotChange}></slot>
               </div>
             `
-          : html`<slot name="footer" @slotchange=${this._onFooterSlotChange} style="display:none"></slot>`}
+            : html`<slot name="footer" @slotchange=${this._onFooterSlotChange} style="display:none"></slot>`
+        }
       </div>
     `;
   }

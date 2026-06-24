@@ -1,21 +1,20 @@
 import { createComponent, type EventName } from '@lit/react';
 import React from 'react';
-
-import { RekeButton } from './components/reke-button/reke-button.js';
-import { RekeInput } from './components/reke-input/reke-input.js';
-import { RekeTextarea } from './components/reke-textarea/reke-textarea.js';
-import { RekeCheckbox } from './components/reke-checkbox/reke-checkbox.js';
-import { RekeToggle } from './components/reke-toggle/reke-toggle.js';
-import { RekeBadge } from './components/reke-badge/reke-badge.js';
-import { RekeCard } from './components/reke-card/reke-card.js';
-import { RekeTooltip } from './components/reke-tooltip/reke-tooltip.js';
-import { RekeDialog } from './components/reke-dialog/reke-dialog.js';
-import { RekeSelect } from './components/reke-select/reke-select.js';
-import { RekeDateRange } from './components/reke-date-range/reke-date-range.js';
-import { RekeFileUpload } from './components/reke-file-upload/reke-file-upload.js';
 import { RekeAlert } from './components/reke-alert/reke-alert.js';
-import { RekeToast } from './components/reke-toast/reke-toast.js';
+import { RekeBadge } from './components/reke-badge/reke-badge.js';
+import { RekeButton } from './components/reke-button/reke-button.js';
+import { RekeCard } from './components/reke-card/reke-card.js';
+import { RekeCheckbox } from './components/reke-checkbox/reke-checkbox.js';
 import { RekeChip } from './components/reke-chip/reke-chip.js';
+import { RekeDateRange } from './components/reke-date-range/reke-date-range.js';
+import { RekeDialog } from './components/reke-dialog/reke-dialog.js';
+import { RekeFileUpload } from './components/reke-file-upload/reke-file-upload.js';
+import { RekeInput } from './components/reke-input/reke-input.js';
+import { RekeSelect } from './components/reke-select/reke-select.js';
+import { RekeTextarea } from './components/reke-textarea/reke-textarea.js';
+import { RekeToast } from './components/reke-toast/reke-toast.js';
+import { RekeToggle } from './components/reke-toggle/reke-toggle.js';
+import { RekeTooltip } from './components/reke-tooltip/reke-tooltip.js';
 
 export const Button = createComponent({
   tagName: 'reke-button',
@@ -100,14 +99,14 @@ export const Select = createComponent({
   },
 });
 
-export { Table } from './react-bridge/table.js';
 export type {
-  TableProps,
-  ReactTableColumn,
   ReactExpandedRowRenderer,
+  ReactTableColumn,
   TableColumn,
+  TableProps,
   TableRow,
 } from './react-bridge/table.js';
+export { Table } from './react-bridge/table.js';
 
 export const DateRange = createComponent({
   tagName: 'reke-date-range',
@@ -115,7 +114,9 @@ export const DateRange = createComponent({
   react: React,
   events: {
     onRekeChange: 'reke-change' as EventName<CustomEvent<{ from: string; to: string }>>,
-    onRekePreset: 'reke-preset' as EventName<CustomEvent<{ preset: string; from: string; to: string }>>,
+    onRekePreset: 'reke-preset' as EventName<
+      CustomEvent<{ preset: string; from: string; to: string }>
+    >,
   },
 });
 
