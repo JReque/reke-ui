@@ -13,13 +13,13 @@ export default defineConfig({
     },
     rollupOptions: {
       external: [
-        'lit',
-        'lit/decorators.js',
-        'lit/directives/class-map.js',
+        /^lit(\/|$)/,
+        /^lit-html(\/|$)/,
+        /^lit-element(\/|$)/,
+        /^@lit\//,
         'react',
         'react-dom',
         'react-dom/client',
-        '@lit/react',
       ],
       output: {
         preserveModules: true,
