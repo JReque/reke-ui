@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. Releases are managed automatically by [release-please](https://github.com/googleapis/release-please) from Conventional Commits.
 
+## [0.2.1](https://github.com/JReque/reke-ui/compare/v0.2.0...v0.2.1) (2026-07-04)
+
+
+### Bug Fixes
+
+* **build:** externalize the full lit family by regex ([ea2b0e1](https://github.com/JReque/reke-ui/commit/ea2b0e1fc41991aa3b2ad10207ade5a1dbabb2f5))
+* **build:** externalize the full lit family by regex ([d8b302a](https://github.com/JReque/reke-ui/commit/d8b302aea2d56efb253ee1638e8b9300f136d83f))
+
 ## [0.2.0](https://github.com/JReque/reke-ui/compare/v0.1.2...v0.2.0) (2026-06-24)
 
 
