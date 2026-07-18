@@ -335,7 +335,7 @@ describe('reke-table', () => {
     await waitForUpdate(el);
 
     el.toggleExpand(0);
-    await waitForUpdate(el);
+    await flushEnterTransition(el);
 
     expect(el.shadowRoot!.querySelector('.expand-row')).toBeTruthy();
     // The expanded row's expand content should NOT be collapsed.
