@@ -18,32 +18,6 @@ async function waitForUpdate(el: RekeTable): Promise<void> {
   await new Promise((r) => setTimeout(r, 0));
 }
 
-/**
- * Wait for the enter animation to settle. A freshly-expanded row renders
- * collapsed for one frame, then releases on the next rAF via requestUpdate.
- * Use this before asserting the settled (non-collapsed) class after expanding.
- */
-async function flushEnterTransition(el: RekeTable): Promise<void> {
-  await el.updateComplete;
-  await new Promise((r) => requestAnimationFrame(r));
-  await el.updateComplete;
-  await new Promise((r) => setTimeout(r, 0));
-}
-
-/** Dispatch transitionend on all collapsing expand rows so cleanup runs. */
-async function flushExpandTransition(el: RekeTable): Promise<void> {
-  await waitForUpdate(el);
-  await new Promise((r) => requestAnimationFrame(r));
-  await waitForUpdate(el);
-  const grids = el.shadowRoot!.querySelectorAll('.expand-row--collapsed .expand-grid');
-  for (const grid of grids) {
-    grid.dispatchEvent(
-      new TransitionEvent('transitionend', { propertyName: 'grid-template-rows' }),
-    );
-  }
-  await waitForUpdate(el);
-}
-
 const testColumns = [
   { key: 'name', header: 'Name' },
   { key: 'role', header: 'Role' },
@@ -335,20 +309,17 @@ describe('reke-table', () => {
     await waitForUpdate(el);
 
     el.toggleExpand(0);
-    await flushEnterTransition(el);
+    await waitForUpdate(el);
 
     expect(el.shadowRoot!.querySelector('.expand-row')).toBeTruthy();
-    // The expanded row's expand content should NOT be collapsed.
-    expect(el.shadowRoot!.querySelector('.expand-row:not(.expand-row--collapsed)')).toBeTruthy();
     const detail = el.shadowRoot!.querySelector('.detail-content');
     expect(detail).toBeTruthy();
     expect(detail!.textContent).toBe('Alice details');
 
     el.toggleExpand(0);
-    await flushExpandTransition(el);
+    await waitForUpdate(el);
 
-    expect(el.shadowRoot!.querySelector('.expand-row--collapsed')).toBeTruthy();
-    expect(el.shadowRoot!.querySelector('.detail-content')).toBeNull();
+    expect(el.shadowRoot!.querySelector('.expand-row')).toBeNull();
 
     wrapper.remove();
   });
@@ -369,9 +340,9 @@ describe('reke-table', () => {
     el.toggleExpand(0);
     await waitForUpdate(el);
     el.toggleExpand(2);
-    await flushEnterTransition(el);
+    await waitForUpdate(el);
 
-    const expandRows = el.shadowRoot!.querySelectorAll('.expand-row:not(.expand-row--collapsed)');
+    const expandRows = el.shadowRoot!.querySelectorAll('.expand-row');
     expect(expandRows.length).toBe(2);
 
     wrapper.remove();
@@ -420,9 +391,12 @@ describe('reke-table', () => {
     expect(el.shadowRoot!.querySelector('.vanilla-cleanup-test')).toBeTruthy();
 
     el.toggleExpand(0);
-    await flushExpandTransition(el);
+    await waitForUpdate(el);
+    // The vanilla-DOM node returned by `cleanup` removed itself, so it MUST
+    // no longer be in the shadow DOM.
     expect(el.shadowRoot!.querySelector('.vanilla-cleanup-test')).toBeNull();
-    expect(el.shadowRoot!.querySelector('.expand-row--collapsed')).toBeTruthy();
+    // And the expand `<tr>` is gone entirely.
+    expect(el.shadowRoot!.querySelector('.expand-row')).toBeNull();
 
     wrapper.remove();
   });
@@ -444,7 +418,7 @@ describe('reke-table', () => {
     expect(cleanup).not.toHaveBeenCalled();
 
     el.toggleExpand(0);
-    await flushExpandTransition(el);
+    await waitForUpdate(el);
     expect(cleanup).toHaveBeenCalledOnce();
 
     wrapper.remove();
@@ -475,11 +449,11 @@ describe('reke-table', () => {
     await waitForUpdate(el);
     el.toggleExpand(0); // collapse
     await waitForUpdate(el);
-    el.toggleExpand(0); // re-expand — cancels the pending collapse
+    el.toggleExpand(0); // re-expand
     await waitForUpdate(el);
 
-    expect(mountCount).toBe(1);
-    expect(order).toEqual(['mount-1']);
+    expect(mountCount).toBe(2);
+    expect(order).toEqual(['mount-1', 'cleanup-1', 'mount-2']);
 
     wrapper.remove();
   });
@@ -509,13 +483,12 @@ describe('reke-table', () => {
     await waitForUpdate(el);
 
     // Collapse and re-expand synchronously, no waitForUpdate between them.
-    // Collapse defers cleanup; re-expand cancels it.
-    el.toggleExpand(0); // collapse — deferred
-    el.toggleExpand(0); // re-expand — cancels pending collapse
+    el.toggleExpand(0); // collapse — cleanup runs synchronously inside toggleExpand
+    el.toggleExpand(0); // re-expand — mount deferred to updated()
     await waitForUpdate(el);
 
-    expect(mountCount).toBe(1);
-    expect(order).toEqual(['mount-1']);
+    expect(mountCount).toBe(2);
+    expect(order).toEqual(['mount-1', 'cleanup-1', 'mount-2']);
 
     wrapper.remove();
   });
@@ -698,9 +671,7 @@ describe('reke-table', () => {
 
     expect(el.isRowExpanded('b')).toBe(false);
     expect(mountCount).toBe(1);
-    // Row B's expand row is present but collapsed (animation target).
-    const collapsedRows = el.shadowRoot!.querySelectorAll('.expand-row--collapsed');
-    expect(collapsedRows.length).toBeGreaterThan(0);
+    expect(el.shadowRoot!.querySelector('.expand-row')).toBeNull();
 
     wrapper.remove();
   });
@@ -729,11 +700,7 @@ describe('reke-table', () => {
     // Phantom key must be purged even though it was never mounted.
     expect(el.isRowExpanded('b')).toBe(false);
     expect(mountCount).toBe(0);
-    // All expand rows are collapsed since nothing is expanded.
-    const allExpandRows = el.shadowRoot!.querySelectorAll('.expand-row');
-    const expandedRows = el.shadowRoot!.querySelectorAll('.expand-row:not(.expand-row--collapsed)');
-    expect(expandedRows.length).toBe(0);
-    expect(allExpandRows.length).toBeGreaterThan(0);
+    expect(el.shadowRoot!.querySelector('.expand-row')).toBeNull();
 
     // Re-add a row with key 'b' — must render COLLAPSED and stay unmounted.
     el.rows = [testRows[0], testRows[1], testRows[2]];
@@ -741,6 +708,7 @@ describe('reke-table', () => {
 
     expect(el.isRowExpanded('b')).toBe(false);
     expect(mountCount).toBe(0);
+    expect(el.shadowRoot!.querySelector('.expand-row')).toBeNull();
 
     wrapper.remove();
   });
@@ -1018,9 +986,6 @@ describe('reke-table', () => {
     });
     getButton().dispatchEvent(spaceEvent);
     await waitForUpdate(el);
-    // Phase 2 of collapse: RAF removes key from expandedRows.
-    await new Promise((r) => requestAnimationFrame(r));
-    await waitForUpdate(el);
     expect(spaceEvent.defaultPrevented).toBe(true);
     expect(getButton().getAttribute('aria-expanded')).toBe('false');
     expect(el.isRowExpanded('a')).toBe(false);
@@ -1130,11 +1095,10 @@ describe('reke-table', () => {
     // Click again — collapses.
     const rowsAfter = el.shadowRoot!.querySelectorAll('tbody .row');
     (rowsAfter[0] as HTMLElement).click();
-    await flushExpandTransition(el);
+    await waitForUpdate(el);
 
     expect(el.isRowExpanded('a')).toBe(false);
-    expect(el.shadowRoot!.querySelector('.expand-row--collapsed')).toBeTruthy();
-    expect(el.shadowRoot!.querySelector('.detail-content')).toBeNull();
+    expect(el.shadowRoot!.querySelector('.expand-row')).toBeNull();
 
     wrapper.remove();
   });
@@ -1160,9 +1124,7 @@ describe('reke-table', () => {
     await waitForUpdate(el);
 
     expect(el.isRowExpanded('a')).toBe(false);
-    // Expand rows are always in DOM (collapsed) when expandedRowElement is set.
-    // Verify none are in the expanded state.
-    expect(el.shadowRoot!.querySelector('.expand-row:not(.expand-row--collapsed)')).toBeNull();
+    expect(el.shadowRoot!.querySelector('.expand-row')).toBeNull();
 
     wrapper.remove();
   });

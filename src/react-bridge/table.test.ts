@@ -89,19 +89,6 @@ async function settle(el: RekeTable): Promise<void> {
   await new Promise((r) => setTimeout(r, 0));
 }
 
-async function flushExpandTransition(el: RekeTable): Promise<void> {
-  await settle(el);
-  await new Promise((r) => requestAnimationFrame(r));
-  await settle(el);
-  const grids = el.shadowRoot!.querySelectorAll('.expand-row--collapsed .expand-grid');
-  for (const grid of grids) {
-    grid.dispatchEvent(
-      new TransitionEvent('transitionend', { propertyName: 'grid-template-rows' }),
-    );
-  }
-  await settle(el);
-}
-
 describe('react-bridge / Table', () => {
   it('expanded row renders the React node and never emits `[object Object]`', async () => {
     const columns: ReactTableColumn<Row>[] = [
@@ -199,7 +186,7 @@ describe('react-bridge / Table', () => {
     expect(el.shadowRoot!.querySelector('[data-testid="panel"]')).toBeTruthy();
 
     el.toggleExpand('a');
-    await flushExpandTransition(el);
+    await settle(el);
 
     // Host's React content gone AND the React unmount effect ran.
     expect(el.shadowRoot!.querySelector('[data-testid="panel"]')).toBeNull();
