@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. Releases are managed automatically by [release-please](https://github.com/googleapis/release-please) from Conventional Commits.
 
+## [0.3.0](https://github.com/JReque/reke-ui/compare/v0.2.1...v0.3.0) (2026-07-18)
+
+
+### Features
+
+* **reke-combobox:** searchable select component ([#34](https://github.com/JReque/reke-ui/issues/34)) ([46c3e08](https://github.com/JReque/reke-ui/commit/46c3e085accb275c802d99f2b3c2a67097bb58fc))
+
+
+### Bug Fixes
+
+* **reke-table:** expanded row spans full width and animates open/close ([#33](https://github.com/JReque/reke-ui/issues/33)) ([a1351da](https://github.com/JReque/reke-ui/commit/a1351dabdeed79789747514f2fc6fb28a2b1e92f))
+
 ## [0.2.1](https://github.com/JReque/reke-ui/compare/v0.2.0...v0.2.1) (2026-07-04)
 
 
