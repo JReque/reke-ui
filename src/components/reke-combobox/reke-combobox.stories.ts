@@ -101,9 +101,21 @@ export const WithImages: Story = {
       const el = document.querySelector('reke-combobox') as RekeCombobox | null;
       if (el) {
         el.options = [
-          { value: 'btc', label: 'Bitcoin', image: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png' },
-          { value: 'eth', label: 'Ethereum', image: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png' },
-          { value: 'sol', label: 'Solana', image: 'https://assets.coingecko.com/coins/images/4128/small/solana.png' },
+          {
+            value: 'btc',
+            label: 'Bitcoin',
+            image: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png',
+          },
+          {
+            value: 'eth',
+            label: 'Ethereum',
+            image: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png',
+          },
+          {
+            value: 'sol',
+            label: 'Solana',
+            image: 'https://assets.coingecko.com/coins/images/4128/small/solana.png',
+          },
         ];
       }
     }, 0);
