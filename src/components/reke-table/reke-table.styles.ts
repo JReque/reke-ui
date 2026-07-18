@@ -209,10 +209,6 @@ export const styles = [
 
     /* === Expanded row === */
 
-    /* NOTE: the tr/td keep native table display so colspan spans the full
-       table width. The collapse animation lives on .expand-inner only —
-       putting display:grid on the tr breaks colspan and shrinks the cell to
-       content width. */
     .expand-row {
       background: var(--reke-color-surface, #1A1A1A);
       border-bottom: 1px solid var(--reke-color-border, #252525);
@@ -224,30 +220,6 @@ export const styles = [
 
     .expand-content {
       padding: 0 16px 16px 16px;
-    }
-
-    .expand-row--collapsed .expand-content {
-      padding-top: 0;
-      padding-bottom: 0;
-    }
-
-    /* Grid-rows reveal. The animated track lives on .expand-grid; the SINGLE
-       real grid item (.expand-inner) carries overflow:hidden + min-height:0 so
-       0fr actually clips it to zero. The content host uses display:contents, so
-       it must NOT be the grid item — .expand-inner is. */
-    .expand-grid {
-      display: grid;
-      grid-template-rows: 1fr;
-      transition: grid-template-rows 200ms ease;
-    }
-
-    .expand-row--collapsed .expand-grid {
-      grid-template-rows: 0fr;
-    }
-
-    .expand-inner {
-      overflow: hidden;
-      min-height: 0;
     }
 
     /* === Modifiers === */
