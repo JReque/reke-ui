@@ -18,6 +18,9 @@ export { RekeDialog } from './components/reke-dialog/reke-dialog.js';
 export { RekeFileUpload } from './components/reke-file-upload/reke-file-upload.js';
 export type { InputSize } from './components/reke-input/reke-input.js';
 export { RekeInput } from './components/reke-input/reke-input.js';
+export { RekeMenu } from './components/reke-menu/reke-menu.js';
+export type { MenuItemVariant } from './components/reke-menu-item/reke-menu-item.js';
+export { RekeMenuItem } from './components/reke-menu-item/reke-menu-item.js';
 export type {
   PieChartDatum,
   PieChartSelectDetail,

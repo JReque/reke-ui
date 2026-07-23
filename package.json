@@ -25,6 +25,14 @@
       "types": "./dist/components/reke-input/reke-input.d.ts",
       "default": "./dist/components/reke-input/reke-input.js"
     },
+    "./menu": {
+      "types": "./dist/components/reke-menu/reke-menu.d.ts",
+      "default": "./dist/components/reke-menu/reke-menu.js"
+    },
+    "./menu-item": {
+      "types": "./dist/components/reke-menu-item/reke-menu-item.d.ts",
+      "default": "./dist/components/reke-menu-item/reke-menu-item.js"
+    },
     "./pie-chart": {
       "types": "./dist/components/reke-pie-chart/reke-pie-chart.d.ts",
       "default": "./dist/components/reke-pie-chart/reke-pie-chart.js"
