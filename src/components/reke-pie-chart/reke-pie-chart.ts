@@ -1,6 +1,3 @@
-import { html, type PropertyValues } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
-import * as echarts from 'echarts/core';
 import { PieChart, type PieSeriesOption } from 'echarts/charts';
 import {
   LegendComponent,
@@ -8,16 +5,17 @@ import {
   TooltipComponent,
   type TooltipComponentOption,
 } from 'echarts/components';
-import { CanvasRenderer } from 'echarts/renderers';
 import type { ComposeOption, ECharts } from 'echarts/core';
+import * as echarts from 'echarts/core';
+import { CanvasRenderer } from 'echarts/renderers';
+import { html, type PropertyValues } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
 import { RekeElement } from '../../shared/base-element.js';
 import { styles } from './reke-pie-chart.styles.js';
 
 echarts.use([PieChart, TooltipComponent, LegendComponent, CanvasRenderer]);
 
-type ChartOption = ComposeOption<
-  PieSeriesOption | TooltipComponentOption | LegendComponentOption
->;
+type ChartOption = ComposeOption<PieSeriesOption | TooltipComponentOption | LegendComponentOption>;
 
 export type PieChartVariant = 'pie' | 'donut';
 
@@ -147,9 +145,7 @@ export class RekePieChart extends RekeElement {
   }
 
   private get chartAriaLabel(): string {
-    const parts = this.data.map(
-      (d) => `${d.name} ${Math.round((d.value / this.total) * 100)}%`,
-    );
+    const parts = this.data.map((d) => `${d.name} ${Math.round((d.value / this.total) * 100)}%`);
     return `${this.label}. ${parts.join(', ')}`;
   }
 
@@ -188,8 +184,7 @@ export class RekePieChart extends RekeElement {
       ></div>
       <ul class="sr-only">
         ${this.data.map(
-          (d) =>
-            html`<li>${d.name}: ${Math.round((d.value / this.total) * 100)}%</li>`,
+          (d) => html`<li>${d.name}: ${Math.round((d.value / this.total) * 100)}%</li>`,
         )}
       </ul>
     `;
