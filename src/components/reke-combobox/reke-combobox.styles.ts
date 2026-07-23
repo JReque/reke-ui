@@ -143,6 +143,19 @@ export const styles = [
       flex-shrink: 0;
     }
 
+    .option-label {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .check {
+      flex-shrink: 0;
+      color: var(--reke-color-primary, #22C55E);
+      font-size: var(--reke-font-size-sm, 13px);
+    }
+
     /* Active follows keyboard/mouse; hover kept for pointer-only devices. */
     .option--active,
     .option:hover {

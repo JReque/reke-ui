@@ -123,6 +123,24 @@ export const WithImages: Story = {
   },
 };
 
+export const Multiselect: Story = {
+  render: () => {
+    const tpl = html`
+      <div style="width: 280px;">
+        <reke-combobox multiple label="Frameworks" placeholder="Buscar frameworks..."></reke-combobox>
+      </div>
+    `;
+    setTimeout(() => {
+      const el = document.querySelector('reke-combobox') as RekeCombobox | null;
+      if (el) {
+        el.options = sampleOptions;
+        el.values = ['react', 'lit'];
+      }
+    }, 0);
+    return tpl;
+  },
+};
+
 export const Error: Story = {
   render: () => {
     const tpl = html`

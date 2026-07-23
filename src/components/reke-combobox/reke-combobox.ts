@@ -19,7 +19,8 @@ export interface ComboboxOption {
  * keyboard. Unlike `reke-select`, it exposes a text query and is meant for long
  * option lists.
  *
- * @fires reke-change - Fired when an option is selected. Detail: `{ value: string }`.
+ * @fires reke-change - Fired when the selection changes. Detail: `{ value: string }`
+ * in single mode, `{ values: string[] }` when `multiple` is set.
  * @fires reke-search - Fired when the query changes (for remote filtering). Detail: `{ query: string }`.
  *
  * @csspart input - The text input element.
@@ -48,6 +49,14 @@ export class RekeCombobox extends RekeElement {
 
   @property({ attribute: false })
   options: ComboboxOption[] = [];
+
+  /** Enables multi-selection. In this mode use `values` instead of `value`. */
+  @property({ type: Boolean, reflect: true })
+  multiple = false;
+
+  /** Selected values when `multiple` is set. */
+  @property({ attribute: false })
+  values: string[] = [];
 
   @property({ type: Boolean, reflect: true })
   disabled = false;
@@ -119,6 +128,18 @@ export class RekeCombobox extends RekeElement {
     return this.options.find((opt) => opt.value === this.value)?.label ?? '';
   }
 
+  /** Comma-joined labels of the current multi-selection (empty if none). */
+  private get selectedSummary(): string {
+    return this.options
+      .filter((opt) => this.values.includes(opt.value))
+      .map((opt) => opt.label)
+      .join(', ');
+  }
+
+  private isSelected(option: ComboboxOption): boolean {
+    return this.multiple ? this.values.includes(option.value) : option.value === this.value;
+  }
+
   private get filteredOptions(): ComboboxOption[] {
     const q = this._query.trim().toLowerCase();
     if (q === '') return this.options;
@@ -143,6 +164,14 @@ export class RekeCombobox extends RekeElement {
   }
 
   private selectOption(option: ComboboxOption) {
+    if (this.multiple) {
+      this.values = this.values.includes(option.value)
+        ? this.values.filter((v) => v !== option.value)
+        : [...this.values, option.value];
+      this._query = '';
+      this.emit('reke-change', { values: this.values });
+      return;
+    }
     this.value = option.value;
     this.close();
     this.emit('reke-change', { value: this.value });
@@ -185,7 +214,8 @@ export class RekeCombobox extends RekeElement {
 
   override render() {
     const options = this.filteredOptions;
-    const inputValue = this._open ? this._query : this.selectedLabel;
+    const summary = this.multiple ? this.selectedSummary : this.selectedLabel;
+    const inputValue = this.multiple ? this._query : this._open ? this._query : this.selectedLabel;
 
     const inputClasses = {
       input: true,
@@ -202,7 +232,7 @@ export class RekeCombobox extends RekeElement {
           type="text"
           role="combobox"
           .value=${inputValue}
-          placeholder=${this.selectedLabel || this.placeholder}
+          placeholder=${summary || this.placeholder}
           ?disabled=${this.disabled}
           autocomplete="off"
           aria-expanded=${this._open}
@@ -229,6 +259,7 @@ export class RekeCombobox extends RekeElement {
               id="reke-combobox-list"
               class="dropdown"
               role="listbox"
+              aria-multiselectable=${this.multiple ? 'true' : nothing}
               style=${this._dropdownStyle}
             >
               ${
@@ -241,11 +272,11 @@ export class RekeCombobox extends RekeElement {
                         id="reke-combobox-opt-${i}"
                         class=${classMap({
                           option: true,
-                          'option--selected': opt.value === this.value,
+                          'option--selected': this.isSelected(opt),
                           'option--active': i === this._activeIndex,
                         })}
                         role="option"
-                        aria-selected=${opt.value === this.value}
+                        aria-selected=${this.isSelected(opt)}
                         @click=${() => this.selectOption(opt)}
                         @mousemove=${() => {
                           this._activeIndex = i;
@@ -255,7 +286,11 @@ export class RekeCombobox extends RekeElement {
                           opt.image
                             ? html`<img class="option-img" src=${opt.image} alt="" loading="lazy" />`
                             : nothing
-                        }${opt.label}
+                        }<span class="option-label">${opt.label}</span>${
+                          this.multiple && this.isSelected(opt)
+                            ? html`<span class="check" aria-hidden="true">&#10003;</span>`
+                            : nothing
+                        }
                       </li>
                     `,
                     )
