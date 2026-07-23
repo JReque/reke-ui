@@ -117,15 +117,18 @@ export class RekeMenu extends RekeElement {
   }
 
   private handleKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      this.requestClose();
+      return;
+    }
+
     const items = this.items;
     if (items.length === 0) return;
-    const current = items.findIndex((it) => it === e.composedPath()[1] || it === e.target);
+    // The keydown is retargeted to the reke-menu-item host in this shadow scope.
+    const current = items.indexOf(e.target as RekeMenuItem);
 
     switch (e.key) {
-      case 'Escape':
-        e.preventDefault();
-        this.requestClose();
-        break;
       case 'ArrowDown':
         e.preventDefault();
         items[Math.min(current + 1, items.length - 1)]?.focus();

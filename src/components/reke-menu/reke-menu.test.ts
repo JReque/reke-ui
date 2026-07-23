@@ -139,6 +139,80 @@ describe('reke-menu', () => {
     wrapper.remove();
   });
 
+  it('moves focus with ArrowDown / ArrowUp', async () => {
+    const wrapper = createElement(MENU);
+    const el = wrapper.querySelector('reke-menu')! as RekeMenu;
+    el.open = true;
+    await waitForUpdate(el);
+
+    const items = el.querySelectorAll('reke-menu-item');
+    // First item is focused on open.
+    expect(document.activeElement).toBe(items[0]);
+
+    items[0].dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, composed: true }),
+    );
+    await waitForUpdate(el);
+    expect(document.activeElement).toBe(items[1]);
+
+    items[1].dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, composed: true }),
+    );
+    await waitForUpdate(el);
+    expect(document.activeElement).toBe(items[0]);
+
+    wrapper.remove();
+  });
+
+  it('jumps to first / last item with Home / End', async () => {
+    const wrapper = createElement(MENU);
+    const el = wrapper.querySelector('reke-menu')! as RekeMenu;
+    el.open = true;
+    await waitForUpdate(el);
+
+    const items = el.querySelectorAll('reke-menu-item');
+    items[0].dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'End', bubbles: true, composed: true }),
+    );
+    await waitForUpdate(el);
+    expect(document.activeElement).toBe(items[items.length - 1]);
+
+    items[items.length - 1].dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Home', bubbles: true, composed: true }),
+    );
+    await waitForUpdate(el);
+    expect(document.activeElement).toBe(items[0]);
+
+    wrapper.remove();
+  });
+
+  it('skips disabled items during keyboard navigation', async () => {
+    const wrapper = createElement(`
+      <reke-menu x="20" y="20">
+        <reke-menu-item>Rename</reke-menu-item>
+        <reke-menu-item disabled>Archive</reke-menu-item>
+        <reke-menu-item variant="danger">Delete</reke-menu-item>
+      </reke-menu>
+    `);
+    const el = wrapper.querySelector('reke-menu')! as RekeMenu;
+    el.open = true;
+    await waitForUpdate(el);
+
+    const allItems = el.querySelectorAll('reke-menu-item');
+    const [rename, , del] = allItems;
+    // First enabled item is focused on open.
+    expect(document.activeElement).toBe(rename);
+
+    rename.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, composed: true }),
+    );
+    await waitForUpdate(el);
+    // Disabled "Archive" is skipped — focus lands on "Delete".
+    expect(document.activeElement).toBe(del);
+
+    wrapper.remove();
+  });
+
   // --- ACCESSIBILITY ---
 
   it('passes axe-core a11y audit when open', async () => {
