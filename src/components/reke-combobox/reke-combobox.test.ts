@@ -255,7 +255,8 @@ describe('reke-combobox', () => {
     await waitForUpdate(el);
 
     expect(el.values).toEqual(['a', 'c']);
-    expect((handler.mock.calls.at(-1)![0] as CustomEvent).detail).toEqual({
+    const lastCall = handler.mock.calls[handler.mock.calls.length - 1];
+    expect((lastCall[0] as CustomEvent).detail).toEqual({
       values: ['a', 'c'],
     });
     // Dropdown stays open for further picks.
