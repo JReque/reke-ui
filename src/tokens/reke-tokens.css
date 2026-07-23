@@ -20,6 +20,14 @@
   --reke-color-danger: #EF4444;
   --reke-color-warning: #F59E0B;
 
+  /* Categorical chart palette (override to rebrand charts) */
+  --reke-chart-1: #22C55E;
+  --reke-chart-2: #3B82F6;
+  --reke-chart-3: #F59E0B;
+  --reke-chart-4: #EF4444;
+  --reke-chart-5: #A855F7;
+  --reke-chart-6: #14B8A6;
+
   /* Typography */
   --reke-font-mono: 'JetBrains Mono', ui-monospace, monospace;
   --reke-font-size-2xs: 11px;
