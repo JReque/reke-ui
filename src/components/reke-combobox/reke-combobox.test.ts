@@ -233,6 +233,77 @@ describe('reke-combobox', () => {
     wrapper.remove();
   });
 
+  // --- MULTISELECT ---
+
+  it('toggles values and keeps the dropdown open in multiple mode', async () => {
+    const wrapper = createElement('<reke-combobox multiple></reke-combobox>');
+    const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
+    el.options = testOptions;
+    await waitForUpdate(el);
+
+    const handler = vi.fn();
+    el.addEventListener('reke-change', handler);
+
+    const input = el.shadowRoot!.querySelector('input')! as HTMLElement;
+    input.click();
+    await waitForUpdate(el);
+
+    let options = el.shadowRoot!.querySelectorAll('.option');
+    (options[0] as HTMLElement).click();
+    await waitForUpdate(el);
+    (options[2] as HTMLElement).click();
+    await waitForUpdate(el);
+
+    expect(el.values).toEqual(['a', 'c']);
+    const lastCall = handler.mock.calls[handler.mock.calls.length - 1];
+    expect((lastCall[0] as CustomEvent).detail).toEqual({
+      values: ['a', 'c'],
+    });
+    // Dropdown stays open for further picks.
+    expect(el.shadowRoot!.querySelector('.dropdown')).toBeTruthy();
+
+    // Toggling an already-selected value removes it.
+    options = el.shadowRoot!.querySelectorAll('.option');
+    (options[0] as HTMLElement).click();
+    await waitForUpdate(el);
+    expect(el.values).toEqual(['c']);
+
+    wrapper.remove();
+  });
+
+  it('shows the selected summary as placeholder when closed', async () => {
+    const wrapper = createElement('<reke-combobox multiple></reke-combobox>');
+    const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
+    el.options = testOptions;
+    el.values = ['a', 'b'];
+    await waitForUpdate(el);
+
+    const input = el.shadowRoot!.querySelector('input')! as HTMLInputElement;
+    expect(input.placeholder).toBe('Option A, Option B');
+
+    wrapper.remove();
+  });
+
+  it('marks selected options with aria-selected in multiple mode', async () => {
+    const wrapper = createElement('<reke-combobox multiple></reke-combobox>');
+    const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
+    el.options = testOptions;
+    el.values = ['b'];
+    await waitForUpdate(el);
+
+    const input = el.shadowRoot!.querySelector('input')! as HTMLElement;
+    input.click();
+    await waitForUpdate(el);
+
+    const listbox = el.shadowRoot!.querySelector('.dropdown')!;
+    expect(listbox.getAttribute('aria-multiselectable')).toBe('true');
+    const selected = listbox.querySelectorAll('[aria-selected="true"]');
+    expect(selected.length).toBe(1);
+    expect(selected[0].textContent).toContain('Option B');
+
+    wrapper.remove();
+  });
+
   // --- ACCESSIBILITY ---
 
   it('passes axe-core a11y audit', async () => {
