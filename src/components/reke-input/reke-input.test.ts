@@ -32,7 +32,7 @@ describe('reke-input', () => {
 
     const input = el.shadowRoot!.querySelector('input')!;
     expect(input).toBeTruthy();
-    expect(input.classList.contains('input--md')).toBe(true);
+    expect(el.shadowRoot!.querySelector('.field')!.classList.contains('field--md')).toBe(true);
 
     wrapper.remove();
   });
@@ -48,7 +48,7 @@ describe('reke-input', () => {
     expect(el.disabled).toBe(true);
 
     const input = el.shadowRoot!.querySelector('input')!;
-    expect(input.classList.contains('input--lg')).toBe(true);
+    expect(el.shadowRoot!.querySelector('.field')!.classList.contains('field--lg')).toBe(true);
     expect(input.disabled).toBe(true);
     expect(input.placeholder).toBe('Enter text');
 
@@ -72,8 +72,7 @@ describe('reke-input', () => {
     const el = wrapper.querySelector('reke-input')! as RekeInput;
     await waitForUpdate(el);
 
-    const input = el.shadowRoot!.querySelector('input')!;
-    expect(input.classList.contains('input--xs')).toBe(true);
+    expect(el.shadowRoot!.querySelector('.field')!.classList.contains('field--xs')).toBe(true);
 
     wrapper.remove();
   });
@@ -83,8 +82,52 @@ describe('reke-input', () => {
     const el = wrapper.querySelector('reke-input')! as RekeInput;
     await waitForUpdate(el);
 
+    expect(el.shadowRoot!.querySelector('.field')!.classList.contains('field--error')).toBe(true);
+
+    wrapper.remove();
+  });
+
+  it('renders prefix and suffix slots', async () => {
+    const wrapper = createElement(
+      '<reke-input><span slot="prefix">$</span><span slot="suffix">BTC</span></reke-input>',
+    );
+    const el = wrapper.querySelector('reke-input')! as RekeInput;
+    await waitForUpdate(el);
+
+    const prefix = el.shadowRoot!.querySelector<HTMLSlotElement>('slot[name="prefix"]')!;
+    const suffix = el.shadowRoot!.querySelector<HTMLSlotElement>('slot[name="suffix"]')!;
+    expect(prefix.assignedElements()[0]?.textContent).toBe('$');
+    expect(suffix.assignedElements()[0]?.textContent).toBe('BTC');
+
+    wrapper.remove();
+  });
+
+  it('forwards native attributes to the inner input', async () => {
+    const wrapper = createElement(
+      '<reke-input type="number" name="quantity" inputmode="decimal" min="0" max="10" step="0.01" maxlength="5"></reke-input>',
+    );
+    const el = wrapper.querySelector('reke-input')! as RekeInput;
+    await waitForUpdate(el);
+
     const input = el.shadowRoot!.querySelector('input')!;
-    expect(input.classList.contains('input--error')).toBe(true);
+    expect(input.name).toBe('quantity');
+    expect(input.getAttribute('inputmode')).toBe('decimal');
+    expect(input.min).toBe('0');
+    expect(input.max).toBe('10');
+    expect(input.step).toBe('0.01');
+    expect(input.maxLength).toBe(5);
+
+    wrapper.remove();
+  });
+
+  it('focus() delegates to the inner input', async () => {
+    const wrapper = createElement('<reke-input></reke-input>');
+    const el = wrapper.querySelector('reke-input')! as RekeInput;
+    await waitForUpdate(el);
+
+    el.focus();
+    const input = el.shadowRoot!.querySelector('input')!;
+    expect(el.shadowRoot!.activeElement).toBe(input);
 
     wrapper.remove();
   });

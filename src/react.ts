@@ -11,6 +11,8 @@ import { RekeDateRange } from './components/reke-date-range/reke-date-range.js';
 import { RekeDialog } from './components/reke-dialog/reke-dialog.js';
 import { RekeFileUpload } from './components/reke-file-upload/reke-file-upload.js';
 import { RekeInput } from './components/reke-input/reke-input.js';
+import { RekeMenu } from './components/reke-menu/reke-menu.js';
+import { RekeMenuItem } from './components/reke-menu-item/reke-menu-item.js';
 import { RekeSelect } from './components/reke-select/reke-select.js';
 import { RekeTextarea } from './components/reke-textarea/reke-textarea.js';
 import { RekeToast } from './components/reke-toast/reke-toast.js';
@@ -88,6 +90,24 @@ export const Dialog = createComponent({
   react: React,
   events: {
     onRekeClose: 'reke-close' as EventName<CustomEvent>,
+  },
+});
+
+export const Menu = createComponent({
+  tagName: 'reke-menu',
+  elementClass: RekeMenu,
+  react: React,
+  events: {
+    onRekeClose: 'reke-close' as EventName<CustomEvent>,
+  },
+});
+
+export const MenuItem = createComponent({
+  tagName: 'reke-menu-item',
+  elementClass: RekeMenuItem,
+  react: React,
+  events: {
+    onRekeSelect: 'reke-select' as EventName<CustomEvent>,
   },
 });
 
