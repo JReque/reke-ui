@@ -97,9 +97,23 @@ function passThroughNonReact(value: unknown): boolean {
   return false;
 }
 
-function renderIntoRoot(root: Root, element: React.ReactNode): void {
-  // flushSync commits the host's DOM before Lit reads it. It throws if called
-  // mid-render, so fall back to async render in that case.
+/**
+ * Renders `element` into `root`.
+ *
+ * `sync` (default `true`) wraps the commit in `flushSync` so Lit reads a
+ * populated host node on the SAME tick — required only for the initial mount of
+ * a vanilla cell/expand host. Pass `sync: false` for re-renders of an
+ * already-mounted root: the host is already in the DOM, so a plain async
+ * `root.render()` is enough and, crucially, avoids the "flushSync was called
+ * from inside a lifecycle method" warning storm when this runs during a
+ * parent commit.
+ */
+function renderIntoRoot(root: Root, element: React.ReactNode, sync = true): void {
+  if (!sync) {
+    root.render(element as React.ReactElement);
+    return;
+  }
+  // flushSync throws if called mid-render; fall back to async render.
   try {
     flushSync(() => {
       root.render(element as React.ReactElement);
@@ -139,8 +153,11 @@ function TableInner<TRow extends TableRow = TableRow>(
   const expandRenderRef = useRef<ReactExpandedRowRenderer<TRow> | undefined>(expandedRowRender);
   expandRenderRef.current = expandedRowRender;
 
-  // Re-render open expand roots after each commit so they reflect the latest
-  // renderer/props instead of stale content.
+  // Re-render open expand roots so they reflect the latest renderer/props.
+  // Deps-scoped to the inputs it actually reads: it must NOT run on every
+  // parent render (that re-fired renderIntoRoot on each commit and triggered a
+  // flushSync warning storm + layout thrash). Roots are already mounted here,
+  // so render async (sync: false) — no flushSync needed.
   useEffect(() => {
     if (!expandedRowRender) return;
     const roots = expandRootsRef.current;
@@ -158,9 +175,9 @@ function TableInner<TRow extends TableRow = TableRow>(
       if (!row) continue;
       const out = expandedRowRender(row, key);
       if (passThroughNonReact(out)) continue;
-      renderIntoRoot(root, out);
+      renderIntoRoot(root, out, false);
     }
-  });
+  }, [rows, getRowKey, expandedRowRender]);
 
   // Unmount all roots (cells + expands) when the bridge unmounts.
   useEffect(() => {
