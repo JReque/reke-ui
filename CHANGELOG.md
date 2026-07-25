@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. Releases are managed automatically by [release-please](https://github.com/googleapis/release-please) from Conventional Commits.
 
+## [0.4.0](https://github.com/JReque/reke-ui/compare/v0.3.0...v0.4.0) (2026-07-25)
+
+
+### Features
+
+* add reke-pie-chart component (ECharts pie/donut) ([#43](https://github.com/JReque/reke-ui/issues/43)) ([335a8cd](https://github.com/JReque/reke-ui/commit/335a8cdb0861afa4a561b75d5e19a9e8644802ed))
+* **combobox:** add configurable multiselect mode ([#46](https://github.com/JReque/reke-ui/issues/46)) ([efce66d](https://github.com/JReque/reke-ui/commit/efce66dd7d28a5d6dee8b222f7164f72ee08fbd6))
+* **combobox:** add tags mode with selection animations ([#48](https://github.com/JReque/reke-ui/issues/48)) ([cb1a41a](https://github.com/JReque/reke-ui/commit/cb1a41a92947d66bbe700c9989de747a75a8f585))
+* **input,menu:** add input adornments, native attr forwarding, and reke-menu ([#44](https://github.com/JReque/reke-ui/issues/44)) ([d8dcc4c](https://github.com/JReque/reke-ui/commit/d8dcc4cf262f59e2f86038c5f83e6fda62fa4f8d))
+
+
+### Bug Fixes
+
+* **table:** stop flushSync storm and prevent focus-steal scroll jumps ([#47](https://github.com/JReque/reke-ui/issues/47)) ([bba2b09](https://github.com/JReque/reke-ui/commit/bba2b09b4139e4f7657d15654d66524cff4fbc1e))
+
 ## [0.3.0](https://github.com/JReque/reke-ui/compare/v0.2.1...v0.3.0) (2026-07-18)
 
 
