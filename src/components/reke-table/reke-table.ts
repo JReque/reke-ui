@@ -108,8 +108,7 @@ function _isDev(): boolean {
  */
 @customElement('reke-table')
 export class RekeTable extends RekeElement {
-  // Disable focus delegation: a table is a container, so clicking the host should
-  // not scroll to the first focusable cell.
+  // A table is a container, not a single control — disable focus delegation.
   static override shadowRootOptions: ShadowRootInit = {
     ...RekeElement.shadowRootOptions,
     delegatesFocus: false,
