@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import './reke-combobox.js';
+import '../reke-chip/reke-chip.js';
 import { runAxe } from '../../test-utils/a11y.js';
 import type { RekeCombobox } from './reke-combobox.js';
 
@@ -271,7 +272,7 @@ describe('reke-combobox', () => {
     wrapper.remove();
   });
 
-  it('shows the selected summary as placeholder when closed', async () => {
+  it('shows the selected summary as overlay text when the query is empty', async () => {
     const wrapper = createElement('<reke-combobox multiple></reke-combobox>');
     const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
     el.options = testOptions;
@@ -279,7 +280,45 @@ describe('reke-combobox', () => {
     await waitForUpdate(el);
 
     const input = el.shadowRoot!.querySelector('input')! as HTMLInputElement;
-    expect(input.placeholder).toBe('Option A, Option B');
+    // The native placeholder must be empty while the summary overlay is visible,
+    // otherwise both texts render on top of each other.
+    expect(input.placeholder).toBe('');
+    const summary = el.shadowRoot!.querySelector('.selected-summary');
+    expect(summary).toBeTruthy();
+    expect(summary!.textContent).toBe('Option A, Option B');
+    expect(summary!.classList.contains(`selected-summary--${el.size}`)).toBe(true);
+
+    wrapper.remove();
+  });
+
+  it('hides the selected summary while typing', async () => {
+    const wrapper = createElement('<reke-combobox multiple></reke-combobox>');
+    const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
+    el.options = testOptions;
+    el.values = ['a', 'b'];
+    await waitForUpdate(el);
+
+    const input = el.shadowRoot!.querySelector('input')! as HTMLInputElement;
+    input.value = 'cher';
+    input.dispatchEvent(new Event('input'));
+    await waitForUpdate(el);
+
+    expect(el.shadowRoot!.querySelector('.selected-summary')).toBeNull();
+
+    wrapper.remove();
+  });
+
+  it('shows the placeholder and no summary when nothing is selected in multiple mode', async () => {
+    const wrapper = createElement(
+      '<reke-combobox multiple placeholder="Pick items..."></reke-combobox>',
+    );
+    const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
+    el.options = testOptions;
+    await waitForUpdate(el);
+
+    const input = el.shadowRoot!.querySelector('input')! as HTMLInputElement;
+    expect(input.placeholder).toBe('Pick items...');
+    expect(el.shadowRoot!.querySelector('.selected-summary')).toBeNull();
 
     wrapper.remove();
   });
@@ -300,6 +339,163 @@ describe('reke-combobox', () => {
     const selected = listbox.querySelectorAll('[aria-selected="true"]');
     expect(selected.length).toBe(1);
     expect(selected[0].textContent).toContain('Option B');
+
+    wrapper.remove();
+  });
+
+  // --- TAGS ---
+
+  it('renders chips for selected values in tags mode', async () => {
+    const wrapper = createElement('<reke-combobox multiple tags></reke-combobox>');
+    const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
+    el.options = testOptions;
+    el.values = ['a', 'c'];
+    await waitForUpdate(el);
+
+    const chips = el.shadowRoot!.querySelectorAll('reke-chip');
+    expect(chips.length).toBe(2);
+    expect(chips[0].textContent).toContain('Option A');
+    expect(chips[1].textContent).toContain('Cherry');
+
+    wrapper.remove();
+  });
+
+  it('ignores tags in single mode', async () => {
+    const wrapper = createElement('<reke-combobox tags value="b"></reke-combobox>');
+    const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
+    el.options = testOptions;
+    await waitForUpdate(el);
+
+    const chips = el.shadowRoot!.querySelectorAll('reke-chip');
+    expect(chips.length).toBe(0);
+
+    wrapper.remove();
+  });
+
+  it('renders prefix image in chip when option has image', async () => {
+    const wrapper = createElement('<reke-combobox multiple tags></reke-combobox>');
+    const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
+    el.options = [
+      { value: 'btc', label: 'Bitcoin', image: 'data:image/svg+xml,<svg/>' },
+      ...testOptions,
+    ];
+    el.values = ['btc'];
+    await waitForUpdate(el);
+
+    const chip = el.shadowRoot!.querySelector('reke-chip')!;
+    const img = chip.querySelector('img[slot="prefix"]') as HTMLImageElement | null;
+    expect(img).toBeTruthy();
+    expect(img!.src).toBe('data:image/svg+xml,<svg/>');
+
+    wrapper.remove();
+  });
+
+  it('hides selected options from dropdown in tags mode', async () => {
+    const wrapper = createElement('<reke-combobox multiple tags></reke-combobox>');
+    const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
+    el.options = testOptions;
+    el.values = ['a'];
+    await waitForUpdate(el);
+
+    const input = el.shadowRoot!.querySelector('input')! as HTMLElement;
+    input.click();
+    await waitForUpdate(el);
+
+    const options = el.shadowRoot!.querySelectorAll('.option');
+    const values = Array.from(options).map((o) => o.getAttribute('aria-selected'));
+    expect(values).not.toContain('true');
+    expect(options.length).toBe(testOptions.length - 1);
+
+    wrapper.remove();
+  });
+
+  it('uses placeholder instead of selectedSummary in tags mode', async () => {
+    const wrapper = createElement(
+      '<reke-combobox multiple tags placeholder="Pick items..."></reke-combobox>',
+    );
+    const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
+    el.options = testOptions;
+    el.values = ['a', 'b'];
+    await waitForUpdate(el);
+
+    const input = el.shadowRoot!.querySelector('input')! as HTMLInputElement;
+    expect(input.placeholder).toBe('Pick items...');
+    expect(el.shadowRoot!.querySelector('.selected-summary')).toBeNull();
+
+    wrapper.remove();
+  });
+
+  it('removes last tag on Backspace when input is empty', async () => {
+    const wrapper = createElement('<reke-combobox multiple tags></reke-combobox>');
+    const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
+    el.options = testOptions;
+    el.values = ['a', 'b'];
+    await waitForUpdate(el);
+
+    const handler = vi.fn();
+    el.addEventListener('reke-change', handler);
+
+    const input = el.shadowRoot!.querySelector('input')! as HTMLInputElement;
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+    await waitForUpdate(el);
+
+    expect(el.values).toEqual(['a']);
+    expect(handler).toHaveBeenCalledOnce();
+    expect((handler.mock.calls[0][0] as CustomEvent).detail).toEqual({
+      values: ['a'],
+    });
+
+    wrapper.remove();
+  });
+
+  it('does not remove tag on Backspace when input has text', async () => {
+    const wrapper = createElement('<reke-combobox multiple tags></reke-combobox>');
+    const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
+    el.options = testOptions;
+    el.values = ['a', 'b'];
+    await waitForUpdate(el);
+
+    const handler = vi.fn();
+    el.addEventListener('reke-change', handler);
+
+    const input = el.shadowRoot!.querySelector('input')! as HTMLInputElement;
+    input.value = 'qu';
+    input.dispatchEvent(new Event('input'));
+    await waitForUpdate(el);
+
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+    await waitForUpdate(el);
+
+    expect(el.values).toEqual(['a', 'b']);
+    expect(handler).not.toHaveBeenCalled();
+
+    wrapper.remove();
+  });
+
+  it('removes specific tag on chip dismiss and returns focus', async () => {
+    const wrapper = createElement('<reke-combobox multiple tags></reke-combobox>');
+    const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
+    el.options = testOptions;
+    el.values = ['a', 'b', 'c'];
+    await waitForUpdate(el);
+
+    const handler = vi.fn();
+    el.addEventListener('reke-change', handler);
+
+    const chips = el.shadowRoot!.querySelectorAll('reke-chip');
+    const middleChip = chips[1];
+    const dismissBtn = middleChip.shadowRoot!.querySelector('.chip__dismiss')! as HTMLElement;
+    dismissBtn.click();
+    await waitForUpdate(el);
+
+    expect(el.values).toEqual(['a', 'c']);
+    expect(handler).toHaveBeenCalledOnce();
+    expect((handler.mock.calls[0][0] as CustomEvent).detail).toEqual({
+      values: ['a', 'c'],
+    });
+
+    const input = el.shadowRoot!.querySelector('input')! as HTMLInputElement;
+    expect(el.shadowRoot!.activeElement).toBe(input);
 
     wrapper.remove();
   });
@@ -329,6 +525,118 @@ describe('reke-combobox', () => {
     const nonContrastViolations = results.violations.filter((v) => v.id !== 'color-contrast');
     expect(nonContrastViolations).toEqual([]);
 
+    wrapper.remove();
+  });
+
+  it('passes axe-core for tags mode', async () => {
+    const wrapper = createElement('<reke-combobox label="Tags" multiple tags></reke-combobox>');
+    const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
+    el.options = testOptions;
+    el.values = ['a', 'b'];
+    await waitForUpdate(el);
+
+    const results = await runAxe(wrapper);
+    const nonContrastViolations = results.violations.filter((v) => v.id !== 'color-contrast');
+    expect(nonContrastViolations).toEqual([]);
+
+    wrapper.remove();
+  });
+
+  it('passes axe-core for disabled tags mode', async () => {
+    const wrapper = createElement(
+      '<reke-combobox label="Tags" multiple tags disabled></reke-combobox>',
+    );
+    const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
+    el.options = testOptions;
+    el.values = ['a'];
+    await waitForUpdate(el);
+
+    const results = await runAxe(wrapper);
+    const nonContrastViolations = results.violations.filter((v) => v.id !== 'color-contrast');
+    expect(nonContrastViolations).toEqual([]);
+
+    wrapper.remove();
+  });
+
+  it('chip dismiss button has contextual aria-label in tags mode', async () => {
+    const wrapper = createElement('<reke-combobox multiple tags></reke-combobox>');
+    const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
+    el.options = testOptions;
+    el.values = ['a'];
+    await waitForUpdate(el);
+
+    const chip = el.shadowRoot!.querySelector('reke-chip')!;
+    expect(chip.hasAttribute('aria-label')).toBe(false);
+    expect(chip.getAttribute('dismiss-label')).toBe('Remove Option A');
+
+    const dismissBtn = chip.shadowRoot!.querySelector('.chip__dismiss')!;
+    expect(dismissBtn.getAttribute('aria-label')).toBe('Remove Option A');
+
+    wrapper.remove();
+  });
+
+  // --- ANIMATION ---
+
+  it('applies flash class to selected option', async () => {
+    const wrapper = createElement('<reke-combobox multiple></reke-combobox>');
+    const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
+    el.options = testOptions;
+    await waitForUpdate(el);
+
+    const input = el.shadowRoot!.querySelector('input')! as HTMLElement;
+    input.click();
+    await waitForUpdate(el);
+
+    const options = el.shadowRoot!.querySelectorAll('.option');
+    (options[0] as HTMLElement).click();
+    await waitForUpdate(el);
+
+    const option = el.shadowRoot!.querySelector('.option--flash');
+    expect(option).toBeTruthy();
+
+    wrapper.remove();
+  });
+
+  it('applies scale-in class to newly added chip', async () => {
+    const wrapper = createElement('<reke-combobox multiple tags></reke-combobox>');
+    const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
+    el.options = testOptions;
+    await waitForUpdate(el);
+
+    const input = el.shadowRoot!.querySelector('input')! as HTMLElement;
+    input.click();
+    await waitForUpdate(el);
+
+    const options = el.shadowRoot!.querySelectorAll('.option');
+    (options[0] as HTMLElement).click();
+    await waitForUpdate(el);
+
+    const chip = el.shadowRoot!.querySelector('reke-chip');
+    expect(chip).toBeTruthy();
+    expect(chip!.classList.contains('chip--scale-in')).toBe(true);
+
+    wrapper.remove();
+  });
+
+  it('stylesheet has reduced-motion guard for animations', async () => {
+    const wrapper = createElement('<reke-combobox></reke-combobox>');
+    const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
+    await waitForUpdate(el);
+
+    let hasReducedMotion = false;
+    const sheets = el.shadowRoot!.adoptedStyleSheets;
+    for (const sheet of sheets) {
+      for (const rule of sheet.cssRules) {
+        if (
+          rule instanceof CSSMediaRule &&
+          rule.media.mediaText.includes('prefers-reduced-motion')
+        ) {
+          hasReducedMotion = true;
+        }
+      }
+    }
+
+    expect(hasReducedMotion).toBe(true);
     wrapper.remove();
   });
 });

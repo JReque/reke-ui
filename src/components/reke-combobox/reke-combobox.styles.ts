@@ -56,6 +56,34 @@ export const styles = [
       flex-shrink: 0;
     }
 
+    /* Selected summary overlay (multiple, non-tags). Left values match the
+       input's left padding per size (.input--sm/md/lg). */
+    .selected-summary {
+      position: absolute;
+      right: 28px; /* chevron room */
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      pointer-events: none;
+      color: var(--reke-color-text, #E5E5E5);
+      font-family: var(--reke-font-mono, 'JetBrains Mono', ui-monospace, monospace);
+    }
+
+    .selected-summary--sm {
+      left: var(--reke-space-sm, 12px);
+      font-size: var(--reke-font-size-xs, 12px);
+    }
+
+    .selected-summary--md {
+      left: var(--reke-space-md, 16px);
+      font-size: var(--reke-font-size-sm, 13px);
+    }
+
+    .selected-summary--lg {
+      left: var(--reke-space-lg, 20px);
+      font-size: var(--reke-font-size-md, 14px);
+    }
+
     /* === Sizes === */
 
     .input--sm {
@@ -166,11 +194,98 @@ export const styles = [
       color: var(--reke-color-primary, #22C55E);
     }
 
+    .option--flash {
+      animation: option-flash var(--reke-animation-flash, 250ms) ease-out;
+    }
+
     .empty {
       padding: var(--reke-space-xs, 8px) var(--reke-space-md, 16px);
       font-family: var(--reke-font-mono, 'JetBrains Mono', ui-monospace, monospace);
       font-size: var(--reke-font-size-sm, 13px);
       color: var(--reke-color-text-muted, #525252);
+    }
+
+    /* === Chip layout in tags mode === */
+
+    .control--tags {
+      flex-wrap: wrap;
+      gap: var(--reke-space-2xs, 6px);
+      padding: var(--reke-space-xs, 8px) 28px var(--reke-space-xs, 8px) var(--reke-space-xs, 8px);
+      background: var(--reke-color-input-bg, var(--reke-color-surface, #1A1A1A));
+      border: 1px solid var(--reke-color-border, #252525);
+      border-radius: var(--reke-radius, 4px);
+      cursor: text;
+      transition: border-color 0.15s ease;
+    }
+
+    .control--tags:focus-within {
+      border-color: var(--reke-color-primary, #22C55E);
+      outline: 2px solid var(--reke-color-primary, #22C55E);
+      outline-offset: -1px;
+    }
+
+    .control--tags.control--error {
+      border-color: var(--reke-color-danger, #EF4444);
+    }
+
+    .control--tags.control--error:focus-within {
+      border-color: var(--reke-color-danger, #EF4444);
+      outline-color: var(--reke-color-danger, #EF4444);
+    }
+
+    reke-chip {
+      flex-shrink: 0;
+    }
+
+    reke-chip.chip--scale-in {
+      animation: chip-scale-in var(--reke-animation-scale-in, 200ms) ease-out;
+    }
+
+    .input--tags {
+      flex: 1;
+      min-width: 80px;
+      width: auto;
+      border: none;
+      background: transparent;
+      box-shadow: none;
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    .input--tags:focus-visible {
+      outline: none;
+    }
+
+    /* === Animations === */
+
+    @keyframes option-flash {
+      0% {
+        background-color: transparent;
+      }
+      50% {
+        background-color: color-mix(in srgb, var(--reke-color-primary, #22C55E) 20%, transparent);
+      }
+      100% {
+        background-color: transparent;
+      }
+    }
+
+    @keyframes chip-scale-in {
+      from {
+        opacity: 0;
+        transform: scale(0.85);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .option--flash,
+      reke-chip.chip--scale-in {
+        animation: none;
+      }
     }
   `,
 ];

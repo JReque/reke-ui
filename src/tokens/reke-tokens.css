@@ -71,6 +71,13 @@
   --reke-transition-normal: 0.2s ease;
   --reke-transition-slow: 0.35s ease;
 
+  /* Animation durations */
+  --reke-animation-flash: 250ms;
+  --reke-animation-scale-in: 200ms;
+
+  /* Chip prefix size */
+  --reke-chip-prefix-size: 16px;
+
   /* Glow shadows — themed per accent color */
   --reke-shadow-glow-primary: 0 0 20px color-mix(in srgb, var(--reke-color-primary, #22C55E) 35%, transparent);
   --reke-shadow-glow-secondary: 0 0 20px color-mix(in srgb, var(--reke-color-secondary, #3B82F6) 35%, transparent);
