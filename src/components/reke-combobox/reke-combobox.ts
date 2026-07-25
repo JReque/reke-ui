@@ -3,6 +3,7 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { RekeElement } from '../../shared/base-element.js';
 import { styles } from './reke-combobox.styles.js';
+import '../reke-chip/reke-chip.js';
 
 export type ComboboxSize = 'sm' | 'md' | 'lg';
 
@@ -19,13 +20,16 @@ export interface ComboboxOption {
  * keyboard. Unlike `reke-select`, it exposes a text query and is meant for long
  * option lists.
  *
- * @fires reke-change - Fired when an option is selected. Detail: `{ value: string }`.
+ * @fires reke-change - Fired when the selection changes. Detail: `{ value: string }`
+ * in single mode, `{ values: string[] }` when `multiple` is set.
  * @fires reke-search - Fired when the query changes (for remote filtering). Detail: `{ query: string }`.
  *
  * @csspart input - The text input element.
  * @csspart dropdown - The dropdown list container.
  * @csspart option - Each option row.
  * @csspart empty - The "no results" row.
+ * @csspart chip - Each chip inside the control (tags mode).
+ * @csspart chip-prefix - The prefix image/icon inside a chip.
  *
  * @cssprop [--reke-color-primary=#22C55E] - Focus ring and active/selected option color.
  * @cssprop [--reke-color-surface=#1A1A1A] - Input and dropdown background.
@@ -35,6 +39,8 @@ export interface ComboboxOption {
  * @cssprop [--reke-color-text=#E5E5E5] - Text color.
  * @cssprop [--reke-color-text-muted=#525252] - Placeholder / empty color.
  * @cssprop [--reke-color-text-label=#8A8A8A] - Label color.
+ * @cssprop [--reke-animation-flash=250ms] - Option flash animation duration.
+ * @cssprop [--reke-animation-scale-in=200ms] - Chip scale-in animation duration.
  */
 @customElement('reke-combobox')
 export class RekeCombobox extends RekeElement {
@@ -48,6 +54,18 @@ export class RekeCombobox extends RekeElement {
 
   @property({ attribute: false })
   options: ComboboxOption[] = [];
+
+  /** Enables multi-selection. In this mode use `values` instead of `value`. */
+  @property({ type: Boolean, reflect: true })
+  multiple = false;
+
+  /** Render selected values as dismissible chips inside the control. Ignored unless `multiple`. */
+  @property({ type: Boolean, reflect: true })
+  tags = false;
+
+  /** Selected values when `multiple` is set. */
+  @property({ attribute: false })
+  values: string[] = [];
 
   @property({ type: Boolean, reflect: true })
   disabled = false;
@@ -72,6 +90,12 @@ export class RekeCombobox extends RekeElement {
 
   @state()
   private _activeIndex = 0;
+
+  @state()
+  private _flashValue = '';
+
+  @state()
+  private _scaleInValues: string[] = [];
 
   /** Inline `position: fixed` coords so the dropdown escapes any ancestor
    * `overflow: hidden` (cards, table cells, etc.). */
@@ -119,10 +143,26 @@ export class RekeCombobox extends RekeElement {
     return this.options.find((opt) => opt.value === this.value)?.label ?? '';
   }
 
+  /** Comma-joined labels of the current multi-selection (empty if none). */
+  private get selectedSummary(): string {
+    return this.options
+      .filter((opt) => this.values.includes(opt.value))
+      .map((opt) => opt.label)
+      .join(', ');
+  }
+
+  private isSelected(option: ComboboxOption): boolean {
+    return this.multiple ? this.values.includes(option.value) : option.value === this.value;
+  }
+
   private get filteredOptions(): ComboboxOption[] {
     const q = this._query.trim().toLowerCase();
-    if (q === '') return this.options;
-    return this.options.filter(
+    let list = this.options;
+    if (this.tags && this.multiple) {
+      list = list.filter((opt) => !this.values.includes(opt.value));
+    }
+    if (q === '') return list;
+    return list.filter(
       (opt) => opt.label.toLowerCase().includes(q) || opt.value.toLowerCase().includes(q),
     );
   }
@@ -143,9 +183,46 @@ export class RekeCombobox extends RekeElement {
   }
 
   private selectOption(option: ComboboxOption) {
+    if (this.multiple) {
+      const wasAdded = !this.values.includes(option.value);
+      this.values = wasAdded
+        ? [...this.values, option.value]
+        : this.values.filter((v) => v !== option.value);
+      this._query = '';
+      this._flashValue = option.value;
+      if (wasAdded && this.tags) {
+        this._scaleInValues = [...this._scaleInValues, option.value];
+        setTimeout(() => {
+          this._scaleInValues = this._scaleInValues.filter((v) => v !== option.value);
+        }, 200);
+      }
+      setTimeout(() => {
+        if (this._flashValue === option.value) this._flashValue = '';
+      }, 250);
+      this.emit('reke-change', { values: this.values });
+      return;
+    }
     this.value = option.value;
+    this._flashValue = option.value;
+    setTimeout(() => {
+      if (this._flashValue === option.value) this._flashValue = '';
+    }, 250);
     this.close();
     this.emit('reke-change', { value: this.value });
+  }
+
+  /** Tags mode: clicking anywhere in the control focuses the input. */
+  private handleControlClick() {
+    const input = this.shadowRoot?.querySelector('input') as HTMLInputElement | null;
+    input?.focus();
+  }
+
+  private handleChipDismiss(value: string) {
+    if (this.disabled) return;
+    this.values = this.values.filter((v) => v !== value);
+    this.emit('reke-change', { values: this.values });
+    const input = this.shadowRoot?.querySelector('input') as HTMLInputElement | null;
+    input?.focus();
   }
 
   private handleInput(e: Event) {
@@ -174,6 +251,12 @@ export class RekeCombobox extends RekeElement {
         if (active) this.selectOption(active);
         break;
       }
+      case 'Backspace':
+        if (this.tags && this.multiple && this._query === '' && this.values.length > 0) {
+          this.values = this.values.slice(0, -1);
+          this.emit('reke-change', { values: this.values });
+        }
+        break;
       case 'Escape':
         if (this._open) {
           e.preventDefault();
@@ -185,24 +268,71 @@ export class RekeCombobox extends RekeElement {
 
   override render() {
     const options = this.filteredOptions;
-    const inputValue = this._open ? this._query : this.selectedLabel;
+    const summary = this.multiple ? this.selectedSummary : this.selectedLabel;
+    const inputValue = this.multiple ? this._query : this._open ? this._query : this.selectedLabel;
+    const showTags = this.tags && this.multiple;
+    // Multiple (non-tags): summary renders as real text overlaid on the input,
+    // only when the query is empty — never as placeholder.
+    const showSummary = this.multiple && !showTags && this._query === '' && summary !== '';
+    const placeholder = this.multiple
+      ? showSummary
+        ? ''
+        : this.placeholder
+      : summary || this.placeholder;
 
     const inputClasses = {
       input: true,
       [`input--${this.size}`]: true,
       'input--error': this.error,
+      'input--tags': showTags,
     };
+
+    const controlClasses = {
+      control: true,
+      'control--tags': showTags,
+      'control--error': showTags && this.error,
+    };
+
+    // Render chips in selection order so Backspace/Delete target the visually last chip.
+    const selectedOptions = this.values
+      .map((v) => this.options.find((o) => o.value === v))
+      .filter((o): o is (typeof this.options)[number] => !!o);
 
     return html`
       ${this.label ? html`<label class="label">${this.label}</label>` : nothing}
-      <div class="control">
+      <div
+        class=${classMap(controlClasses)}
+        @click=${showTags ? this.handleControlClick : nothing}
+      >
+        ${
+          showTags
+            ? selectedOptions.map(
+                (opt) => html`
+                  <reke-chip
+                    part="chip"
+                    dismissible
+                    active
+                    color="primary"
+                    tabindex="-1"
+                    ?disabled=${this.disabled}
+                    class="${this._scaleInValues.includes(opt.value) ? 'chip--scale-in' : ''}"
+                    dismiss-label="Remove ${opt.label}"
+                    @reke-dismiss=${() => this.handleChipDismiss(opt.value)}
+                  >
+                    ${opt.image ? html`<img slot="prefix" src=${opt.image} alt="" loading="lazy" />` : nothing}
+                    ${opt.label}
+                  </reke-chip>
+                `,
+              )
+            : nothing
+        }
         <input
           part="input"
           class=${classMap(inputClasses)}
           type="text"
           role="combobox"
           .value=${inputValue}
-          placeholder=${this.selectedLabel || this.placeholder}
+          placeholder=${placeholder}
           ?disabled=${this.disabled}
           autocomplete="off"
           aria-expanded=${this._open}
@@ -220,6 +350,11 @@ export class RekeCombobox extends RekeElement {
           @keydown=${this.handleKeyDown}
         />
         <span class="chevron" aria-hidden="true">&#9660;</span>
+        ${
+          showSummary
+            ? html`<span class="selected-summary selected-summary--${this.size}">${summary}</span>`
+            : nothing
+        }
       </div>
       ${
         this._open
@@ -229,6 +364,7 @@ export class RekeCombobox extends RekeElement {
               id="reke-combobox-list"
               class="dropdown"
               role="listbox"
+              aria-multiselectable=${this.multiple ? 'true' : nothing}
               style=${this._dropdownStyle}
             >
               ${
@@ -241,11 +377,12 @@ export class RekeCombobox extends RekeElement {
                         id="reke-combobox-opt-${i}"
                         class=${classMap({
                           option: true,
-                          'option--selected': opt.value === this.value,
+                          'option--selected': this.isSelected(opt),
                           'option--active': i === this._activeIndex,
+                          'option--flash': this._flashValue === opt.value,
                         })}
                         role="option"
-                        aria-selected=${opt.value === this.value}
+                        aria-selected=${this.isSelected(opt)}
                         @click=${() => this.selectOption(opt)}
                         @mousemove=${() => {
                           this._activeIndex = i;
@@ -255,7 +392,11 @@ export class RekeCombobox extends RekeElement {
                           opt.image
                             ? html`<img class="option-img" src=${opt.image} alt="" loading="lazy" />`
                             : nothing
-                        }${opt.label}
+                        }<span class="option-label">${opt.label}</span>${
+                          this.multiple && this.isSelected(opt)
+                            ? html`<span class="check" aria-hidden="true">&#10003;</span>`
+                            : nothing
+                        }
                       </li>
                     `,
                     )

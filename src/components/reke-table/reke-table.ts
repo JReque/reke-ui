@@ -108,6 +108,12 @@ function _isDev(): boolean {
  */
 @customElement('reke-table')
 export class RekeTable extends RekeElement {
+  // A table is a container, not a single control — disable focus delegation.
+  static override shadowRootOptions: ShadowRootInit = {
+    ...RekeElement.shadowRootOptions,
+    delegatesFocus: false,
+  };
+
   static override styles = styles;
 
   @property({ attribute: false })

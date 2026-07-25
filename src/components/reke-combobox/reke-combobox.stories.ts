@@ -123,6 +123,24 @@ export const WithImages: Story = {
   },
 };
 
+export const Multiselect: Story = {
+  render: () => {
+    const tpl = html`
+      <div style="width: 280px;">
+        <reke-combobox multiple label="Frameworks" placeholder="Buscar frameworks..."></reke-combobox>
+      </div>
+    `;
+    setTimeout(() => {
+      const el = document.querySelector('reke-combobox') as RekeCombobox | null;
+      if (el) {
+        el.options = sampleOptions;
+        el.values = ['react', 'lit'];
+      }
+    }, 0);
+    return tpl;
+  },
+};
+
 export const Error: Story = {
   render: () => {
     const tpl = html`
@@ -166,6 +184,94 @@ export const AllSizes: Story = {
       document.querySelectorAll('reke-combobox').forEach((el) => {
         (el as RekeCombobox).options = sampleOptions;
       });
+    }, 0);
+    return tpl;
+  },
+};
+
+export const Tags: Story = {
+  render: () => {
+    const tpl = html`
+      <div style="width: 280px;">
+        <reke-combobox multiple tags label="Tags" placeholder="Pick items..."></reke-combobox>
+      </div>
+    `;
+    setTimeout(() => {
+      const el = document.querySelector('reke-combobox') as RekeCombobox | null;
+      if (el) {
+        el.options = sampleOptions;
+        el.values = ['react', 'vue'];
+      }
+    }, 0);
+    return tpl;
+  },
+};
+
+export const TagsWithImages: Story = {
+  render: () => {
+    const tpl = html`
+      <div style="width: 280px;">
+        <reke-combobox multiple tags label="Tokens" placeholder="Pick tokens..."></reke-combobox>
+      </div>
+    `;
+    setTimeout(() => {
+      const el = document.querySelector('reke-combobox') as RekeCombobox | null;
+      if (el) {
+        el.options = [
+          {
+            value: 'btc',
+            label: 'Bitcoin',
+            image: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png',
+          },
+          {
+            value: 'eth',
+            label: 'Ethereum',
+            image: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png',
+          },
+          {
+            value: 'sol',
+            label: 'Solana',
+            image: 'https://assets.coingecko.com/coins/images/4128/small/solana.png',
+          },
+        ];
+        el.values = ['btc'];
+      }
+    }, 0);
+    return tpl;
+  },
+};
+
+export const TagsPreselected: Story = {
+  render: () => {
+    const tpl = html`
+      <div style="width: 280px;">
+        <reke-combobox multiple tags label="Preselected" placeholder="Add more..."></reke-combobox>
+      </div>
+    `;
+    setTimeout(() => {
+      const el = document.querySelector('reke-combobox') as RekeCombobox | null;
+      if (el) {
+        el.options = sampleOptions;
+        el.values = ['react', 'angular', 'svelte'];
+      }
+    }, 0);
+    return tpl;
+  },
+};
+
+export const TagsDisabled: Story = {
+  render: () => {
+    const tpl = html`
+      <div style="width: 280px;">
+        <reke-combobox multiple tags disabled label="Disabled" placeholder="Cannot select"></reke-combobox>
+      </div>
+    `;
+    setTimeout(() => {
+      const el = document.querySelector('reke-combobox') as RekeCombobox | null;
+      if (el) {
+        el.options = sampleOptions;
+        el.values = ['react', 'vue'];
+      }
     }, 0);
     return tpl;
   },

@@ -151,6 +151,30 @@ describe('reke-chip', () => {
     wrapper.remove();
   });
 
+  it('dismiss button defaults to aria-label "Dismiss"', async () => {
+    const wrapper = createElement('<reke-chip dismissible>Tag</reke-chip>');
+    const el = wrapper.querySelector('reke-chip')! as RekeChip;
+    await waitForUpdate(el);
+
+    const dismiss = el.shadowRoot!.querySelector('.chip__dismiss')!;
+    expect(dismiss.getAttribute('aria-label')).toBe('Dismiss');
+
+    wrapper.remove();
+  });
+
+  it('dismiss-label customizes the dismiss button aria-label', async () => {
+    const wrapper = createElement(
+      '<reke-chip dismissible dismiss-label="Remove foo">foo</reke-chip>',
+    );
+    const el = wrapper.querySelector('reke-chip')! as RekeChip;
+    await waitForUpdate(el);
+
+    const dismiss = el.shadowRoot!.querySelector('.chip__dismiss')!;
+    expect(dismiss.getAttribute('aria-label')).toBe('Remove foo');
+
+    wrapper.remove();
+  });
+
   it('passes axe-core a11y audit', async () => {
     const wrapper = createElement('<reke-chip>Accessible</reke-chip>');
     // reke-ui is a dark design system; chips render the ghost text token on a
@@ -174,6 +198,43 @@ describe('reke-chip', () => {
 
     const results = await runAxe(wrapper);
     expect(results.violations).toEqual([]);
+
+    wrapper.remove();
+  });
+
+  it('renders prefix slot content before the label', async () => {
+    const wrapper = createElement(`
+      <reke-chip dismissible>
+        <img slot="prefix" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" alt="" />
+        Bitcoin
+      </reke-chip>
+    `);
+    const el = wrapper.querySelector('reke-chip')! as RekeChip;
+    await waitForUpdate(el);
+
+    const prefixSlot = el.shadowRoot!.querySelector('slot[name="prefix"]') as HTMLSlotElement;
+    expect(prefixSlot).toBeTruthy();
+
+    const assigned = prefixSlot.assignedNodes();
+    expect(assigned.length).toBe(1);
+    expect((assigned[0] as HTMLImageElement).tagName.toLowerCase()).toBe('img');
+
+    wrapper.remove();
+  });
+
+  it('prefix slot container has chip__prefix class', async () => {
+    const wrapper = createElement(`
+      <reke-chip>
+        <span slot="prefix">★</span>
+        Star
+      </reke-chip>
+    `);
+    const el = wrapper.querySelector('reke-chip')! as RekeChip;
+    await waitForUpdate(el);
+
+    const prefixContainer = el.shadowRoot!.querySelector('.chip__prefix');
+    expect(prefixContainer).toBeTruthy();
+    expect(prefixContainer!.querySelector('slot[name="prefix"]')).toBeTruthy();
 
     wrapper.remove();
   });

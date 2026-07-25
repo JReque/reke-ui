@@ -116,3 +116,18 @@ export const ExchangeFilters: Story = {
     </div>
   `,
 };
+
+export const WithPrefix: Story = {
+  render: () => html`
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <reke-chip dismissible>
+        <img slot="prefix" src="https://assets.coingecko.com/coins/images/1/small/bitcoin.png" alt="" />
+        Bitcoin
+      </reke-chip>
+      <reke-chip dismissible active>
+        <svg slot="prefix" viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="10" fill="#3B82F6"/></svg>
+        Blue Coin
+      </reke-chip>
+    </div>
+  `,
+};

@@ -97,9 +97,13 @@ function passThroughNonReact(value: unknown): boolean {
   return false;
 }
 
-function renderIntoRoot(root: Root, element: React.ReactNode): void {
-  // flushSync commits the host's DOM before Lit reads it. It throws if called
-  // mid-render, so fall back to async render in that case.
+/** Renders `element` into `root`. Pass `sync: false` to skip `flushSync` for re-renders of already-mounted roots. */
+function renderIntoRoot(root: Root, element: React.ReactNode, sync = true): void {
+  if (!sync) {
+    root.render(element as React.ReactElement);
+    return;
+  }
+  // flushSync throws if called mid-render; fall back to async render.
   try {
     flushSync(() => {
       root.render(element as React.ReactElement);
@@ -129,6 +133,10 @@ function TableInner<TRow extends TableRow = TableRow>(
   const cellHostsRef = useRef<Map<string, CellHostEntry>>(new Map());
   const usedCellKeysRef = useRef<Set<string>>(new Set());
 
+  // Cache raw DOM cells so re-renders don't recreate focusable nodes and steal
+  // focus/scroll. Reused while the row reference is stable.
+  const vanillaCellsRef = useRef<Map<string, { row: unknown; node: Node }>>(new Map());
+
   // Expand roots, keyed by row key. The host comes from the core component's
   // callback, so we only cache the Root here.
   const expandRootsRef = useRef<Map<string, Root>>(new Map());
@@ -139,8 +147,7 @@ function TableInner<TRow extends TableRow = TableRow>(
   const expandRenderRef = useRef<ReactExpandedRowRenderer<TRow> | undefined>(expandedRowRender);
   expandRenderRef.current = expandedRowRender;
 
-  // Re-render open expand roots after each commit so they reflect the latest
-  // renderer/props instead of stale content.
+  // Re-render open expand roots; deps must be exactly the inputs read (rows, key, renderer) — no broader.
   useEffect(() => {
     if (!expandedRowRender) return;
     const roots = expandRootsRef.current;
@@ -158,9 +165,9 @@ function TableInner<TRow extends TableRow = TableRow>(
       if (!row) continue;
       const out = expandedRowRender(row, key);
       if (passThroughNonReact(out)) continue;
-      renderIntoRoot(root, out);
+      renderIntoRoot(root, out, false);
     }
-  });
+  }, [rows, getRowKey, expandedRowRender]);
 
   // Unmount all roots (cells + expands) when the bridge unmounts.
   useEffect(() => {
@@ -201,11 +208,23 @@ function TableInner<TRow extends TableRow = TableRow>(
         return {
           ...col,
           render: (value: unknown, row: TableRow, index: number) => {
+            const key = `${rowKeyOf(row as TRow, index)}::cell::${col.key}`;
+
+            // Reuse the cached node while the row reference is stable.
+            const cachedVanilla = vanillaCellsRef.current.get(key);
+            if (cachedVanilla && cachedVanilla.row === row) {
+              usedCellKeysRef.current.add(key);
+              return cachedVanilla.node as unknown as TemplateResult | string | Node;
+            }
+
             const out = col.render?.(value, row as TRow, index);
             if (passThroughNonReact(out)) {
+              if (out instanceof Node) {
+                vanillaCellsRef.current.set(key, { row, node: out });
+                usedCellKeysRef.current.add(key);
+              }
               return (out ?? '') as TemplateResult | string | Node;
             }
-            const key = `${rowKeyOf(row as TRow, index)}::cell::${col.key}`;
             const entry = getOrCreateCellHost(key);
             renderIntoRoot(entry.root, out as React.ReactNode);
             return entry.host;
@@ -257,7 +276,7 @@ function TableInner<TRow extends TableRow = TableRow>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [!!expandedRowRender]);
 
-  // GC cell roots not used in this render (column or row removed).
+  // GC cell roots and raw-node cache not used in this render.
   useEffect(() => {
     const used = usedCellKeysRef.current;
     const hosts = cellHostsRef.current;
@@ -266,6 +285,10 @@ function TableInner<TRow extends TableRow = TableRow>(
         safeUnmount(entry.root);
         hosts.delete(key);
       }
+    }
+    const vanillas = vanillaCellsRef.current;
+    for (const key of vanillas.keys()) {
+      if (!used.has(key)) vanillas.delete(key);
     }
   });
 
