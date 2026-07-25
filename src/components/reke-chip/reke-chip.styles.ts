@@ -125,5 +125,37 @@ export const styles = [
       stroke-linecap: round;
       fill: none;
     }
+
+    /* === Prefix slot === */
+
+    .chip__prefix {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: var(--reke-chip-prefix-size, 16px);
+      height: var(--reke-chip-prefix-size, 16px);
+      flex-shrink: 0;
+      border-radius: var(--reke-radius, 4px);
+      overflow: hidden;
+    }
+
+    /* Hide the prefix wrapper when no light-DOM content is slotted — keeps the gap correct. */
+    .chip__prefix:has(> slot:empty) {
+      width: 0;
+      height: 0;
+      margin: 0;
+      padding: 0;
+      border: none;
+      overflow: hidden;
+    }
+    .chip:has(.chip__prefix:has(> slot:empty)) {
+      gap: 0;
+    }
+
+    .chip__prefix ::slotted(img) {
+      object-fit: contain;
+      width: 100%;
+      height: 100%;
+    }
   `,
 ];
