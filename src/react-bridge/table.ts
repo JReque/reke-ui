@@ -143,6 +143,10 @@ function TableInner<TRow extends TableRow = TableRow>(
   const cellHostsRef = useRef<Map<string, CellHostEntry>>(new Map());
   const usedCellKeysRef = useRef<Set<string>>(new Set());
 
+  // Cache raw DOM cells so re-renders don't recreate focusable nodes and steal
+  // focus/scroll. Reused while the row reference is stable.
+  const vanillaCellsRef = useRef<Map<string, { row: unknown; node: Node }>>(new Map());
+
   // Expand roots, keyed by row key. The host comes from the core component's
   // callback, so we only cache the Root here.
   const expandRootsRef = useRef<Map<string, Root>>(new Map());
@@ -218,11 +222,23 @@ function TableInner<TRow extends TableRow = TableRow>(
         return {
           ...col,
           render: (value: unknown, row: TableRow, index: number) => {
+            const key = `${rowKeyOf(row as TRow, index)}::cell::${col.key}`;
+
+            // Reuse the cached node while the row reference is stable.
+            const cachedVanilla = vanillaCellsRef.current.get(key);
+            if (cachedVanilla && cachedVanilla.row === row) {
+              usedCellKeysRef.current.add(key);
+              return cachedVanilla.node as unknown as TemplateResult | string | Node;
+            }
+
             const out = col.render?.(value, row as TRow, index);
             if (passThroughNonReact(out)) {
+              if (out instanceof Node) {
+                vanillaCellsRef.current.set(key, { row, node: out });
+                usedCellKeysRef.current.add(key);
+              }
               return (out ?? '') as TemplateResult | string | Node;
             }
-            const key = `${rowKeyOf(row as TRow, index)}::cell::${col.key}`;
             const entry = getOrCreateCellHost(key);
             renderIntoRoot(entry.root, out as React.ReactNode);
             return entry.host;
@@ -274,7 +290,7 @@ function TableInner<TRow extends TableRow = TableRow>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [!!expandedRowRender]);
 
-  // GC cell roots not used in this render (column or row removed).
+  // GC cell roots and raw-node cache not used in this render.
   useEffect(() => {
     const used = usedCellKeysRef.current;
     const hosts = cellHostsRef.current;
@@ -283,6 +299,10 @@ function TableInner<TRow extends TableRow = TableRow>(
         safeUnmount(entry.root);
         hosts.delete(key);
       }
+    }
+    const vanillas = vanillaCellsRef.current;
+    for (const key of vanillas.keys()) {
+      if (!used.has(key)) vanillas.delete(key);
     }
   });
 
