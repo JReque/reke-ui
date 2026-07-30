@@ -28,6 +28,7 @@ interface BenchResult {
   sortMs: number;
   toggleMs: number;
   toggleRenderCalls: number;
+  scrollMs: number;
   idleElements: number;
 }
 
@@ -84,16 +85,15 @@ async function measure(
     el.virtualized = true;
     el.rowHeight = BENCH_ROW_HEIGHT;
     el.maxHeight = BENCH_VIEWPORT;
-  } else {
-    // Expand is not supported alongside virtualization yet, so the interaction
-    // measured below differs per mode: toggle when windowed off, scroll when on.
-    el.expandedRowElement = (host, row) => {
-      const panel = document.createElement('div');
-      panel.textContent = `${(row as { name: string }).name} detail`;
-      host.appendChild(panel);
-      return () => panel.remove();
-    };
   }
+  // Expand is measured in BOTH modes: since F2 they coexist, and the whole point
+  // is that windowing does not cost you the expand contract.
+  el.expandedRowElement = (host, row) => {
+    const panel = document.createElement('div');
+    panel.textContent = `${(row as { name: string }).name} detail`;
+    host.appendChild(panel);
+    return () => panel.remove();
+  };
 
   // --- mount + first render ---
   el.columns = columns;
@@ -117,27 +117,35 @@ async function measure(
   await settle(el);
   const sortMs = performance.now() - sortStart;
 
-  // --- interaction: expand toggle, or a scroll jump when windowed ---
+  // --- expand toggle ---
+  // Target the first row in current dataset order: the sort above reversed the
+  // rows, so `row-0` now sits at the far end and would be outside the window in
+  // virtualized mode, measuring nothing.
+  const firstKey = (el.rows[0] as { id: string }).id;
   renderCalls.n = 0;
-  const interactionStart = performance.now();
+  const toggleStart = performance.now();
+  el.toggleExpand(firstKey);
+  await settle(el);
+  await new Promise((r) => requestAnimationFrame(r));
+  await settle(el);
+  const toggleMs = performance.now() - toggleStart;
+  const toggleRenderCalls = renderCalls.n;
+
+  // --- scroll jump to the middle of the dataset (windowed mode only) ---
+  let scrollMs = 0;
   if (virtualized) {
     const container = el.shadowRoot!.querySelector('.table-wrapper') as HTMLElement;
+    const scrollStart = performance.now();
     container.scrollTop = Math.floor(rowCount / 2) * BENCH_ROW_HEIGHT;
     container.dispatchEvent(new Event('scroll'));
     await new Promise((r) => requestAnimationFrame(r));
     await settle(el);
-  } else {
-    el.toggleExpand('row-0');
-    await settle(el);
-    await new Promise((r) => requestAnimationFrame(r));
-    await settle(el);
+    scrollMs = performance.now() - scrollStart;
   }
-  const toggleMs = performance.now() - interactionStart;
-  const toggleRenderCalls = renderCalls.n;
 
   wrapper.remove();
 
-  return { rows: rowCount, mountMs, sortMs, toggleMs, toggleRenderCalls, idleElements };
+  return { rows: rowCount, mountMs, sortMs, toggleMs, toggleRenderCalls, scrollMs, idleElements };
 }
 
 describe.skipIf(!BENCH_ENABLED)('reke-table sizing benchmark', () => {
@@ -158,8 +166,9 @@ describe.skipIf(!BENCH_ENABLED)('reke-table sizing benchmark', () => {
       ['rows', (r: BenchResult) => String(r.rows)],
       ['mount ms', (r: BenchResult) => r.mountMs.toFixed(1)],
       ['sort ms', (r: BenchResult) => r.sortMs.toFixed(1)],
-      ['interact ms', (r: BenchResult) => r.toggleMs.toFixed(1)],
-      ['render()/interact', (r: BenchResult) => String(r.toggleRenderCalls)],
+      ['toggle ms', (r: BenchResult) => r.toggleMs.toFixed(1)],
+      ['render()/toggle', (r: BenchResult) => String(r.toggleRenderCalls)],
+      ['scroll ms', (r: BenchResult) => (r.scrollMs > 0 ? r.scrollMs.toFixed(1) : '-')],
       ['idle nodes', (r: BenchResult) => String(r.idleElements)],
       ['us/row mount', (r: BenchResult) => ((r.mountMs / r.rows) * 1000).toFixed(0)],
     ] as const;
@@ -205,8 +214,8 @@ describe.skipIf(!BENCH_ENABLED)('reke-table sizing benchmark', () => {
     );
 
     // A toggle touches one row, not the table: five columns, and the entering
-    // row renders twice (collapsed, then open).
-    for (const result of plain) {
+    // row renders twice (collapsed, then open). True in BOTH modes.
+    for (const result of all) {
       expect(result.toggleRenderCalls).toBeLessThanOrEqual(10);
     }
 

@@ -88,13 +88,14 @@ function _isDev(): boolean {
  * @tag reke-table
  * @summary A data table with custom cell rendering, framework-agnostic expandable rows, and toolbar/footer slots.
  *
- * Virtualization: NOT supported yet — every row in `rows` is rendered. It is on
- * the roadmap and can only be solved here, since this component owns the render
- * loop and the scroll container. The blocking design question is row identity
- * under recycling: the expand contract hands the consumer a long-lived host
- * element per row key with its own cleanup lifecycle, and a recycled row breaks
- * that. Do not add windowing before that contract is redesigned. Until then,
- * paginate or filter upstream. See README-DOC.md.
+ * Virtualization: opt-in via `virtualized`, off by default. When on, only the
+ * rows intersecting the viewport are rendered and spacer rows carry the scroll
+ * height of the rest. Requires `rowHeight` and `maxHeight`. Expandable rows are
+ * supported: their height is measured with a ResizeObserver and folded into the
+ * row offsets, which is affordable because only a handful of rows are ever open
+ * at once. Rows are never recycled across keys — a row key keeps its host
+ * element and its cleanup contract even while scrolled out of the window.
+ * See README-DOC.md.
  *
  * @slot toolbar - Toolbar area above the table (search, filters, title).
  * @slot footer - Footer area below the table (pagination, record count).
@@ -327,6 +328,32 @@ export class RekeTable extends RekeElement {
   /** Latest resolved row map: key → row. Filled during render so callbacks can look up rows. */
   private _keyToRow = new Map<RowKey, TableRow>();
 
+  /** Latest resolved index map: key → absolute index into `rows`. */
+  private _keyToIndex = new Map<RowKey, number>();
+
+  /**
+   * Measured height in px of each rendered expand row, keyed by row key.
+   *
+   * This is the whole reason expand and virtualization can coexist. A collapsed
+   * row's height is declared (`rowHeight`); an expanded row's is not knowable in
+   * advance, because the consumer mounts arbitrary content into the host. So we
+   * measure it — and that is affordable precisely because the set is tiny: no
+   * one has ten thousand rows open at once. Offsets stay
+   * `index * rowHeight + sum(extra heights of expanded rows above)`.
+   *
+   * Entries survive an expanded row scrolling out of the window (the height is
+   * still needed for the math) and are dropped only on teardown.
+   */
+  private _expandedHeights = new Map<RowKey, number>();
+
+  private _expandRowElements = new Map<RowKey, HTMLElement>();
+  private _expandRowKeys = new WeakMap<Element, RowKey>();
+  private _expandRowRefs = new Map<RowKey, (el: Element | undefined) => void>();
+  private _expandObserver: ResizeObserver | null = null;
+
+  /** First index of the window rendered on the last pass, for scroll anchoring. */
+  private _windowStart = 0;
+
   /** Stable ref callback per row key. One closure per key, reused across renders. */
   private _refCallbacks = new Map<RowKey, (el: Element | undefined) => void>();
 
@@ -389,22 +416,160 @@ export class RekeTable extends RekeElement {
   };
 
   /**
-   * The slice of `rows` to render, as absolute indices into `rows`.
-   * `end` is exclusive. Returns the full range when not virtualizing.
+   * Expanded rows that add height, as `{ index, extra }` sorted by index.
+   * Small by construction — this is the set of rows the user has open.
    */
-  private _visibleRange(): { start: number; end: number } {
+  private _extraHeights(): { index: number; extra: number }[] {
+    if (this._expandedHeights.size === 0) return [];
+    const out: { index: number; extra: number }[] = [];
+    for (const [key, extra] of this._expandedHeights) {
+      const index = this._keyToIndex.get(key);
+      if (index === undefined || extra <= 0) continue;
+      out.push({ index, extra });
+    }
+    return out.sort((a, b) => a.index - b.index);
+  }
+
+  /** Distance in px from the top of the dataset to the top of row `index`. */
+  private _offsetOf(index: number, extras: readonly { index: number; extra: number }[]): number {
+    let acc = 0;
+    for (const entry of extras) {
+      if (entry.index >= index) break;
+      acc += entry.extra;
+    }
+    return index * this.rowHeight + acc;
+  }
+
+  /**
+   * Inverse of `_offsetOf`: the row index sitting at a given scroll offset.
+   * Walks the (short) list of expanded rows to find which linear segment the
+   * offset falls in, then divides within that segment.
+   */
+  private _indexAtOffset(
+    offset: number,
+    extras: readonly { index: number; extra: number }[],
+    total: number,
+  ): number {
+    let acc = 0;
+    for (const entry of extras) {
+      // Where the row AFTER this expanded one begins.
+      const nextRowTop = (entry.index + 1) * this.rowHeight + acc + entry.extra;
+      if (nextRowTop > offset) break;
+      acc += entry.extra;
+    }
+    const index = Math.floor((offset - acc) / this.rowHeight);
+    return Math.min(total, Math.max(0, index));
+  }
+
+  /**
+   * The slice of `rows` to render plus the spacer heights standing in for the
+   * rows outside it. `end` is exclusive.
+   *
+   * Expanded rows INSIDE the window render at their real height, so their extra
+   * height is deliberately excluded from the spacers — only rows above and below
+   * the window contribute.
+   */
+  private _computeWindow(): {
+    start: number;
+    end: number;
+    topSpacer: number;
+    bottomSpacer: number;
+  } {
     const total = this.rows.length;
-    if (!this.virtualized || this.rowHeight <= 0) return { start: 0, end: total };
+    if (!this.virtualized || this.rowHeight <= 0) {
+      return { start: 0, end: total, topSpacer: 0, bottomSpacer: 0 };
+    }
+
+    const extras = this._extraHeights();
+    let totalExtra = 0;
+    for (const entry of extras) totalExtra += entry.extra;
+    const totalHeight = total * this.rowHeight + totalExtra;
 
     // First paint: the container has not been measured yet. Render a slab rather
     // than nothing, so the table has content (and a height) to measure against.
     if (this._viewportHeight <= 0) {
-      return { start: 0, end: Math.min(total, this.overscan * 2 + INITIAL_WINDOW_ROWS) };
+      const end = Math.min(total, this.overscan * 2 + INITIAL_WINDOW_ROWS);
+      return {
+        start: 0,
+        end,
+        topSpacer: 0,
+        bottomSpacer: Math.max(0, totalHeight - this._offsetOf(end, extras)),
+      };
     }
 
-    const start = Math.max(0, Math.floor(this._scrollTop / this.rowHeight) - this.overscan);
-    const count = Math.ceil(this._viewportHeight / this.rowHeight) + this.overscan * 2;
-    return { start, end: Math.min(total, start + count) };
+    const start = Math.max(0, this._indexAtOffset(this._scrollTop, extras, total) - this.overscan);
+    const bottomIndex = this._indexAtOffset(this._scrollTop + this._viewportHeight, extras, total);
+    const end = Math.min(total, bottomIndex + 1 + this.overscan);
+
+    return {
+      start,
+      end,
+      topSpacer: this._offsetOf(start, extras),
+      bottomSpacer: Math.max(0, totalHeight - this._offsetOf(end, extras)),
+    };
+  }
+
+  /**
+   * Observe an expand row so its height feeds the window math. Measuring is what
+   * lets expanded rows coexist with windowing; the observer also fires
+   * continuously while the row animates open, so the offsets track the
+   * transition instead of jumping at the end.
+   */
+  private _expandRowRef(key: RowKey): (el: Element | undefined) => void {
+    let callback = this._expandRowRefs.get(key);
+    if (!callback) {
+      callback = (element: Element | undefined) => {
+        const previous = this._expandRowElements.get(key);
+        if (previous && previous !== element) {
+          this._expandObserver?.unobserve(previous);
+          this._expandRowElements.delete(key);
+        }
+        if (!element) return;
+        this._expandRowElements.set(key, element as HTMLElement);
+        this._expandRowKeys.set(element, key);
+        if (this.virtualized) this._ensureExpandObserver().observe(element);
+      };
+      this._expandRowRefs.set(key, callback);
+    }
+    return callback;
+  }
+
+  private _ensureExpandObserver(): ResizeObserver {
+    if (this._expandObserver) return this._expandObserver;
+
+    this._expandObserver = new ResizeObserver((entries) => {
+      let changed = false;
+      // Height changes ABOVE the window shift everything below them, which would
+      // yank the viewport out from under the user. Compensate the scroll by the
+      // same delta so what they are looking at stays put.
+      let driftAboveWindow = 0;
+
+      for (const entry of entries) {
+        const key = this._expandRowKeys.get(entry.target);
+        if (key === undefined) continue;
+        const height =
+          entry.borderBoxSize?.[0]?.blockSize ?? (entry.target as HTMLElement).offsetHeight;
+        const previous = this._expandedHeights.get(key) ?? 0;
+        if (Math.abs(previous - height) < 0.5) continue;
+
+        this._expandedHeights.set(key, height);
+        changed = true;
+
+        const index = this._keyToIndex.get(key);
+        if (index !== undefined && index < this._windowStart) {
+          driftAboveWindow += height - previous;
+        }
+      }
+
+      if (!changed) return;
+      if (driftAboveWindow !== 0 && this._scrollContainer) {
+        this._scrollContainer.scrollTop += driftAboveWindow;
+        this._scrollTop = this._scrollContainer.scrollTop;
+      }
+      this.requestUpdate();
+    });
+
+    return this._expandObserver;
   }
 
   /**
@@ -659,6 +824,7 @@ export class RekeTable extends RekeElement {
             <tr
               part="expand-row"
               class="expand-row ${isExpanded && !this._enteringKeys.has(key) ? '' : 'expand-row--collapsed'}"
+              ${ref(this._expandRowRef(key))}
             >
               <td
                 part="expand-content"
@@ -701,11 +867,6 @@ export class RekeTable extends RekeElement {
       if (!this.maxHeight) {
         problems.push('`max-height` is required — windowing needs a bounded scroll container');
       }
-      if (this.expandedRowElement) {
-        problems.push(
-          '`expandedRowElement` is not supported with `virtualized` yet: an expanded row has a height the window math cannot predict. Paginate instead, or drop `virtualized` until measured expand rows land',
-        );
-      }
       if (problems.length > 0) {
         this._warnedVirtualConfig = true;
         // eslint-disable-next-line no-console
@@ -715,9 +876,11 @@ export class RekeTable extends RekeElement {
 
     // Rebuild the key→row map and warn about duplicates (one-shot per key).
     const seen = new Map<RowKey, TableRow>();
+    const indices = new Map<RowKey, number>();
     for (let i = 0; i < this.rows.length; i += 1) {
       const row = this.rows[i];
       const key = this._resolveKey(row, i);
+      indices.set(key, i);
       if (seen.has(key)) {
         if (isDev && !this._warnedDupKeys.has(key)) {
           this._warnedDupKeys.add(key);
@@ -731,6 +894,7 @@ export class RekeTable extends RekeElement {
       seen.set(key, row);
     }
     this._keyToRow = seen;
+    this._keyToIndex = indices;
   }
 
   private _warnedLegacyApi = false;
@@ -890,6 +1054,12 @@ export class RekeTable extends RekeElement {
     this._collapsingKeys.delete(key);
     this._collapseTokens.delete(key);
     this._enteringKeys.delete(key);
+
+    const expandRow = this._expandRowElements.get(key);
+    if (expandRow) this._expandObserver?.unobserve(expandRow);
+    this._expandRowElements.delete(key);
+    this._expandRowRefs.delete(key);
+    this._expandedHeights.delete(key);
   }
 
   /**
@@ -927,6 +1097,10 @@ export class RekeTable extends RekeElement {
       host.remove();
     }
     this._hostCache.clear();
+    this._expandObserver?.disconnect();
+    this._expandRowElements.clear();
+    this._expandRowRefs.clear();
+    this._expandedHeights.clear();
     this._mountedKeys.clear();
     this._refCallbacks.clear();
   }
@@ -939,6 +1113,8 @@ export class RekeTable extends RekeElement {
     this._scrollContainer = null;
     this._viewportObserver?.disconnect();
     this._viewportObserver = null;
+    this._expandObserver?.disconnect();
+    this._expandObserver = null;
     if (this._scrollFrame !== null) {
       cancelAnimationFrame(this._scrollFrame);
       this._scrollFrame = null;
@@ -957,9 +1133,10 @@ export class RekeTable extends RekeElement {
       'table--fixed-layout': this.virtualized,
     };
 
-    const { start, end } = this._visibleRange();
+    const { start, end, topSpacer, bottomSpacer } = this._computeWindow();
     const total = this.rows.length;
     const windowRows = this.virtualized ? this.rows.slice(start, end) : this.rows;
+    this._windowStart = start;
 
     return html`
       <div class="table-container">
@@ -1023,7 +1200,7 @@ export class RekeTable extends RekeElement {
               </tr>
             </thead>
             <tbody part="body">
-              ${this._renderSpacerRow(start * this.rowHeight, 'top')}
+              ${this._renderSpacerRow(topSpacer, 'top')}
               ${windowRows.map((row, offset) => {
                 // Absolute index into `rows`, NOT the slice offset: striping,
                 // `reke-row-click`, and key resolution all key off the real
@@ -1057,7 +1234,7 @@ export class RekeTable extends RekeElement {
                   () => this._renderRow(row, i, key),
                 );
               })}
-              ${this._renderSpacerRow((total - end) * this.rowHeight, 'bottom')}
+              ${this._renderSpacerRow(bottomSpacer, 'bottom')}
               ${
                 this.rows.length === 0
                   ? html`

@@ -1117,7 +1117,7 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
-  it('virtualized: dev error when row-height, max-height, or expand is misconfigured', async () => {
+  it('virtualized: dev error when row-height or max-height is missing', async () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const wrapper = createElement('<reke-table></reke-table>');
@@ -1125,10 +1125,6 @@ describe('reke-table', () => {
     el.columns = testColumns;
     el.rows = makeVirtualRows(50);
     el.virtualized = true;
-    el.expandedRowElement = (host) => {
-      host.appendChild(document.createElement('div'));
-      return () => {};
-    };
     await waitForUpdate(el);
 
     const messages = errorSpy.mock.calls.map((c) => String(c[0]));
@@ -1136,7 +1132,6 @@ describe('reke-table', () => {
     expect(virtualError).toBeTruthy();
     expect(virtualError).toContain('row-height');
     expect(virtualError).toContain('max-height');
-    expect(virtualError).toContain('expandedRowElement');
 
     // One-shot: a re-render does not repeat it.
     const before = errorSpy.mock.calls.length;
@@ -1145,6 +1140,178 @@ describe('reke-table', () => {
     expect(errorSpy.mock.calls.length).toBe(before);
 
     errorSpy.mockRestore();
+    wrapper.remove();
+  });
+
+  // --- BEHAVIOR: virtualization + expand (F2) ---
+
+  const EXPAND_PANEL_HEIGHT = 150;
+
+  /** Mount a virtualized table whose expand panels have a known, fixed height. */
+  async function mountVirtualExpandable(
+    rowCount: number,
+  ): Promise<{ wrapper: HTMLElement; el: RekeTable }> {
+    const wrapper = createElement('<reke-table expandable></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = makeVirtualRows(rowCount);
+    el.getRowKey = (row) => (row as { id: string }).id;
+    el.virtualized = true;
+    el.rowHeight = VIRTUAL_ROW_HEIGHT;
+    el.maxHeight = `${VIRTUAL_MAX_HEIGHT}px`;
+    el.expandedRowElement = (host, row) => {
+      const panel = document.createElement('div');
+      panel.classList.add('detail-panel');
+      panel.style.height = `${EXPAND_PANEL_HEIGHT}px`;
+      panel.textContent = `${(row as { name: string }).name} detail`;
+      host.appendChild(panel);
+      return () => panel.remove();
+    };
+    await waitForUpdate(el);
+    await new Promise((r) => requestAnimationFrame(r));
+    await waitForUpdate(el);
+    return { wrapper, el };
+  }
+
+  /**
+   * Run the open animation to completion, then let the ResizeObserver report the
+   * final expand row height and the table re-render off it. Without finishing the
+   * animation first, the measurement lands mid-transition.
+   */
+  async function settleExpandMeasurement(el: RekeTable): Promise<void> {
+    for (const animation of shadowAnimations(el)) {
+      animation.finish();
+    }
+    for (let i = 0; i < 4; i += 1) {
+      await new Promise((r) => requestAnimationFrame(r));
+      await waitForUpdate(el);
+    }
+  }
+
+  it('virtualized + expand: mounts the panel and no longer errors', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { wrapper, el } = await mountVirtualExpandable(1000);
+
+    el.toggleExpand('v0');
+    await flushEnterTransition(el);
+    await settleExpandMeasurement(el);
+
+    expect(el.shadowRoot!.querySelector('.detail-panel')).toBeTruthy();
+    const messages = errorSpy.mock.calls.map((c) => String(c[0]));
+    expect(messages.filter((m) => m.includes('virtualized'))).toEqual([]);
+
+    errorSpy.mockRestore();
+    wrapper.remove();
+  });
+
+  it('virtualized + expand: measured panel height grows the total scroll height', async () => {
+    const { wrapper, el } = await mountVirtualExpandable(1000);
+
+    const container = scrollContainer(el);
+    const before = container.scrollHeight;
+
+    el.toggleExpand('v0');
+    await flushEnterTransition(el);
+    await settleExpandMeasurement(el);
+
+    // The dataset got taller by exactly one expanded panel, and the scrollbar
+    // has to say so — otherwise the rows below become unreachable.
+    const grew = container.scrollHeight - before;
+    expect(grew).toBeGreaterThan(EXPAND_PANEL_HEIGHT * 0.8);
+    expect(grew).toBeLessThan(EXPAND_PANEL_HEIGHT * 1.5);
+
+    wrapper.remove();
+  });
+
+  it('virtualized + expand: an expanded row above the window shifts the rows below it', async () => {
+    const { wrapper, el } = await mountVirtualExpandable(1000);
+
+    // Open row 0, then scroll well past it.
+    el.toggleExpand('v0');
+    await flushEnterTransition(el);
+    await settleExpandMeasurement(el);
+
+    const container = scrollContainer(el);
+    const targetRow = 300;
+    // Without accounting for the open panel above, this offset would land on a
+    // different row than the one the offset math predicts.
+    container.scrollTop = targetRow * VIRTUAL_ROW_HEIGHT + EXPAND_PANEL_HEIGHT;
+    container.dispatchEvent(new Event('scroll'));
+    await new Promise((r) => requestAnimationFrame(r));
+    await waitForUpdate(el);
+
+    const names = renderedRowNames(el);
+    expect(names).toContain(`Name ${targetRow}`);
+
+    wrapper.remove();
+  });
+
+  it('virtualized + expand: content survives scrolling out of the window and back', async () => {
+    const { wrapper, el } = await mountVirtualExpandable(1000);
+
+    let mountCount = 0;
+    const cleanup = vi.fn();
+    el.expandedRowElement = (host, row) => {
+      mountCount += 1;
+      const panel = document.createElement('div');
+      panel.classList.add('detail-panel');
+      panel.style.height = `${EXPAND_PANEL_HEIGHT}px`;
+      panel.textContent = `${(row as { name: string }).name} detail`;
+      host.appendChild(panel);
+      return () => {
+        panel.remove();
+        cleanup();
+      };
+    };
+    await waitForUpdate(el);
+
+    el.toggleExpand('v0');
+    await flushEnterTransition(el);
+    await settleExpandMeasurement(el);
+    expect(mountCount).toBe(1);
+
+    // Scroll far away — the expand row leaves the DOM entirely.
+    const container = scrollContainer(el);
+    container.scrollTop = 500 * VIRTUAL_ROW_HEIGHT;
+    container.dispatchEvent(new Event('scroll'));
+    await new Promise((r) => requestAnimationFrame(r));
+    await waitForUpdate(el);
+    expect(el.shadowRoot!.querySelector('.detail-panel')).toBeNull();
+    expect(el.isRowExpanded('v0')).toBe(true);
+
+    // Scroll back — the SAME host is reattached, with no remount and no cleanup.
+    container.scrollTop = 0;
+    container.dispatchEvent(new Event('scroll'));
+    await new Promise((r) => requestAnimationFrame(r));
+    await waitForUpdate(el);
+
+    expect(el.shadowRoot!.querySelector('.detail-panel')).toBeTruthy();
+    expect(mountCount).toBe(1);
+    expect(cleanup).not.toHaveBeenCalled();
+
+    wrapper.remove();
+  });
+
+  it('virtualized + expand: collapsing releases the measured height', async () => {
+    const { wrapper, el } = await mountVirtualExpandable(1000);
+
+    const container = scrollContainer(el);
+    const baseline = container.scrollHeight;
+
+    el.toggleExpand('v0');
+    await flushEnterTransition(el);
+    await settleExpandMeasurement(el);
+    expect(container.scrollHeight).toBeGreaterThan(baseline);
+
+    el.toggleExpand('v0');
+    await flushExpandTransition(el);
+    await settleExpandMeasurement(el);
+
+    // Back to the collapsed dataset height: the measurement was released with
+    // the rest of the row's state, not left inflating the scroll range.
+    expect(container.scrollHeight).toBeCloseTo(baseline, -1);
+    expect(el.shadowRoot!.querySelector('.detail-panel')).toBeNull();
+
     wrapper.remove();
   });
 
