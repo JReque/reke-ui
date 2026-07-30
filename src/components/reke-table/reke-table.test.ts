@@ -1315,6 +1315,107 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
+  // --- ACCESSIBILITY: virtualization (F3) ---
+
+  it('virtualized: keeps focus in the table when scrolling unmounts the focused control', async () => {
+    const wrapper = createElement('<reke-table expandable></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = makeVirtualRows(1000);
+    el.getRowKey = (row) => (row as { id: string }).id;
+    el.virtualized = true;
+    el.rowHeight = VIRTUAL_ROW_HEIGHT;
+    el.maxHeight = `${VIRTUAL_MAX_HEIGHT}px`;
+    el.expandedRowElement = (host) => {
+      host.appendChild(document.createElement('div'));
+      return () => {};
+    };
+    await waitForUpdate(el);
+    await new Promise((r) => requestAnimationFrame(r));
+    await waitForUpdate(el);
+
+    const chevron = el.shadowRoot!.querySelector<HTMLButtonElement>('tbody .expand-toggle-button')!;
+    chevron.focus();
+    expect(el.shadowRoot!.activeElement).toBe(chevron);
+
+    // Scroll far enough that the focused chevron's row leaves the DOM.
+    const container = scrollContainer(el);
+    container.scrollTop = 500 * VIRTUAL_ROW_HEIGHT;
+    container.dispatchEvent(new Event('scroll'));
+    await new Promise((r) => requestAnimationFrame(r));
+    await waitForUpdate(el);
+
+    // Lit reuses the row's DOM positionally, so the chevron node itself usually
+    // survives — rebound to a completely different record. Leaving focus there
+    // would silently move the user from row 1 to row ~500 with nothing
+    // announced, so focus is parked on the scroll container instead.
+    expect(el.shadowRoot!.activeElement).toBe(container);
+
+    wrapper.remove();
+  });
+
+  it('virtualized: does not steal focus when the window has not moved', async () => {
+    const { wrapper, el } = await mountVirtual(1000);
+
+    const firstRowCell = el.shadowRoot!.querySelector('tbody .row .cell') as HTMLElement;
+    firstRowCell.tabIndex = 0;
+    firstRowCell.focus();
+    expect(el.shadowRoot!.activeElement).toBe(firstRowCell);
+
+    // An unrelated re-render must leave focus exactly where the user put it.
+    el.striped = true;
+    await waitForUpdate(el);
+
+    expect(el.shadowRoot!.activeElement).toBe(firstRowCell);
+
+    wrapper.remove();
+  });
+
+  it('virtualized: clamps the scroll offset when the dataset shrinks', async () => {
+    const { wrapper, el } = await mountVirtual(1000);
+
+    const container = scrollContainer(el);
+    container.scrollTop = 900 * VIRTUAL_ROW_HEIGHT;
+    container.dispatchEvent(new Event('scroll'));
+    await new Promise((r) => requestAnimationFrame(r));
+    await waitForUpdate(el);
+
+    // Filter the dataset down while parked near the bottom.
+    el.rows = makeVirtualRows(5);
+    await waitForUpdate(el);
+    await new Promise((r) => requestAnimationFrame(r));
+    await waitForUpdate(el);
+
+    expect(container.scrollTop).toBeLessThanOrEqual(
+      container.scrollHeight - container.clientHeight + 1,
+    );
+    // And the surviving rows are actually on screen, not stranded above the view.
+    expect(el.shadowRoot!.querySelectorAll('tbody .row').length).toBe(5);
+    expect(renderedRowNames(el)).toContain('Name 0');
+
+    wrapper.remove();
+  });
+
+  it('virtualized + expand: expand rows report the row index of their record', async () => {
+    const { wrapper, el } = await mountVirtualExpandable(1000);
+
+    el.toggleExpand('v0');
+    await flushEnterTransition(el);
+    await settleExpandMeasurement(el);
+
+    const dataRow = el.shadowRoot!.querySelector('tbody .row')!;
+    const expandRow = el.shadowRoot!.querySelector('tbody .expand-row')!;
+    // The expand row is a continuation of its record, so it carries the same
+    // index rather than inventing one outside aria-rowcount.
+    expect(expandRow.getAttribute('aria-rowindex')).toBe(dataRow.getAttribute('aria-rowindex'));
+
+    const results = await runAxe(wrapper);
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
+    expect(violations.map((v) => `${v.id}: ${v.nodes[0]?.html ?? ''}`)).toEqual([]);
+
+    wrapper.remove();
+  });
+
   it('virtualized off (default): renders every row and adds no spacers', async () => {
     const wrapper = createElement('<reke-table></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;

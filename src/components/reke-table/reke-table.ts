@@ -351,8 +351,39 @@ export class RekeTable extends RekeElement {
   private _expandRowRefs = new Map<RowKey, (el: Element | undefined) => void>();
   private _expandObserver: ResizeObserver | null = null;
 
-  /** First index of the window rendered on the last pass, for scroll anchoring. */
+  /** Window rendered on the last pass, for scroll anchoring and focus rescue. */
   private _windowStart = 0;
+  private _windowEnd = 0;
+  private _previousWindowStart = 0;
+  private _previousWindowEnd = 0;
+
+  /**
+   * Which record focus was last placed on, as an `aria-rowindex`. Scrolling a
+   * virtualized table does not usually destroy the focused control — Lit reuses
+   * the row's DOM positionally and rebinds it to a different record — so the
+   * thing to detect is not "focus disappeared" but "focus is now on a different
+   * row than the user put it on".
+   */
+  private _focusInsideRows = false;
+  private _focusedRowIndex: number | null = null;
+
+  private _onRowsFocusIn = (event: FocusEvent): void => {
+    this._focusInsideRows = true;
+    this._focusedRowIndex = this._rowIndexOf(event.target as Element | null);
+  };
+
+  /** The `aria-rowindex` of the row containing a node, if any. */
+  private _rowIndexOf(node: Element | null): number | null {
+    const row = node?.closest?.('tr[aria-rowindex]') ?? null;
+    if (!row) return null;
+    const parsed = Number(row.getAttribute('aria-rowindex'));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private _clearRowFocusTracking(): void {
+    this._focusInsideRows = false;
+    this._focusedRowIndex = null;
+  }
 
   /** Stable ref callback per row key. One closure per key, reused across renders. */
   private _refCallbacks = new Map<RowKey, (el: Element | undefined) => void>();
@@ -532,6 +563,70 @@ export class RekeTable extends RekeElement {
       this._expandRowRefs.set(key, callback);
     }
     return callback;
+  }
+
+  /**
+   * Hand focus back to the scroll container when a window change moved it off
+   * the record the user chose.
+   *
+   * Two things can happen when the window slides under a focused control. Lit
+   * usually reuses the row's DOM and rebinds it, so focus silently ends up on a
+   * DIFFERENT record with nothing announced — the user believes they are on row
+   * 5 while they are on row 505. Less often the node is destroyed outright and
+   * focus falls to the document body, after which arrow keys scroll the page
+   * instead of the table. Both are resolved by parking focus on the scroll
+   * container, which is a place the user can reason about.
+   *
+   * Guarded so a normal Tab-away or an unrelated re-render is never hijacked:
+   * it acts only when the window actually moved and focus is still inside this
+   * component.
+   */
+  private _rescueFocusAfterWindowChange(): void {
+    if (!this._focusInsideRows) return;
+
+    const windowMoved =
+      this._windowStart !== this._previousWindowStart ||
+      this._windowEnd !== this._previousWindowEnd;
+    if (!windowMoved) return;
+
+    // Focus left the component entirely — none of our business anymore.
+    if (document.activeElement !== this) {
+      this._clearRowFocusTracking();
+      return;
+    }
+
+    const active = this.shadowRoot?.activeElement ?? null;
+    if (active) {
+      const currentIndex = this._rowIndexOf(active);
+      // Still on the same record, or on something that is not a row at all.
+      if (currentIndex === null || currentIndex === this._focusedRowIndex) return;
+    }
+
+    this._clearRowFocusTracking();
+    this._scrollContainer?.focus({ preventScroll: true });
+  }
+
+  /**
+   * Keep the tracked scroll offset in agreement with the container after the
+   * dataset changes size.
+   *
+   * Filtering 10.000 rows down to 10 while parked near the bottom leaves the
+   * offset past the end of the new content. The browser silently clamps its own
+   * `scrollTop` when that happens but emits no scroll event, so `_scrollTop`
+   * would keep describing a position that no longer exists and the window math
+   * would render a slice of nothing. Clamp explicitly, then resync either way.
+   */
+  private _clampScrollToContent(): void {
+    const container = this._scrollContainer;
+    if (!container) return;
+
+    const maxScroll = Math.max(0, container.scrollHeight - container.clientHeight);
+    if (container.scrollTop > maxScroll) {
+      container.scrollTop = maxScroll;
+    }
+    if (Math.abs(this._scrollTop - container.scrollTop) > 0.5) {
+      this._scrollTop = container.scrollTop;
+    }
   }
 
   private _ensureExpandObserver(): ResizeObserver {
@@ -824,6 +919,7 @@ export class RekeTable extends RekeElement {
             <tr
               part="expand-row"
               class="expand-row ${isExpanded && !this._enteringKeys.has(key) ? '' : 'expand-row--collapsed'}"
+              aria-rowindex=${this.virtualized ? i + 2 : nothing}
               ${ref(this._expandRowRef(key))}
             >
               <td
@@ -902,6 +998,11 @@ export class RekeTable extends RekeElement {
   private _warnedVirtualConfig = false;
 
   override updated(_changed: PropertyValues): void {
+    if (this.virtualized) {
+      this._rescueFocusAfterWindowChange();
+      this._clampScrollToContent();
+    }
+
     // Diff the expanded-key set against the host/cleanup maps:
     //   - Mount any expanded key that isn't mounted yet.
     //   - Cleanup any cached key that is no longer present in `rows` (orphan).
@@ -1136,7 +1237,10 @@ export class RekeTable extends RekeElement {
     const { start, end, topSpacer, bottomSpacer } = this._computeWindow();
     const total = this.rows.length;
     const windowRows = this.virtualized ? this.rows.slice(start, end) : this.rows;
+    this._previousWindowStart = this._windowStart;
+    this._previousWindowEnd = this._windowEnd;
     this._windowStart = start;
+    this._windowEnd = end;
 
     return html`
       <div class="table-container">
@@ -1199,7 +1303,7 @@ export class RekeTable extends RekeElement {
                 )}
               </tr>
             </thead>
-            <tbody part="body">
+            <tbody part="body" @focusin=${this._onRowsFocusIn}>
               ${this._renderSpacerRow(topSpacer, 'top')}
               ${windowRows.map((row, offset) => {
                 // Absolute index into `rows`, NOT the slice offset: striping,
