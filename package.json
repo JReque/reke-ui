@@ -123,6 +123,7 @@
     "check": "biome check src",
     "check:ci": "biome ci src",
     "test:coverage": "vitest run --coverage",
+    "bench:table": "VITE_BENCH=1 vitest run src/components/reke-table/reke-table.bench.test.ts",
     "release": "commit-and-tag-version",
     "prepublishOnly": "npm run build && npm run analyze"
   },

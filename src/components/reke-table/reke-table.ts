@@ -1,6 +1,7 @@
 import { html, nothing, type PropertyValues, type TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
+import { guard } from 'lit/directives/guard.js';
 import { ref } from 'lit/directives/ref.js';
 import { RekeElement } from '../../shared/base-element.js';
 import { styles } from './reke-table.styles.js';
@@ -40,6 +41,21 @@ export type ExpandedRowElement = (host: HTMLElement, row: TableRow, key: RowKey)
 export type GetRowKey = (row: TableRow, index: number) => RowKey;
 
 /**
+ * Upper bound for the collapse teardown, in ms. The normal path resolves off
+ * the real animations, so this only fires when the browser never produced one
+ * AND the empty-animation fast path did not apply either. Keep it comfortably
+ * above the 200ms CSS transition in `reke-table.styles.ts`.
+ */
+const COLLAPSE_TEARDOWN_FALLBACK_MS = 400;
+
+/**
+ * Rows rendered on the very first virtualized paint, before the scroll
+ * container has been measured. Enough to fill a typical viewport so the table
+ * is never briefly blank, and to give the container something to size against.
+ */
+const INITIAL_WINDOW_ROWS = 20;
+
+/**
  * Detect dev mode without leaking bundler-specific types into the TS surface.
  * Supports Vite (`import.meta.env.DEV`/`MODE`) and Node (`process.env.NODE_ENV === 'development'`).
  * This is a RUNTIME check, NOT dead-code elimination: the warnings still ship in the bundle.
@@ -71,6 +87,15 @@ function _isDev(): boolean {
 /**
  * @tag reke-table
  * @summary A data table with custom cell rendering, framework-agnostic expandable rows, and toolbar/footer slots.
+ *
+ * Virtualization: opt-in via `virtualized`, off by default. When on, only the
+ * rows intersecting the viewport are rendered and spacer rows carry the scroll
+ * height of the rest. Requires `rowHeight` and `maxHeight`. Expandable rows are
+ * supported: their height is measured with a ResizeObserver and folded into the
+ * row offsets, which is affordable because only a handful of rows are ever open
+ * at once. Rows are never recycled across keys — a row key keeps its host
+ * element and its cleanup contract even while scrolled out of the window.
+ * See README-DOC.md.
  *
  * @slot toolbar - Toolbar area above the table (search, filters, title).
  * @slot footer - Footer area below the table (pagination, record count).
@@ -175,6 +200,51 @@ export class RekeTable extends RekeElement {
   @property({ type: Boolean, reflect: true, attribute: 'expand-on-row-click' })
   expandOnRowClick = false;
 
+  /**
+   * Opt-in row windowing: only the rows intersecting the viewport are rendered,
+   * with spacer rows standing in for the rest.
+   *
+   * This is NOT a transparent optimization — it changes the layout contract.
+   * A virtualized table needs a bounded scroll container, so `maxHeight` and
+   * `rowHeight` are both REQUIRED when this is `true` (dev error otherwise), and
+   * the table switches to `table-layout: fixed` so column widths stop depending
+   * on whichever rows happen to be rendered. That is also why this is a prop and
+   * not an automatic row-count threshold: silently changing a consumer's layout
+   * because their dataset grew past some boundary is worse than being slow.
+   *
+   * Not yet compatible with `expandedRowElement` — see the class JSDoc.
+   */
+  @property({ type: Boolean, reflect: true })
+  virtualized = false;
+
+  /**
+   * Height in px of a single COLLAPSED row, declared by the consumer. Required
+   * when `virtualized` is `true`.
+   *
+   * Declared rather than measured on purpose: it makes row offsets pure
+   * arithmetic (`index * rowHeight`) available on the very first frame, with no
+   * measure-then-render pass. The tradeoff is yours to honor — if your cell
+   * content is taller than this, rows will overlap. Keep it in sync with the
+   * `dense` modifier if you use it.
+   */
+  @property({ type: Number, attribute: 'row-height' })
+  rowHeight = 0;
+
+  /**
+   * CSS length capping the scroll container height (e.g. `'600px'`, `'70vh'`).
+   * Required when `virtualized` is `true` — without a bounded height there is
+   * no viewport to window against.
+   */
+  @property({ attribute: 'max-height' })
+  maxHeight = '';
+
+  /**
+   * Extra rows rendered above and below the viewport, absorbing fast scrolls
+   * before blank space can appear. Higher costs more per frame.
+   */
+  @property({ type: Number })
+  overscan = 4;
+
   @property({ reflect: true, attribute: 'sort-key' })
   sortKey = '';
 
@@ -229,7 +299,13 @@ export class RekeTable extends RekeElement {
   /** Track which keys are currently mounted in the DOM, to honor the contract that mount happens after `updated()` reconciles. */
   private _mountedKeys = new Set<RowKey>();
 
-  /** Keys currently animating their collapse. Cleanup is deferred until transitionend. */
+  /**
+   * Keys currently animating their collapse. The row stays rendered while the
+   * key is here; teardown runs when the collapse settles (see
+   * `_scheduleCollapseTeardown`). A key is NEVER in both this set and
+   * `expandedRows` — collapse removes it from `expandedRows` immediately, which
+   * is what makes a re-entrant toggle read as a genuine re-expand.
+   */
   private _collapsingKeys = new Set<RowKey>();
 
   /**
@@ -240,17 +316,371 @@ export class RekeTable extends RekeElement {
    */
   private _enteringKeys = new Set<RowKey>();
 
-  /** transitionend handlers keyed by row key, for cleanup on collapse animation end. */
-  private _collapseEndHandlers = new Map<RowKey, (e: TransitionEvent) => void>();
+  /**
+   * Generation token per collapsing key. A pending settle only tears the key
+   * down when its token is still the current one, so cancelling a collapse
+   * (re-expand, row removal, disconnect) is a single map delete.
+   */
+  private _collapseTokens = new Map<RowKey, number>();
+
+  private _collapseSeq = 0;
 
   /** Latest resolved row map: key → row. Filled during render so callbacks can look up rows. */
   private _keyToRow = new Map<RowKey, TableRow>();
+
+  /** Latest resolved index map: key → absolute index into `rows`. */
+  private _keyToIndex = new Map<RowKey, number>();
+
+  /**
+   * Measured height in px of each rendered expand row, keyed by row key.
+   *
+   * This is the whole reason expand and virtualization can coexist. A collapsed
+   * row's height is declared (`rowHeight`); an expanded row's is not knowable in
+   * advance, because the consumer mounts arbitrary content into the host. So we
+   * measure it — and that is affordable precisely because the set is tiny: no
+   * one has ten thousand rows open at once. Offsets stay
+   * `index * rowHeight + sum(extra heights of expanded rows above)`.
+   *
+   * Entries survive an expanded row scrolling out of the window (the height is
+   * still needed for the math) and are dropped only on teardown.
+   */
+  private _expandedHeights = new Map<RowKey, number>();
+
+  private _expandRowElements = new Map<RowKey, HTMLElement>();
+  private _expandRowKeys = new WeakMap<Element, RowKey>();
+  private _expandRowRefs = new Map<RowKey, (el: Element | undefined) => void>();
+  private _expandObserver: ResizeObserver | null = null;
+
+  /** Window rendered on the last pass, for scroll anchoring and focus rescue. */
+  private _windowStart = 0;
+  private _windowEnd = 0;
+  private _previousWindowStart = 0;
+  private _previousWindowEnd = 0;
+
+  /**
+   * Which record focus was last placed on, as an `aria-rowindex`. Scrolling a
+   * virtualized table does not usually destroy the focused control — Lit reuses
+   * the row's DOM positionally and rebinds it to a different record — so the
+   * thing to detect is not "focus disappeared" but "focus is now on a different
+   * row than the user put it on".
+   */
+  private _focusInsideRows = false;
+  private _focusedRowIndex: number | null = null;
+
+  private _onRowsFocusIn = (event: FocusEvent): void => {
+    this._focusInsideRows = true;
+    this._focusedRowIndex = this._rowIndexOf(event.target as Element | null);
+  };
+
+  /** The `aria-rowindex` of the row containing a node, if any. */
+  private _rowIndexOf(node: Element | null): number | null {
+    const row = node?.closest?.('tr[aria-rowindex]') ?? null;
+    if (!row) return null;
+    const parsed = Number(row.getAttribute('aria-rowindex'));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private _clearRowFocusTracking(): void {
+    this._focusInsideRows = false;
+    this._focusedRowIndex = null;
+  }
 
   /** Stable ref callback per row key. One closure per key, reused across renders. */
   private _refCallbacks = new Map<RowKey, (el: Element | undefined) => void>();
 
   @state() private _hasToolbar = false;
   @state() private _hasFooter = false;
+
+  /** Live scroll offset of the scroll container, in px. Virtualized mode only. */
+  @state() private _scrollTop = 0;
+
+  /** Measured height of the scroll container, in px. Virtualized mode only. */
+  @state() private _viewportHeight = 0;
+
+  private _scrollContainer: HTMLElement | null = null;
+  private _viewportObserver: ResizeObserver | null = null;
+  private _scrollFrame: number | null = null;
+
+  /**
+   * Coalesce scroll into one update per frame. A trackpad fires scroll events
+   * far faster than the browser paints, and each one would otherwise queue a
+   * full window recompute.
+   */
+  private _onScroll = (): void => {
+    if (this._scrollFrame !== null) return;
+    this._scrollFrame = requestAnimationFrame(() => {
+      this._scrollFrame = null;
+      if (this._scrollContainer) {
+        this._scrollTop = this._scrollContainer.scrollTop;
+      }
+    });
+  };
+
+  /**
+   * Bind the scroll container. Called by lit's `ref` on every render, so it must
+   * be cheap and idempotent — it rebinds only when the element actually changes.
+   */
+  private _bindScrollContainer = (element: Element | undefined): void => {
+    const next = (element as HTMLElement | undefined) ?? null;
+    if (next === this._scrollContainer) return;
+
+    this._scrollContainer?.removeEventListener('scroll', this._onScroll);
+    this._viewportObserver?.disconnect();
+    this._viewportObserver = null;
+    this._scrollContainer = next;
+
+    if (!next) return;
+    next.addEventListener('scroll', this._onScroll, { passive: true });
+    // The initial measurement comes from the observer's first callback rather
+    // than a synchronous read here: this runs during Lit's commit phase, and
+    // assigning reactive state mid-commit schedules an update from inside an
+    // update. The observer fires right after observe(), so the cost is one frame.
+    //
+    // The viewport size drives how many rows are in the window, so a container
+    // resize has to recompute it — maxHeight can be relative (vh, %).
+    this._viewportObserver = new ResizeObserver(() => {
+      if (this._scrollContainer) {
+        this._viewportHeight = this._scrollContainer.clientHeight;
+      }
+    });
+    this._viewportObserver.observe(next);
+  };
+
+  /**
+   * Expanded rows that add height, as `{ index, extra }` sorted by index.
+   * Small by construction — this is the set of rows the user has open.
+   */
+  private _extraHeights(): { index: number; extra: number }[] {
+    if (this._expandedHeights.size === 0) return [];
+    const out: { index: number; extra: number }[] = [];
+    for (const [key, extra] of this._expandedHeights) {
+      const index = this._keyToIndex.get(key);
+      if (index === undefined || extra <= 0) continue;
+      out.push({ index, extra });
+    }
+    return out.sort((a, b) => a.index - b.index);
+  }
+
+  /** Distance in px from the top of the dataset to the top of row `index`. */
+  private _offsetOf(index: number, extras: readonly { index: number; extra: number }[]): number {
+    let acc = 0;
+    for (const entry of extras) {
+      if (entry.index >= index) break;
+      acc += entry.extra;
+    }
+    return index * this.rowHeight + acc;
+  }
+
+  /**
+   * Inverse of `_offsetOf`: the row index sitting at a given scroll offset.
+   * Walks the (short) list of expanded rows to find which linear segment the
+   * offset falls in, then divides within that segment.
+   */
+  private _indexAtOffset(
+    offset: number,
+    extras: readonly { index: number; extra: number }[],
+    total: number,
+  ): number {
+    let acc = 0;
+    for (const entry of extras) {
+      // Where the row AFTER this expanded one begins.
+      const nextRowTop = (entry.index + 1) * this.rowHeight + acc + entry.extra;
+      if (nextRowTop > offset) break;
+      acc += entry.extra;
+    }
+    const index = Math.floor((offset - acc) / this.rowHeight);
+    return Math.min(total, Math.max(0, index));
+  }
+
+  /**
+   * The slice of `rows` to render plus the spacer heights standing in for the
+   * rows outside it. `end` is exclusive.
+   *
+   * Expanded rows INSIDE the window render at their real height, so their extra
+   * height is deliberately excluded from the spacers — only rows above and below
+   * the window contribute.
+   */
+  private _computeWindow(): {
+    start: number;
+    end: number;
+    topSpacer: number;
+    bottomSpacer: number;
+  } {
+    const total = this.rows.length;
+    if (!this.virtualized || this.rowHeight <= 0) {
+      return { start: 0, end: total, topSpacer: 0, bottomSpacer: 0 };
+    }
+
+    const extras = this._extraHeights();
+    let totalExtra = 0;
+    for (const entry of extras) totalExtra += entry.extra;
+    const totalHeight = total * this.rowHeight + totalExtra;
+
+    // First paint: the container has not been measured yet. Render a slab rather
+    // than nothing, so the table has content (and a height) to measure against.
+    if (this._viewportHeight <= 0) {
+      const end = Math.min(total, this.overscan * 2 + INITIAL_WINDOW_ROWS);
+      return {
+        start: 0,
+        end,
+        topSpacer: 0,
+        bottomSpacer: Math.max(0, totalHeight - this._offsetOf(end, extras)),
+      };
+    }
+
+    const start = Math.max(0, this._indexAtOffset(this._scrollTop, extras, total) - this.overscan);
+    const bottomIndex = this._indexAtOffset(this._scrollTop + this._viewportHeight, extras, total);
+    const end = Math.min(total, bottomIndex + 1 + this.overscan);
+
+    return {
+      start,
+      end,
+      topSpacer: this._offsetOf(start, extras),
+      bottomSpacer: Math.max(0, totalHeight - this._offsetOf(end, extras)),
+    };
+  }
+
+  /**
+   * Observe an expand row so its height feeds the window math. Measuring is what
+   * lets expanded rows coexist with windowing; the observer also fires
+   * continuously while the row animates open, so the offsets track the
+   * transition instead of jumping at the end.
+   */
+  private _expandRowRef(key: RowKey): (el: Element | undefined) => void {
+    let callback = this._expandRowRefs.get(key);
+    if (!callback) {
+      callback = (element: Element | undefined) => {
+        const previous = this._expandRowElements.get(key);
+        if (previous && previous !== element) {
+          this._expandObserver?.unobserve(previous);
+          this._expandRowElements.delete(key);
+        }
+        if (!element) return;
+        this._expandRowElements.set(key, element as HTMLElement);
+        this._expandRowKeys.set(element, key);
+        if (this.virtualized) this._ensureExpandObserver().observe(element);
+      };
+      this._expandRowRefs.set(key, callback);
+    }
+    return callback;
+  }
+
+  /**
+   * Hand focus back to the scroll container when a window change moved it off
+   * the record the user chose.
+   *
+   * Two things can happen when the window slides under a focused control. Lit
+   * usually reuses the row's DOM and rebinds it, so focus silently ends up on a
+   * DIFFERENT record with nothing announced — the user believes they are on row
+   * 5 while they are on row 505. Less often the node is destroyed outright and
+   * focus falls to the document body, after which arrow keys scroll the page
+   * instead of the table. Both are resolved by parking focus on the scroll
+   * container, which is a place the user can reason about.
+   *
+   * Guarded so a normal Tab-away or an unrelated re-render is never hijacked:
+   * it acts only when the window actually moved and focus is still inside this
+   * component.
+   */
+  private _rescueFocusAfterWindowChange(): void {
+    if (!this._focusInsideRows) return;
+
+    const windowMoved =
+      this._windowStart !== this._previousWindowStart ||
+      this._windowEnd !== this._previousWindowEnd;
+    if (!windowMoved) return;
+
+    // Focus left the component entirely — none of our business anymore.
+    if (document.activeElement !== this) {
+      this._clearRowFocusTracking();
+      return;
+    }
+
+    const active = this.shadowRoot?.activeElement ?? null;
+    if (active) {
+      const currentIndex = this._rowIndexOf(active);
+      // Still on the same record, or on something that is not a row at all.
+      if (currentIndex === null || currentIndex === this._focusedRowIndex) return;
+    }
+
+    this._clearRowFocusTracking();
+    this._scrollContainer?.focus({ preventScroll: true });
+  }
+
+  /**
+   * Keep the tracked scroll offset in agreement with the container after the
+   * dataset changes size.
+   *
+   * Filtering 10.000 rows down to 10 while parked near the bottom leaves the
+   * offset past the end of the new content. The browser silently clamps its own
+   * `scrollTop` when that happens but emits no scroll event, so `_scrollTop`
+   * would keep describing a position that no longer exists and the window math
+   * would render a slice of nothing. Clamp explicitly, then resync either way.
+   */
+  private _clampScrollToContent(): void {
+    const container = this._scrollContainer;
+    if (!container) return;
+
+    const maxScroll = Math.max(0, container.scrollHeight - container.clientHeight);
+    if (container.scrollTop > maxScroll) {
+      container.scrollTop = maxScroll;
+    }
+    if (Math.abs(this._scrollTop - container.scrollTop) > 0.5) {
+      this._scrollTop = container.scrollTop;
+    }
+  }
+
+  private _ensureExpandObserver(): ResizeObserver {
+    if (this._expandObserver) return this._expandObserver;
+
+    this._expandObserver = new ResizeObserver((entries) => {
+      let changed = false;
+      // Height changes ABOVE the window shift everything below them, which would
+      // yank the viewport out from under the user. Compensate the scroll by the
+      // same delta so what they are looking at stays put.
+      let driftAboveWindow = 0;
+
+      for (const entry of entries) {
+        const key = this._expandRowKeys.get(entry.target);
+        if (key === undefined) continue;
+        const height =
+          entry.borderBoxSize?.[0]?.blockSize ?? (entry.target as HTMLElement).offsetHeight;
+        const previous = this._expandedHeights.get(key) ?? 0;
+        if (Math.abs(previous - height) < 0.5) continue;
+
+        this._expandedHeights.set(key, height);
+        changed = true;
+
+        const index = this._keyToIndex.get(key);
+        if (index !== undefined && index < this._windowStart) {
+          driftAboveWindow += height - previous;
+        }
+      }
+
+      if (!changed) return;
+      if (driftAboveWindow !== 0 && this._scrollContainer) {
+        this._scrollContainer.scrollTop += driftAboveWindow;
+        this._scrollTop = this._scrollContainer.scrollTop;
+      }
+      this.requestUpdate();
+    });
+
+    return this._expandObserver;
+  }
+
+  /**
+   * A zero-content row standing in for the rows outside the window, holding the
+   * scroll height they would have occupied. `<tr>` height is honored as a
+   * minimum, and the cell is stripped of padding and borders so it contributes
+   * nothing beyond `height`.
+   */
+  private _renderSpacerRow(height: number, position: 'top' | 'bottom') {
+    if (height <= 0) return nothing;
+    return html`
+      <tr class="spacer-row" aria-hidden="true" data-position=${position} style=${`height: ${height}px`}>
+        <td class="spacer-cell" colspan=${this.columns.length + (this.expandable ? 1 : 0)}></td>
+      </tr>
+    `;
+  }
 
   private _resolveKey(row: TableRow, index: number): RowKey {
     if (this.getRowKey) return this.getRowKey(row, index);
@@ -353,26 +783,25 @@ export class RekeTable extends RekeElement {
 
     if (expanding) {
       newSet.add(key);
-      // Mark as entering so the first paint renders collapsed (0fr); `updated()`
-      // clears it next frame to animate open.
-      this._enteringKeys.add(key);
-      if (this._collapsingKeys.delete(key)) {
-        const handler = this._collapseEndHandlers.get(key);
-        if (handler) {
-          // host -> .expand-inner -> .expand-grid (where the listener lives)
-          this._getOrCreateHost(key).parentElement?.parentElement?.removeEventListener(
-            'transitionend',
-            handler,
-          );
-          this._collapseEndHandlers.delete(key);
-        }
+      // Cancel any collapse still animating for this key. The host is still
+      // cached and still mounted, so we reuse it instead of tearing it down and
+      // building a second one.
+      const wasCollapsing = this._collapsingKeys.delete(key);
+      this._collapseTokens.delete(key);
+      // Only play the open animation when there is nothing mounted yet. A row
+      // caught mid-collapse already has painted content — it just reverses.
+      if (!wasCollapsing && !this._mountedKeys.has(key)) {
+        this._enteringKeys.add(key);
       }
     } else {
-      // Phase 1: mark as collapsing but KEEP the key in expandedRows so the
-      // template renders the expanded state + collapse class. The browser will
-      // paint this frame, then phase 2 (in updated) removes the key to trigger
-      // the actual CSS transition.
+      // Drop the key from `expandedRows` right away and keep the row rendered
+      // via `_collapsingKeys`. The grid is already painted at 1fr, so the
+      // 1fr -> 0fr transition starts from a real baseline without a second
+      // render pass — and a click landing mid-collapse reads as a re-expand
+      // instead of a duplicate collapse.
+      newSet.delete(key);
       this._collapsingKeys.add(key);
+      this._enteringKeys.delete(key);
     }
 
     this.expandedRows = newSet;
@@ -417,30 +846,10 @@ export class RekeTable extends RekeElement {
         const inner = element as HTMLElement;
         const host = this._getOrCreateHost(key);
         if (host.parentElement !== inner) {
-          inner.appendChild(host);
-        }
-        // The animated track lives on the parent .expand-grid; transitionend
-        // fires there (it bubbles up, not down to .expand-inner), so listen on
-        // the grid wrapper.
-        const grid = inner.parentElement as HTMLElement | null;
-        if (grid && !this._collapseEndHandlers.has(key)) {
-          const onEnd = (e: TransitionEvent) => {
-            if (e.propertyName !== 'grid-template-rows' || !this._collapsingKeys.has(key)) return;
-            this._collapsingKeys.delete(key);
-            this._collapseEndHandlers.delete(key);
-            grid.removeEventListener('transitionend', onEnd);
-            this._safeCleanup(key);
-            this._hostCache.delete(key);
-            this._mountedKeys.delete(key);
-            this._refCallbacks.delete(key);
-            // Remove the collapsed row from expandedRows so the next render
-            // drops it from the template (nothing path).
-            if (this.expandedRows.has(key)) {
-              this.expandedRows = new Set([...this.expandedRows].filter((k) => k !== key));
-            }
-          };
-          grid.addEventListener('transitionend', onEnd);
-          this._collapseEndHandlers.set(key, onEnd);
+          // `replaceChildren`, not `appendChild`: the container may still hold a
+          // host from an earlier expand cycle, and stacking them is exactly how
+          // the shadow tree grew on every open/close round trip.
+          inner.replaceChildren(host);
         }
       };
       this._refCallbacks.set(key, refCallback);
@@ -452,11 +861,21 @@ export class RekeTable extends RekeElement {
     const isExpanded = this.expandedRows.has(key);
     const hostId = `reke-table-expand-${String(key)}`;
     const expandColspan = this.columns.length + (this.expandable ? 1 : 0);
+    // The expand row exists only while it is open or animating shut. Rendering
+    // it for every row left a permanent tr + td + grid + inner per row, which is
+    // both dead weight and the container the orphaned hosts piled up in.
+    // `_keyToRow.get(key) === row` is the last-wins tiebreak for duplicate
+    // `getRowKey` values: only the winning row owns the expand slot.
+    const showExpandRow =
+      this.expandedRowElement != null &&
+      (isExpanded || this._collapsingKeys.has(key)) &&
+      this._keyToRow.get(key) === row;
 
     return html`
       <tr
         part="row"
         class="row ${i % 2 === 1 ? 'row--even' : ''} ${isExpanded ? 'row--expanded' : ''}"
+        aria-rowindex=${this.virtualized ? i + 2 : nothing}
         @click=${() => this.handleRowClick(row, i)}
       >
         ${
@@ -495,11 +914,13 @@ export class RekeTable extends RekeElement {
         )}
       </tr>
       ${
-        this.expandedRowElement && this._keyToRow.get(key) === row
+        showExpandRow
           ? html`
             <tr
               part="expand-row"
               class="expand-row ${isExpanded && !this._enteringKeys.has(key) ? '' : 'expand-row--collapsed'}"
+              aria-rowindex=${this.virtualized ? i + 2 : nothing}
+              ${ref(this._expandRowRef(key))}
             >
               <td
                 part="expand-content"
@@ -533,11 +954,29 @@ export class RekeTable extends RekeElement {
       }
     }
 
+    // Dev-only one-shot errors for a virtualized setup that cannot work.
+    if (isDev && this.virtualized && !this._warnedVirtualConfig) {
+      const problems: string[] = [];
+      if (this.rowHeight <= 0) {
+        problems.push('`row-height` must be a positive number — row offsets are computed from it');
+      }
+      if (!this.maxHeight) {
+        problems.push('`max-height` is required — windowing needs a bounded scroll container');
+      }
+      if (problems.length > 0) {
+        this._warnedVirtualConfig = true;
+        // eslint-disable-next-line no-console
+        console.error(`[reke-table] virtualized: ${problems.join('; ')}.`);
+      }
+    }
+
     // Rebuild the key→row map and warn about duplicates (one-shot per key).
     const seen = new Map<RowKey, TableRow>();
+    const indices = new Map<RowKey, number>();
     for (let i = 0; i < this.rows.length; i += 1) {
       const row = this.rows[i];
       const key = this._resolveKey(row, i);
+      indices.set(key, i);
       if (seen.has(key)) {
         if (isDev && !this._warnedDupKeys.has(key)) {
           this._warnedDupKeys.add(key);
@@ -551,11 +990,19 @@ export class RekeTable extends RekeElement {
       seen.set(key, row);
     }
     this._keyToRow = seen;
+    this._keyToIndex = indices;
   }
 
   private _warnedLegacyApi = false;
 
+  private _warnedVirtualConfig = false;
+
   override updated(_changed: PropertyValues): void {
+    if (this.virtualized) {
+      this._rescueFocusAfterWindowChange();
+      this._clampScrollToContent();
+    }
+
     // Diff the expanded-key set against the host/cleanup maps:
     //   - Mount any expanded key that isn't mounted yet.
     //   - Cleanup any cached key that is no longer present in `rows` (orphan).
@@ -572,50 +1019,37 @@ export class RekeTable extends RekeElement {
       return;
     }
 
-    // 1. Cleanup orphans authoritatively over `expandedRows` ∪ `_hostCache.keys()`.
+    // 1. Cleanup orphans authoritatively over every key we still hold state for.
     //    This covers BOTH windows:
     //      - mounted-then-removed: key is in `_hostCache` but the row is gone.
     //      - never-mounted-then-removed: key was added to `expandedRows` in the same
     //        tick the row was dropped, so it NEVER entered `_hostCache`. Keying the
     //        purge solely on `_hostCache` would miss it, leaving a phantom expanded key.
-    const keysToCheck = new Set<RowKey>([...this.expandedRows, ...this._hostCache.keys()]);
+    const keysToCheck = new Set<RowKey>([
+      ...this.expandedRows,
+      ...this._collapsingKeys,
+      ...this._hostCache.keys(),
+    ]);
     for (const cachedKey of keysToCheck) {
       const present = this._keyToRow.has(cachedKey);
-      const stillExpanded = this.expandedRows.has(cachedKey);
-      // A key needs purging when its row is gone (orphan) or it is cached but no
-      // longer expanded (normal collapse leftover). Keys currently animating
-      // their collapse are protected — cleanup happens on transitionend.
-      if (present && stillExpanded) continue;
-      if (this._collapsingKeys.has(cachedKey)) continue;
-
-      // Guard consumer cleanup against throws so our state stays consistent.
-      // `_safeCleanup` is idempotent (deletes after running) so no double-cleanup.
-      this._safeCleanup(cachedKey);
-      this._hostCache.delete(cachedKey);
-      this._mountedKeys.delete(cachedKey);
-      this._refCallbacks.delete(cachedKey);
+      // A key stays alive while its row exists AND it is either open or still
+      // animating shut. Anything else is a leftover: a removed row, or a key
+      // that left `expandedRows` without going through `toggleExpand`.
+      if (present && (this.expandedRows.has(cachedKey) || this._collapsingKeys.has(cachedKey))) {
+        continue;
+      }
+      // A removed row takes its DOM with it, so there is no animation left to
+      // wait for — tear down now instead of leaning on a transition that will
+      // never fire.
+      this._teardownKey(cachedKey);
       // If the row was REMOVED (not a normal collapse), purge it from `expandedRows`
       // so `isRowExpanded()` stops lying and a re-added row with the same key renders
       // COLLAPSED instead of spontaneously re-expanding. The normal-collapse path (via
       // `toggleExpand`, which clones the Set) already removed the key. The row is gone,
       // so mutate the Set in place to avoid an extra reactive cycle.
-      if (!present && !this._collapsingKeys.has(cachedKey)) {
+      if (!present) {
         this.expandedRows.delete(cachedKey);
       }
-    }
-
-    // Phase 2 of collapse animation: the browser has now painted the expanded
-    // state with the collapse class. Remove the key from expandedRows so the
-    // next render triggers the CSS transition (max-height 1fr → 0).
-    if (this._collapsingKeys.size > 0) {
-      const toCollapse = [...this._collapsingKeys];
-      requestAnimationFrame(() => {
-        const newSet = new Set(this.expandedRows);
-        for (const key of toCollapse) {
-          newSet.delete(key);
-        }
-        this.expandedRows = newSet;
-      });
     }
 
     // 2. Mount any expanded key that hasn't been mounted yet.
@@ -632,6 +1066,13 @@ export class RekeTable extends RekeElement {
       this._mountedKeys.add(key);
     }
 
+    // 3. Arm the deterministic teardown for every row animating shut. Idempotent:
+    //    a key that already has a live token is left alone.
+    for (const key of this._collapsingKeys) {
+      if (this._collapseTokens.has(key)) continue;
+      this._scheduleCollapseTeardown(key);
+    }
+
     // Entering rows render collapsed (0fr) with their content mounted. A
     // freshly-inserted element has no painted baseline, so switching straight
     // to 1fr wouldn't transition. Force a reflow to commit the 0fr baseline,
@@ -640,10 +1081,86 @@ export class RekeTable extends RekeElement {
       // Force layout so the collapsed 0fr state is the transition's start value.
       void this.offsetHeight;
       requestAnimationFrame(() => {
+        if (this._enteringKeys.size === 0) return;
         this._enteringKeys.clear();
         this.requestUpdate();
       });
     }
+  }
+
+  /**
+   * Wait for a collapsing row to finish animating, then tear it down.
+   *
+   * The wait resolves off `getAnimations()`, not `transitionend`: that event is
+   * never guaranteed (reduced motion, `display: none`, a backgrounded tab, a
+   * zero-duration override, the row being unmounted mid-flight), and when it
+   * failed to arrive the key stayed in `_collapsingKeys` forever, which in turn
+   * disabled the purge in `updated()`. If there is no animation at all,
+   * `Promise.allSettled([])` settles on the next microtask and teardown is
+   * immediate. `COLLAPSE_TEARDOWN_FALLBACK_MS` is the last resort for an
+   * animation that never finishes.
+   */
+  private _scheduleCollapseTeardown(key: RowKey): void {
+    this._collapseSeq += 1;
+    const token = this._collapseSeq;
+    this._collapseTokens.set(key, token);
+
+    // host -> .expand-inner -> .expand-grid (the element carrying the transition)
+    const grid = this._hostCache.get(key)?.parentElement?.parentElement ?? null;
+
+    let animations: Animation[] = [];
+    if (grid) {
+      // Reading a computed value flushes the pending style change, which is what
+      // actually creates the transition we are about to await. Without it,
+      // `getAnimations()` can legitimately return an empty list.
+      void getComputedStyle(grid).gridTemplateRows;
+      animations = grid.getAnimations({ subtree: true });
+    }
+
+    // Always burn at least one frame, even with nothing to animate. Tearing down
+    // synchronously would unmount content on a fast collapse→re-expand, and it
+    // would do it in the same task the collapse was requested in.
+    const nextFrame = new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
+    const settled = Promise.all([
+      Promise.allSettled(animations.map((animation) => animation.finished)),
+      nextFrame,
+    ]);
+    const fallback = new Promise<void>((resolve) => {
+      setTimeout(resolve, COLLAPSE_TEARDOWN_FALLBACK_MS);
+    });
+
+    void Promise.race([settled, fallback]).then(() => {
+      // Superseded by a re-expand, a row removal, or a later collapse.
+      if (this._collapseTokens.get(key) !== token) return;
+      this._teardownKey(key);
+      this.requestUpdate();
+    });
+  }
+
+  /**
+   * Release every resource held for a row key. Idempotent and safe to call at
+   * any point in the lifecycle — each step is a delete, and `_safeCleanup`
+   * drops its entry after running.
+   */
+  private _teardownKey(key: RowKey): void {
+    this._safeCleanup(key);
+    // Detach the host itself. The consumer cleanup only owns what IT mounted;
+    // the host div is ours, and `.expand-inner` may outlive this cycle.
+    this._hostCache.get(key)?.remove();
+    this._hostCache.delete(key);
+    this._mountedKeys.delete(key);
+    this._refCallbacks.delete(key);
+    this._collapsingKeys.delete(key);
+    this._collapseTokens.delete(key);
+    this._enteringKeys.delete(key);
+
+    const expandRow = this._expandRowElements.get(key);
+    if (expandRow) this._expandObserver?.unobserve(expandRow);
+    this._expandRowElements.delete(key);
+    this._expandRowRefs.delete(key);
+    this._expandedHeights.delete(key);
   }
 
   /**
@@ -664,15 +1181,10 @@ export class RekeTable extends RekeElement {
   }
 
   private _runAllCleanupsAndClear(): void {
-    // Cancel any pending collapse animations.
-    for (const [key, handler] of this._collapseEndHandlers) {
-      const host = this._hostCache.get(key);
-      // host -> .expand-inner -> .expand-grid (where the listener lives)
-      const grid = host?.parentElement?.parentElement as HTMLElement | null;
-      grid?.removeEventListener('transitionend', handler);
-    }
+    // Invalidate every pending collapse settle: the token check makes them no-ops.
     this._collapsingKeys.clear();
-    this._collapseEndHandlers.clear();
+    this._collapseTokens.clear();
+    this._enteringKeys.clear();
 
     for (const cleanup of this._cleanupMap.values()) {
       try {
@@ -682,7 +1194,14 @@ export class RekeTable extends RekeElement {
       }
     }
     this._cleanupMap.clear();
+    for (const host of this._hostCache.values()) {
+      host.remove();
+    }
     this._hostCache.clear();
+    this._expandObserver?.disconnect();
+    this._expandRowElements.clear();
+    this._expandRowRefs.clear();
+    this._expandedHeights.clear();
     this._mountedKeys.clear();
     this._refCallbacks.clear();
   }
@@ -690,6 +1209,17 @@ export class RekeTable extends RekeElement {
   override disconnectedCallback() {
     super.disconnectedCallback();
     this._runAllCleanupsAndClear();
+
+    this._scrollContainer?.removeEventListener('scroll', this._onScroll);
+    this._scrollContainer = null;
+    this._viewportObserver?.disconnect();
+    this._viewportObserver = null;
+    this._expandObserver?.disconnect();
+    this._expandObserver = null;
+    if (this._scrollFrame !== null) {
+      cancelAnimationFrame(this._scrollFrame);
+      this._scrollFrame = null;
+    }
   }
 
   override render() {
@@ -699,7 +1229,18 @@ export class RekeTable extends RekeElement {
       'table--dense': this.dense,
       'table--hoverable': this.hoverable,
       'table--bordered': this.bordered,
+      // Fixed layout is mandatory when windowing: with `auto`, column widths are
+      // derived from the rendered rows, so they would shift as you scroll.
+      'table--fixed-layout': this.virtualized,
     };
+
+    const { start, end, topSpacer, bottomSpacer } = this._computeWindow();
+    const total = this.rows.length;
+    const windowRows = this.virtualized ? this.rows.slice(start, end) : this.rows;
+    this._previousWindowStart = this._windowStart;
+    this._previousWindowEnd = this._windowEnd;
+    this._windowStart = start;
+    this._windowEnd = end;
 
     return html`
       <div class="table-container">
@@ -713,8 +1254,20 @@ export class RekeTable extends RekeElement {
             : html`<slot name="toolbar" @slotchange=${this._onToolbarSlotChange} style="display:none"></slot>`
         }
 
-        <div class="table-wrapper">
-          <table part="table" class=${classMap(tableClasses)} role="table">
+        <div
+          class="table-wrapper ${this.virtualized ? 'table-wrapper--virtualized' : ''}"
+          style=${this.virtualized && this.maxHeight ? `max-height: ${this.maxHeight}` : ''}
+          tabindex=${this.virtualized ? 0 : nothing}
+          role=${this.virtualized ? 'group' : nothing}
+          aria-label=${this.virtualized ? 'Scrollable table' : nothing}
+          ${ref(this._bindScrollContainer)}
+        >
+          <table
+            part="table"
+            class=${classMap(tableClasses)}
+            role="table"
+            aria-rowcount=${this.virtualized ? total : nothing}
+          >
             <thead part="header">
               <tr>
                 ${
@@ -750,11 +1303,42 @@ export class RekeTable extends RekeElement {
                 )}
               </tr>
             </thead>
-            <tbody part="body">
-              ${this.rows.map((row, i) => {
+            <tbody part="body" @focusin=${this._onRowsFocusIn}>
+              ${this._renderSpacerRow(topSpacer, 'top')}
+              ${windowRows.map((row, offset) => {
+                // Absolute index into `rows`, NOT the slice offset: striping,
+                // `reke-row-click`, and key resolution all key off the real
+                // position in the dataset.
+                const i = start + offset;
                 const key = this._resolveKey(row, i);
-                return this._renderRow(row, i, key);
+                // `guard` makes each row its own reactive unit. Toggling one row
+                // used to re-invoke `column.render` for EVERY row (twice, with
+                // the old two-phase collapse); now only the rows whose inputs
+                // actually changed re-render.
+                //
+                // Deliberately NOT `repeat()`: duplicate `getRowKey` values are a
+                // warned-but-supported input here, and `repeat` corrupts its DOM
+                // mapping when keys collide. Row identity for expand state is
+                // already carried by `_hostCache`, not by DOM position.
+                //
+                // `this.rows` is a dependency on purpose: consumers who mutate a
+                // row in place and reassign the array still get a full re-render.
+                return guard(
+                  [
+                    row,
+                    i,
+                    this.rows,
+                    this.columns,
+                    this.expandable,
+                    this.expandedRowElement,
+                    this.expandedRows.has(key),
+                    this._collapsingKeys.has(key),
+                    this._enteringKeys.has(key),
+                  ],
+                  () => this._renderRow(row, i, key),
+                );
               })}
+              ${this._renderSpacerRow(bottomSpacer, 'bottom')}
               ${
                 this.rows.length === 0
                   ? html`

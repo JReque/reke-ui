@@ -30,18 +30,31 @@ async function flushEnterTransition(el: RekeTable): Promise<void> {
   await new Promise((r) => setTimeout(r, 0));
 }
 
-/** Dispatch transitionend on all collapsing expand rows so cleanup runs. */
+/** Every running animation in the component's shadow tree. */
+function shadowAnimations(el: RekeTable): Animation[] {
+  return Array.from(el.shadowRoot!.querySelectorAll('*')).flatMap((node) => node.getAnimations());
+}
+
+/**
+ * Finish every running animation in the shadow tree so the collapse teardown
+ * resolves. The component awaits `Animation.finished`, so calling `finish()`
+ * settles it on the next microtask instead of waiting out the real 200ms.
+ */
 async function flushExpandTransition(el: RekeTable): Promise<void> {
   await waitForUpdate(el);
+  for (const animation of shadowAnimations(el)) {
+    animation.finish();
+  }
+  // The teardown always waits at least one frame, so the no-animation path
+  // needs it too.
   await new Promise((r) => requestAnimationFrame(r));
   await waitForUpdate(el);
-  const grids = el.shadowRoot!.querySelectorAll('.expand-row--collapsed .expand-grid');
-  for (const grid of grids) {
-    grid.dispatchEvent(
-      new TransitionEvent('transitionend', { propertyName: 'grid-template-rows' }),
-    );
-  }
   await waitForUpdate(el);
+}
+
+/** Count every element in the component's shadow tree. */
+function countShadowElements(el: RekeTable): number {
+  return el.shadowRoot!.querySelectorAll('*').length;
 }
 
 const testColumns = [
@@ -347,7 +360,8 @@ describe('reke-table', () => {
     el.toggleExpand(0);
     await flushExpandTransition(el);
 
-    expect(el.shadowRoot!.querySelector('.expand-row--collapsed')).toBeTruthy();
+    // The expand row is removed entirely once the collapse settles.
+    expect(el.shadowRoot!.querySelector('.expand-row')).toBeNull();
     expect(el.shadowRoot!.querySelector('.detail-content')).toBeNull();
 
     wrapper.remove();
@@ -422,7 +436,7 @@ describe('reke-table', () => {
     el.toggleExpand(0);
     await flushExpandTransition(el);
     expect(el.shadowRoot!.querySelector('.vanilla-cleanup-test')).toBeNull();
-    expect(el.shadowRoot!.querySelector('.expand-row--collapsed')).toBeTruthy();
+    expect(el.shadowRoot!.querySelector('.expand-row')).toBeNull();
 
     wrapper.remove();
   });
@@ -698,9 +712,8 @@ describe('reke-table', () => {
 
     expect(el.isRowExpanded('b')).toBe(false);
     expect(mountCount).toBe(1);
-    // Row B's expand row is present but collapsed (animation target).
-    const collapsedRows = el.shadowRoot!.querySelectorAll('.expand-row--collapsed');
-    expect(collapsedRows.length).toBeGreaterThan(0);
+    // Nothing is expanded, so no expand row exists for the re-added row.
+    expect(el.shadowRoot!.querySelectorAll('.expand-row').length).toBe(0);
 
     wrapper.remove();
   });
@@ -729,11 +742,8 @@ describe('reke-table', () => {
     // Phantom key must be purged even though it was never mounted.
     expect(el.isRowExpanded('b')).toBe(false);
     expect(mountCount).toBe(0);
-    // All expand rows are collapsed since nothing is expanded.
-    const allExpandRows = el.shadowRoot!.querySelectorAll('.expand-row');
-    const expandedRows = el.shadowRoot!.querySelectorAll('.expand-row:not(.expand-row--collapsed)');
-    expect(expandedRows.length).toBe(0);
-    expect(allExpandRows.length).toBeGreaterThan(0);
+    // No expand rows at all, since nothing is expanded or animating.
+    expect(el.shadowRoot!.querySelectorAll('.expand-row').length).toBe(0);
 
     // Re-add a row with key 'b' — must render COLLAPSED and stay unmounted.
     el.rows = [testRows[0], testRows[1], testRows[2]];
@@ -785,6 +795,639 @@ describe('reke-table', () => {
     expect(detail!.textContent).toBe('Last');
 
     warnSpy.mockRestore();
+    wrapper.remove();
+  });
+
+  it('returns to the baseline shadow node count after repeated expand/collapse cycles', async () => {
+    const wrapper = createElement('<reke-table expandable></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = Array.from({ length: 10 }, (_, i) => ({
+      id: `r${i}`,
+      name: `Name ${i}`,
+      role: `Role ${i}`,
+    }));
+    el.getRowKey = (row) => (row as { id: string }).id;
+    el.expandedRowElement = (host, row) => {
+      const panel = document.createElement('div');
+      panel.classList.add('detail-panel');
+      for (let i = 0; i < 3; i += 1) {
+        const line = document.createElement('p');
+        line.textContent = `${(row as { name: string }).name} — line ${i}`;
+        panel.appendChild(line);
+      }
+      host.appendChild(panel);
+      return () => panel.remove();
+    };
+    await waitForUpdate(el);
+
+    const baseline = countShadowElements(el);
+
+    for (let cycle = 0; cycle < 3; cycle += 1) {
+      for (const row of el.rows) {
+        el.toggleExpand((row as { id: string }).id);
+      }
+      await flushEnterTransition(el);
+      expect(el.shadowRoot!.querySelectorAll('.detail-panel').length).toBe(10);
+
+      for (const row of el.rows) {
+        el.toggleExpand((row as { id: string }).id);
+      }
+      await flushExpandTransition(el);
+
+      // Every cycle must land back exactly on the baseline — no orphan hosts,
+      // no leftover expand rows.
+      expect(countShadowElements(el)).toBe(baseline);
+      expect(el.shadowRoot!.querySelectorAll('.expand-row').length).toBe(0);
+      expect(el.shadowRoot!.querySelectorAll('.detail-panel').length).toBe(0);
+    }
+
+    wrapper.remove();
+  });
+
+  it('collapse cleans up even when the transition never completes', async () => {
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    el.getRowKey = (row) => (row as { id: string }).id;
+
+    const cleanup = vi.fn();
+    el.expandedRowElement = (host) => {
+      const n = document.createElement('div');
+      n.classList.add('detail-content');
+      host.appendChild(n);
+      return () => {
+        n.remove();
+        cleanup();
+      };
+    };
+    await waitForUpdate(el);
+
+    const baseline = countShadowElements(el);
+
+    el.toggleExpand('a');
+    await flushEnterTransition(el);
+
+    el.toggleExpand('a');
+    await waitForUpdate(el);
+
+    // Kill the animation instead of finishing it: `transitionend` never fires on
+    // a cancelled transition, which is exactly the case that used to leak.
+    for (const animation of shadowAnimations(el)) {
+      animation.cancel();
+    }
+    await new Promise((r) => requestAnimationFrame(r));
+    await waitForUpdate(el);
+    await waitForUpdate(el);
+
+    expect(cleanup).toHaveBeenCalledOnce();
+    expect(el.shadowRoot!.querySelector('.detail-content')).toBeNull();
+    expect(countShadowElements(el)).toBe(baseline);
+
+    wrapper.remove();
+  });
+
+  it('re-expanding mid-collapse reuses the mounted host and stays expanded', async () => {
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = testRows;
+    el.getRowKey = (row) => (row as { id: string }).id;
+
+    let mountCount = 0;
+    const cleanup = vi.fn();
+    const events: boolean[] = [];
+    el.expandedRowElement = (host) => {
+      mountCount += 1;
+      const n = document.createElement('div');
+      n.classList.add('detail-content');
+      host.appendChild(n);
+      return () => {
+        n.remove();
+        cleanup();
+      };
+    };
+    el.addEventListener('reke-row-expand', (e) => {
+      events.push((e as CustomEvent<{ expanded: boolean }>).detail.expanded);
+    });
+    await waitForUpdate(el);
+
+    el.toggleExpand('a');
+    await flushEnterTransition(el);
+    expect(mountCount).toBe(1);
+
+    // Collapse, then re-expand while the collapse animation is still running.
+    el.toggleExpand('a');
+    await waitForUpdate(el);
+    el.toggleExpand('a');
+    await flushEnterTransition(el);
+
+    // The re-expand must read as an expand, not as a second collapse.
+    expect(events).toEqual([true, false, true]);
+    expect(el.isRowExpanded('a')).toBe(true);
+    expect(mountCount).toBe(1);
+    expect(cleanup).not.toHaveBeenCalled();
+    // Exactly one host, exactly one content node — no abandoned subtree.
+    expect(el.shadowRoot!.querySelectorAll('.detail-content').length).toBe(1);
+    expect(el.shadowRoot!.querySelectorAll('.expand-inner > *').length).toBe(1);
+
+    wrapper.remove();
+  });
+
+  it('toggling one row does not re-render the other rows cells', async () => {
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+
+    const renderCalls = new Map<string, number>();
+    el.columns = testColumns.map((col) => ({
+      ...col,
+      render: (value: unknown, row: Record<string, unknown>) => {
+        const id = row.id as string;
+        renderCalls.set(id, (renderCalls.get(id) ?? 0) + 1);
+        return String(value);
+      },
+    }));
+    el.rows = testRows;
+    el.getRowKey = (row) => (row as { id: string }).id;
+    el.expandedRowElement = (host) => {
+      host.appendChild(document.createElement('div'));
+      return () => {};
+    };
+    await waitForUpdate(el);
+
+    renderCalls.clear();
+    el.toggleExpand('a');
+    await flushEnterTransition(el);
+
+    // Only the toggled row re-renders its cells; rows b and c are untouched.
+    expect(renderCalls.get('a')).toBeGreaterThan(0);
+    expect(renderCalls.get('b')).toBeUndefined();
+    expect(renderCalls.get('c')).toBeUndefined();
+
+    wrapper.remove();
+  });
+
+  // --- BEHAVIOR: virtualization ---
+
+  const VIRTUAL_ROW_HEIGHT = 40;
+  const VIRTUAL_MAX_HEIGHT = 320;
+
+  function makeVirtualRows(count: number) {
+    return Array.from({ length: count }, (_, i) => ({
+      id: `v${i}`,
+      name: `Name ${i}`,
+      role: `Role ${i}`,
+    }));
+  }
+
+  /**
+   * Mount a virtualized table and wait for the ResizeObserver to report the
+   * container height, which is what the window math needs.
+   */
+  async function mountVirtual(rowCount: number): Promise<{ wrapper: HTMLElement; el: RekeTable }> {
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = makeVirtualRows(rowCount);
+    el.getRowKey = (row) => (row as { id: string }).id;
+    el.virtualized = true;
+    el.rowHeight = VIRTUAL_ROW_HEIGHT;
+    el.maxHeight = `${VIRTUAL_MAX_HEIGHT}px`;
+    await waitForUpdate(el);
+    await new Promise((r) => requestAnimationFrame(r));
+    await waitForUpdate(el);
+    return { wrapper, el };
+  }
+
+  function renderedRowNames(el: RekeTable): string[] {
+    return Array.from(el.shadowRoot!.querySelectorAll('tbody .row')).map((row) =>
+      row.querySelector('.cell')!.textContent!.trim(),
+    );
+  }
+
+  function scrollContainer(el: RekeTable): HTMLElement {
+    return el.shadowRoot!.querySelector('.table-wrapper') as HTMLElement;
+  }
+
+  it('virtualized: renders only the rows in the window, not the whole dataset', async () => {
+    const { wrapper, el } = await mountVirtual(1000);
+
+    const rendered = el.shadowRoot!.querySelectorAll('tbody .row');
+    // A 320px viewport at 40px per row is 8 rows, plus overscan on both sides.
+    expect(rendered.length).toBeGreaterThan(0);
+    expect(rendered.length).toBeLessThan(40);
+
+    // The first rows of the dataset are the ones on screen.
+    expect(renderedRowNames(el)[0]).toBe('Name 0');
+
+    wrapper.remove();
+  });
+
+  it('virtualized: spacer rows preserve the full scroll height', async () => {
+    const { wrapper, el } = await mountVirtual(1000);
+
+    const container = scrollContainer(el);
+    const headerHeight = el.shadowRoot!.querySelector('thead')!.getBoundingClientRect().height;
+    const expected = 1000 * VIRTUAL_ROW_HEIGHT;
+
+    // The scrollable content must measure as if every row were rendered,
+    // otherwise the scrollbar lies about the size of the dataset.
+    //
+    // Tolerance, not equality: spacers are exact, but the RENDERED rows are as
+    // tall as their real content, so any gap between the declared `rowHeight`
+    // and the actual height shows up here. Crucially that error is bounded by
+    // the window size, not the dataset size — it does not accumulate over 1000
+    // rows, which is what keeps the scrollbar honest.
+    const measured = container.scrollHeight - headerHeight;
+    expect(measured).toBeGreaterThan(expected * 0.98);
+    expect(measured).toBeLessThan(expected * 1.02);
+
+    wrapper.remove();
+  });
+
+  it('virtualized: scrolling swaps the rendered window', async () => {
+    const { wrapper, el } = await mountVirtual(1000);
+
+    expect(renderedRowNames(el)).toContain('Name 0');
+
+    const container = scrollContainer(el);
+    container.scrollTop = 400 * VIRTUAL_ROW_HEIGHT;
+    container.dispatchEvent(new Event('scroll'));
+    await new Promise((r) => requestAnimationFrame(r));
+    await waitForUpdate(el);
+
+    const names = renderedRowNames(el);
+    expect(names).toContain('Name 400');
+    expect(names).not.toContain('Name 0');
+
+    wrapper.remove();
+  });
+
+  it('virtualized: row events carry the absolute dataset index, not the window offset', async () => {
+    const { wrapper, el } = await mountVirtual(1000);
+
+    const detail: { index: number; row: Record<string, unknown> }[] = [];
+    el.addEventListener('reke-row-click', (e) => {
+      detail.push((e as CustomEvent<{ index: number; row: Record<string, unknown> }>).detail);
+    });
+
+    const container = scrollContainer(el);
+    container.scrollTop = 400 * VIRTUAL_ROW_HEIGHT;
+    container.dispatchEvent(new Event('scroll'));
+    await new Promise((r) => requestAnimationFrame(r));
+    await waitForUpdate(el);
+
+    const rows = Array.from(el.shadowRoot!.querySelectorAll('tbody .row'));
+    const target = rows.find(
+      (row) => row.querySelector('.cell')!.textContent!.trim() === 'Name 400',
+    )!;
+    (target as HTMLElement).click();
+
+    expect(detail).toHaveLength(1);
+    expect(detail[0].index).toBe(400);
+    expect((detail[0].row as { id: string }).id).toBe('v400');
+
+    wrapper.remove();
+  });
+
+  it('virtualized: exposes the real dataset size to assistive tech', async () => {
+    const { wrapper, el } = await mountVirtual(1000);
+
+    const table = el.shadowRoot!.querySelector('table')!;
+    expect(table.getAttribute('aria-rowcount')).toBe('1000');
+
+    const firstRow = el.shadowRoot!.querySelector('tbody .row')!;
+    // 1-based and header-inclusive, so dataset row 0 is aria-rowindex 2.
+    expect(firstRow.getAttribute('aria-rowindex')).toBe('2');
+
+    const results = await runAxe(wrapper);
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
+    expect(violations.map((v) => `${v.id}: ${v.nodes[0]?.html ?? ''}`)).toEqual([]);
+
+    wrapper.remove();
+  });
+
+  it('virtualized: renders every row when the dataset is smaller than the window', async () => {
+    const { wrapper, el } = await mountVirtual(3);
+
+    expect(el.shadowRoot!.querySelectorAll('tbody .row').length).toBe(3);
+    expect(el.shadowRoot!.querySelectorAll('.spacer-row').length).toBe(0);
+
+    wrapper.remove();
+  });
+
+  it('virtualized: dev error when row-height or max-height is missing', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = makeVirtualRows(50);
+    el.virtualized = true;
+    await waitForUpdate(el);
+
+    const messages = errorSpy.mock.calls.map((c) => String(c[0]));
+    const virtualError = messages.find((m) => m.includes('virtualized'));
+    expect(virtualError).toBeTruthy();
+    expect(virtualError).toContain('row-height');
+    expect(virtualError).toContain('max-height');
+
+    // One-shot: a re-render does not repeat it.
+    const before = errorSpy.mock.calls.length;
+    el.striped = true;
+    await waitForUpdate(el);
+    expect(errorSpy.mock.calls.length).toBe(before);
+
+    errorSpy.mockRestore();
+    wrapper.remove();
+  });
+
+  // --- BEHAVIOR: virtualization + expand (F2) ---
+
+  const EXPAND_PANEL_HEIGHT = 150;
+
+  /** Mount a virtualized table whose expand panels have a known, fixed height. */
+  async function mountVirtualExpandable(
+    rowCount: number,
+  ): Promise<{ wrapper: HTMLElement; el: RekeTable }> {
+    const wrapper = createElement('<reke-table expandable></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = makeVirtualRows(rowCount);
+    el.getRowKey = (row) => (row as { id: string }).id;
+    el.virtualized = true;
+    el.rowHeight = VIRTUAL_ROW_HEIGHT;
+    el.maxHeight = `${VIRTUAL_MAX_HEIGHT}px`;
+    el.expandedRowElement = (host, row) => {
+      const panel = document.createElement('div');
+      panel.classList.add('detail-panel');
+      panel.style.height = `${EXPAND_PANEL_HEIGHT}px`;
+      panel.textContent = `${(row as { name: string }).name} detail`;
+      host.appendChild(panel);
+      return () => panel.remove();
+    };
+    await waitForUpdate(el);
+    await new Promise((r) => requestAnimationFrame(r));
+    await waitForUpdate(el);
+    return { wrapper, el };
+  }
+
+  /**
+   * Run the open animation to completion, then let the ResizeObserver report the
+   * final expand row height and the table re-render off it. Without finishing the
+   * animation first, the measurement lands mid-transition.
+   */
+  async function settleExpandMeasurement(el: RekeTable): Promise<void> {
+    for (const animation of shadowAnimations(el)) {
+      animation.finish();
+    }
+    for (let i = 0; i < 4; i += 1) {
+      await new Promise((r) => requestAnimationFrame(r));
+      await waitForUpdate(el);
+    }
+  }
+
+  it('virtualized + expand: mounts the panel and no longer errors', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { wrapper, el } = await mountVirtualExpandable(1000);
+
+    el.toggleExpand('v0');
+    await flushEnterTransition(el);
+    await settleExpandMeasurement(el);
+
+    expect(el.shadowRoot!.querySelector('.detail-panel')).toBeTruthy();
+    const messages = errorSpy.mock.calls.map((c) => String(c[0]));
+    expect(messages.filter((m) => m.includes('virtualized'))).toEqual([]);
+
+    errorSpy.mockRestore();
+    wrapper.remove();
+  });
+
+  it('virtualized + expand: measured panel height grows the total scroll height', async () => {
+    const { wrapper, el } = await mountVirtualExpandable(1000);
+
+    const container = scrollContainer(el);
+    const before = container.scrollHeight;
+
+    el.toggleExpand('v0');
+    await flushEnterTransition(el);
+    await settleExpandMeasurement(el);
+
+    // The dataset got taller by exactly one expanded panel, and the scrollbar
+    // has to say so — otherwise the rows below become unreachable.
+    const grew = container.scrollHeight - before;
+    expect(grew).toBeGreaterThan(EXPAND_PANEL_HEIGHT * 0.8);
+    expect(grew).toBeLessThan(EXPAND_PANEL_HEIGHT * 1.5);
+
+    wrapper.remove();
+  });
+
+  it('virtualized + expand: an expanded row above the window shifts the rows below it', async () => {
+    const { wrapper, el } = await mountVirtualExpandable(1000);
+
+    // Open row 0, then scroll well past it.
+    el.toggleExpand('v0');
+    await flushEnterTransition(el);
+    await settleExpandMeasurement(el);
+
+    const container = scrollContainer(el);
+    const targetRow = 300;
+    // Without accounting for the open panel above, this offset would land on a
+    // different row than the one the offset math predicts.
+    container.scrollTop = targetRow * VIRTUAL_ROW_HEIGHT + EXPAND_PANEL_HEIGHT;
+    container.dispatchEvent(new Event('scroll'));
+    await new Promise((r) => requestAnimationFrame(r));
+    await waitForUpdate(el);
+
+    const names = renderedRowNames(el);
+    expect(names).toContain(`Name ${targetRow}`);
+
+    wrapper.remove();
+  });
+
+  it('virtualized + expand: content survives scrolling out of the window and back', async () => {
+    const { wrapper, el } = await mountVirtualExpandable(1000);
+
+    let mountCount = 0;
+    const cleanup = vi.fn();
+    el.expandedRowElement = (host, row) => {
+      mountCount += 1;
+      const panel = document.createElement('div');
+      panel.classList.add('detail-panel');
+      panel.style.height = `${EXPAND_PANEL_HEIGHT}px`;
+      panel.textContent = `${(row as { name: string }).name} detail`;
+      host.appendChild(panel);
+      return () => {
+        panel.remove();
+        cleanup();
+      };
+    };
+    await waitForUpdate(el);
+
+    el.toggleExpand('v0');
+    await flushEnterTransition(el);
+    await settleExpandMeasurement(el);
+    expect(mountCount).toBe(1);
+
+    // Scroll far away — the expand row leaves the DOM entirely.
+    const container = scrollContainer(el);
+    container.scrollTop = 500 * VIRTUAL_ROW_HEIGHT;
+    container.dispatchEvent(new Event('scroll'));
+    await new Promise((r) => requestAnimationFrame(r));
+    await waitForUpdate(el);
+    expect(el.shadowRoot!.querySelector('.detail-panel')).toBeNull();
+    expect(el.isRowExpanded('v0')).toBe(true);
+
+    // Scroll back — the SAME host is reattached, with no remount and no cleanup.
+    container.scrollTop = 0;
+    container.dispatchEvent(new Event('scroll'));
+    await new Promise((r) => requestAnimationFrame(r));
+    await waitForUpdate(el);
+
+    expect(el.shadowRoot!.querySelector('.detail-panel')).toBeTruthy();
+    expect(mountCount).toBe(1);
+    expect(cleanup).not.toHaveBeenCalled();
+
+    wrapper.remove();
+  });
+
+  it('virtualized + expand: collapsing releases the measured height', async () => {
+    const { wrapper, el } = await mountVirtualExpandable(1000);
+
+    const container = scrollContainer(el);
+    const baseline = container.scrollHeight;
+
+    el.toggleExpand('v0');
+    await flushEnterTransition(el);
+    await settleExpandMeasurement(el);
+    expect(container.scrollHeight).toBeGreaterThan(baseline);
+
+    el.toggleExpand('v0');
+    await flushExpandTransition(el);
+    await settleExpandMeasurement(el);
+
+    // Back to the collapsed dataset height: the measurement was released with
+    // the rest of the row's state, not left inflating the scroll range.
+    expect(container.scrollHeight).toBeCloseTo(baseline, -1);
+    expect(el.shadowRoot!.querySelector('.detail-panel')).toBeNull();
+
+    wrapper.remove();
+  });
+
+  // --- ACCESSIBILITY: virtualization (F3) ---
+
+  it('virtualized: keeps focus in the table when scrolling unmounts the focused control', async () => {
+    const wrapper = createElement('<reke-table expandable></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = makeVirtualRows(1000);
+    el.getRowKey = (row) => (row as { id: string }).id;
+    el.virtualized = true;
+    el.rowHeight = VIRTUAL_ROW_HEIGHT;
+    el.maxHeight = `${VIRTUAL_MAX_HEIGHT}px`;
+    el.expandedRowElement = (host) => {
+      host.appendChild(document.createElement('div'));
+      return () => {};
+    };
+    await waitForUpdate(el);
+    await new Promise((r) => requestAnimationFrame(r));
+    await waitForUpdate(el);
+
+    const chevron = el.shadowRoot!.querySelector<HTMLButtonElement>('tbody .expand-toggle-button')!;
+    chevron.focus();
+    expect(el.shadowRoot!.activeElement).toBe(chevron);
+
+    // Scroll far enough that the focused chevron's row leaves the DOM.
+    const container = scrollContainer(el);
+    container.scrollTop = 500 * VIRTUAL_ROW_HEIGHT;
+    container.dispatchEvent(new Event('scroll'));
+    await new Promise((r) => requestAnimationFrame(r));
+    await waitForUpdate(el);
+
+    // Lit reuses the row's DOM positionally, so the chevron node itself usually
+    // survives — rebound to a completely different record. Leaving focus there
+    // would silently move the user from row 1 to row ~500 with nothing
+    // announced, so focus is parked on the scroll container instead.
+    expect(el.shadowRoot!.activeElement).toBe(container);
+
+    wrapper.remove();
+  });
+
+  it('virtualized: does not steal focus when the window has not moved', async () => {
+    const { wrapper, el } = await mountVirtual(1000);
+
+    const firstRowCell = el.shadowRoot!.querySelector('tbody .row .cell') as HTMLElement;
+    firstRowCell.tabIndex = 0;
+    firstRowCell.focus();
+    expect(el.shadowRoot!.activeElement).toBe(firstRowCell);
+
+    // An unrelated re-render must leave focus exactly where the user put it.
+    el.striped = true;
+    await waitForUpdate(el);
+
+    expect(el.shadowRoot!.activeElement).toBe(firstRowCell);
+
+    wrapper.remove();
+  });
+
+  it('virtualized: clamps the scroll offset when the dataset shrinks', async () => {
+    const { wrapper, el } = await mountVirtual(1000);
+
+    const container = scrollContainer(el);
+    container.scrollTop = 900 * VIRTUAL_ROW_HEIGHT;
+    container.dispatchEvent(new Event('scroll'));
+    await new Promise((r) => requestAnimationFrame(r));
+    await waitForUpdate(el);
+
+    // Filter the dataset down while parked near the bottom.
+    el.rows = makeVirtualRows(5);
+    await waitForUpdate(el);
+    await new Promise((r) => requestAnimationFrame(r));
+    await waitForUpdate(el);
+
+    expect(container.scrollTop).toBeLessThanOrEqual(
+      container.scrollHeight - container.clientHeight + 1,
+    );
+    // And the surviving rows are actually on screen, not stranded above the view.
+    expect(el.shadowRoot!.querySelectorAll('tbody .row').length).toBe(5);
+    expect(renderedRowNames(el)).toContain('Name 0');
+
+    wrapper.remove();
+  });
+
+  it('virtualized + expand: expand rows report the row index of their record', async () => {
+    const { wrapper, el } = await mountVirtualExpandable(1000);
+
+    el.toggleExpand('v0');
+    await flushEnterTransition(el);
+    await settleExpandMeasurement(el);
+
+    const dataRow = el.shadowRoot!.querySelector('tbody .row')!;
+    const expandRow = el.shadowRoot!.querySelector('tbody .expand-row')!;
+    // The expand row is a continuation of its record, so it carries the same
+    // index rather than inventing one outside aria-rowcount.
+    expect(expandRow.getAttribute('aria-rowindex')).toBe(dataRow.getAttribute('aria-rowindex'));
+
+    const results = await runAxe(wrapper);
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
+    expect(violations.map((v) => `${v.id}: ${v.nodes[0]?.html ?? ''}`)).toEqual([]);
+
+    wrapper.remove();
+  });
+
+  it('virtualized off (default): renders every row and adds no spacers', async () => {
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = makeVirtualRows(60);
+    await waitForUpdate(el);
+
+    expect(el.virtualized).toBe(false);
+    expect(el.shadowRoot!.querySelectorAll('tbody .row').length).toBe(60);
+    expect(el.shadowRoot!.querySelectorAll('.spacer-row').length).toBe(0);
+    expect(el.shadowRoot!.querySelector('table')!.hasAttribute('aria-rowcount')).toBe(false);
+
     wrapper.remove();
   });
 
@@ -1133,7 +1776,7 @@ describe('reke-table', () => {
     await flushExpandTransition(el);
 
     expect(el.isRowExpanded('a')).toBe(false);
-    expect(el.shadowRoot!.querySelector('.expand-row--collapsed')).toBeTruthy();
+    expect(el.shadowRoot!.querySelector('.expand-row')).toBeNull();
     expect(el.shadowRoot!.querySelector('.detail-content')).toBeNull();
 
     wrapper.remove();
@@ -1160,9 +1803,8 @@ describe('reke-table', () => {
     await waitForUpdate(el);
 
     expect(el.isRowExpanded('a')).toBe(false);
-    // Expand rows are always in DOM (collapsed) when expandedRowElement is set.
-    // Verify none are in the expanded state.
-    expect(el.shadowRoot!.querySelector('.expand-row:not(.expand-row--collapsed)')).toBeNull();
+    // Expand rows only exist while a row is open or animating.
+    expect(el.shadowRoot!.querySelector('.expand-row')).toBeNull();
 
     wrapper.remove();
   });
