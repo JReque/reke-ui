@@ -108,6 +108,8 @@ function App() {
 
 > **Components with render props** (e.g. `Table` with `expandedRowRender` or `columns[].render`) use a React-native bridge: return `ReactNode` (JSX), pass `getRowKey` for stable keying, and never `import { html } from 'lit'` in app code. See `README-DOC.md` → reke-table → React usage, or install the agent skills below for the full contract.
 
+> **`<reke-table>` does not virtualize yet.** Every row in `rows` is rendered — there is no windowing or row recycling today. It is on the roadmap: virtualization can only live inside the component, because the component owns the render loop and the scroll container. Until it lands, paginate or filter upstream and pass one page at a time.
+
 ### Vanilla JS
 
 ```html
