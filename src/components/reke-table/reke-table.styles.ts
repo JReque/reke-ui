@@ -20,6 +20,35 @@ export const styles = [
       overflow-x: auto;
     }
 
+    /* === Virtualization === */
+
+    /* The scroll container the window is computed against. Its max-height is
+       set inline from the maxHeight prop. */
+    .table-wrapper--virtualized {
+      overflow-y: auto;
+    }
+
+    /* Column widths must not depend on which rows happen to be rendered, or they
+       would shift while scrolling. Fixed layout resolves them from the header. */
+    .table--fixed-layout {
+      table-layout: fixed;
+    }
+
+    .table-wrapper--virtualized thead {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    /* Stands in for the rows outside the window. Contributes scroll height and
+       nothing else — no padding, no borders, not exposed to assistive tech. */
+    .spacer-row,
+    .spacer-cell {
+      padding: 0;
+      border: none;
+      background: none;
+    }
+
     .table {
       width: 100%;
       border-collapse: collapse;
