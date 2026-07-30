@@ -89,16 +89,16 @@ async function settle(el: RekeTable): Promise<void> {
   await new Promise((r) => setTimeout(r, 0));
 }
 
+/** Collapse teardown waits on `Animation.finished`, and always at least one frame. */
 async function flushExpandTransition(el: RekeTable): Promise<void> {
   await settle(el);
+  for (const node of el.shadowRoot!.querySelectorAll('*')) {
+    for (const animation of node.getAnimations()) {
+      animation.finish();
+    }
+  }
   await new Promise((r) => requestAnimationFrame(r));
   await settle(el);
-  const grids = el.shadowRoot!.querySelectorAll('.expand-row--collapsed .expand-grid');
-  for (const grid of grids) {
-    grid.dispatchEvent(
-      new TransitionEvent('transitionend', { propertyName: 'grid-template-rows' }),
-    );
-  }
   await settle(el);
 }
 
