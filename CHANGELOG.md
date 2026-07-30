@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. Releases are managed automatically by [release-please](https://github.com/googleapis/release-please) from Conventional Commits.
 
+## [0.4.1](https://github.com/JReque/reke-ui/compare/v0.4.0...v0.4.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* **table:** add opt-in row virtualization (F1, fixed row height) ([e3f2ae4](https://github.com/JReque/reke-ui/commit/e3f2ae4a8d9ee0b36de38b9f9b34b4abaa1fd308))
+* **table:** deterministic expand teardown, no node leak, per-row rendering ([a264320](https://github.com/JReque/reke-ui/commit/a2643202112b26617d581bb3341420a437115e15))
+* **table:** keep focus and scroll coherent while windowing (F3) ([48ea9bb](https://github.com/JReque/reke-ui/commit/48ea9bbf9fbd9835895b60f7f9d0ab9421846093))
+* **table:** land row virtualization on develop (F1–F3, stranded by [#53](https://github.com/JReque/reke-ui/issues/53)) ([4708ef9](https://github.com/JReque/reke-ui/commit/4708ef954a4117f98ed56288dece86977611feb9))
+* **table:** make expand teardown deterministic and leak-free ([d5e8d20](https://github.com/JReque/reke-ui/commit/d5e8d209389a3e6752398b28ca65e63e63b01a7b))
+* **table:** measure expanded rows so virtualization and expand coexist (F2) ([250e55a](https://github.com/JReque/reke-ui/commit/250e55a0cff6e69fdd0194a8ee4bff4ed7bb6833))
+* **table:** opt-in row virtualization with expandable rows ([159bddb](https://github.com/JReque/reke-ui/commit/159bddb1b540ca8cf045b8eb04a1b3326d974653))
+
 ## [0.4.0](https://github.com/JReque/reke-ui/compare/v0.3.0...v0.4.0) (2026-07-25)
 
 
