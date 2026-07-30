@@ -1,6 +1,7 @@
 import { html, nothing, type PropertyValues, type TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
+import { guard } from 'lit/directives/guard.js';
 import { ref } from 'lit/directives/ref.js';
 import { RekeElement } from '../../shared/base-element.js';
 import { styles } from './reke-table.styles.js';
@@ -40,6 +41,14 @@ export type ExpandedRowElement = (host: HTMLElement, row: TableRow, key: RowKey)
 export type GetRowKey = (row: TableRow, index: number) => RowKey;
 
 /**
+ * Upper bound for the collapse teardown, in ms. The normal path resolves off
+ * the real animations, so this only fires when the browser never produced one
+ * AND the empty-animation fast path did not apply either. Keep it comfortably
+ * above the 200ms CSS transition in `reke-table.styles.ts`.
+ */
+const COLLAPSE_TEARDOWN_FALLBACK_MS = 400;
+
+/**
  * Detect dev mode without leaking bundler-specific types into the TS surface.
  * Supports Vite (`import.meta.env.DEV`/`MODE`) and Node (`process.env.NODE_ENV === 'development'`).
  * This is a RUNTIME check, NOT dead-code elimination: the warnings still ship in the bundle.
@@ -71,6 +80,14 @@ function _isDev(): boolean {
 /**
  * @tag reke-table
  * @summary A data table with custom cell rendering, framework-agnostic expandable rows, and toolbar/footer slots.
+ *
+ * Virtualization: NOT supported yet — every row in `rows` is rendered. It is on
+ * the roadmap and can only be solved here, since this component owns the render
+ * loop and the scroll container. The blocking design question is row identity
+ * under recycling: the expand contract hands the consumer a long-lived host
+ * element per row key with its own cleanup lifecycle, and a recycled row breaks
+ * that. Do not add windowing before that contract is redesigned. Until then,
+ * paginate or filter upstream. See README-DOC.md.
  *
  * @slot toolbar - Toolbar area above the table (search, filters, title).
  * @slot footer - Footer area below the table (pagination, record count).
@@ -229,7 +246,13 @@ export class RekeTable extends RekeElement {
   /** Track which keys are currently mounted in the DOM, to honor the contract that mount happens after `updated()` reconciles. */
   private _mountedKeys = new Set<RowKey>();
 
-  /** Keys currently animating their collapse. Cleanup is deferred until transitionend. */
+  /**
+   * Keys currently animating their collapse. The row stays rendered while the
+   * key is here; teardown runs when the collapse settles (see
+   * `_scheduleCollapseTeardown`). A key is NEVER in both this set and
+   * `expandedRows` — collapse removes it from `expandedRows` immediately, which
+   * is what makes a re-entrant toggle read as a genuine re-expand.
+   */
   private _collapsingKeys = new Set<RowKey>();
 
   /**
@@ -240,8 +263,14 @@ export class RekeTable extends RekeElement {
    */
   private _enteringKeys = new Set<RowKey>();
 
-  /** transitionend handlers keyed by row key, for cleanup on collapse animation end. */
-  private _collapseEndHandlers = new Map<RowKey, (e: TransitionEvent) => void>();
+  /**
+   * Generation token per collapsing key. A pending settle only tears the key
+   * down when its token is still the current one, so cancelling a collapse
+   * (re-expand, row removal, disconnect) is a single map delete.
+   */
+  private _collapseTokens = new Map<RowKey, number>();
+
+  private _collapseSeq = 0;
 
   /** Latest resolved row map: key → row. Filled during render so callbacks can look up rows. */
   private _keyToRow = new Map<RowKey, TableRow>();
@@ -353,26 +382,25 @@ export class RekeTable extends RekeElement {
 
     if (expanding) {
       newSet.add(key);
-      // Mark as entering so the first paint renders collapsed (0fr); `updated()`
-      // clears it next frame to animate open.
-      this._enteringKeys.add(key);
-      if (this._collapsingKeys.delete(key)) {
-        const handler = this._collapseEndHandlers.get(key);
-        if (handler) {
-          // host -> .expand-inner -> .expand-grid (where the listener lives)
-          this._getOrCreateHost(key).parentElement?.parentElement?.removeEventListener(
-            'transitionend',
-            handler,
-          );
-          this._collapseEndHandlers.delete(key);
-        }
+      // Cancel any collapse still animating for this key. The host is still
+      // cached and still mounted, so we reuse it instead of tearing it down and
+      // building a second one.
+      const wasCollapsing = this._collapsingKeys.delete(key);
+      this._collapseTokens.delete(key);
+      // Only play the open animation when there is nothing mounted yet. A row
+      // caught mid-collapse already has painted content — it just reverses.
+      if (!wasCollapsing && !this._mountedKeys.has(key)) {
+        this._enteringKeys.add(key);
       }
     } else {
-      // Phase 1: mark as collapsing but KEEP the key in expandedRows so the
-      // template renders the expanded state + collapse class. The browser will
-      // paint this frame, then phase 2 (in updated) removes the key to trigger
-      // the actual CSS transition.
+      // Drop the key from `expandedRows` right away and keep the row rendered
+      // via `_collapsingKeys`. The grid is already painted at 1fr, so the
+      // 1fr -> 0fr transition starts from a real baseline without a second
+      // render pass — and a click landing mid-collapse reads as a re-expand
+      // instead of a duplicate collapse.
+      newSet.delete(key);
       this._collapsingKeys.add(key);
+      this._enteringKeys.delete(key);
     }
 
     this.expandedRows = newSet;
@@ -417,30 +445,10 @@ export class RekeTable extends RekeElement {
         const inner = element as HTMLElement;
         const host = this._getOrCreateHost(key);
         if (host.parentElement !== inner) {
-          inner.appendChild(host);
-        }
-        // The animated track lives on the parent .expand-grid; transitionend
-        // fires there (it bubbles up, not down to .expand-inner), so listen on
-        // the grid wrapper.
-        const grid = inner.parentElement as HTMLElement | null;
-        if (grid && !this._collapseEndHandlers.has(key)) {
-          const onEnd = (e: TransitionEvent) => {
-            if (e.propertyName !== 'grid-template-rows' || !this._collapsingKeys.has(key)) return;
-            this._collapsingKeys.delete(key);
-            this._collapseEndHandlers.delete(key);
-            grid.removeEventListener('transitionend', onEnd);
-            this._safeCleanup(key);
-            this._hostCache.delete(key);
-            this._mountedKeys.delete(key);
-            this._refCallbacks.delete(key);
-            // Remove the collapsed row from expandedRows so the next render
-            // drops it from the template (nothing path).
-            if (this.expandedRows.has(key)) {
-              this.expandedRows = new Set([...this.expandedRows].filter((k) => k !== key));
-            }
-          };
-          grid.addEventListener('transitionend', onEnd);
-          this._collapseEndHandlers.set(key, onEnd);
+          // `replaceChildren`, not `appendChild`: the container may still hold a
+          // host from an earlier expand cycle, and stacking them is exactly how
+          // the shadow tree grew on every open/close round trip.
+          inner.replaceChildren(host);
         }
       };
       this._refCallbacks.set(key, refCallback);
@@ -452,6 +460,15 @@ export class RekeTable extends RekeElement {
     const isExpanded = this.expandedRows.has(key);
     const hostId = `reke-table-expand-${String(key)}`;
     const expandColspan = this.columns.length + (this.expandable ? 1 : 0);
+    // The expand row exists only while it is open or animating shut. Rendering
+    // it for every row left a permanent tr + td + grid + inner per row, which is
+    // both dead weight and the container the orphaned hosts piled up in.
+    // `_keyToRow.get(key) === row` is the last-wins tiebreak for duplicate
+    // `getRowKey` values: only the winning row owns the expand slot.
+    const showExpandRow =
+      this.expandedRowElement != null &&
+      (isExpanded || this._collapsingKeys.has(key)) &&
+      this._keyToRow.get(key) === row;
 
     return html`
       <tr
@@ -495,7 +512,7 @@ export class RekeTable extends RekeElement {
         )}
       </tr>
       ${
-        this.expandedRowElement && this._keyToRow.get(key) === row
+        showExpandRow
           ? html`
             <tr
               part="expand-row"
@@ -572,50 +589,37 @@ export class RekeTable extends RekeElement {
       return;
     }
 
-    // 1. Cleanup orphans authoritatively over `expandedRows` ∪ `_hostCache.keys()`.
+    // 1. Cleanup orphans authoritatively over every key we still hold state for.
     //    This covers BOTH windows:
     //      - mounted-then-removed: key is in `_hostCache` but the row is gone.
     //      - never-mounted-then-removed: key was added to `expandedRows` in the same
     //        tick the row was dropped, so it NEVER entered `_hostCache`. Keying the
     //        purge solely on `_hostCache` would miss it, leaving a phantom expanded key.
-    const keysToCheck = new Set<RowKey>([...this.expandedRows, ...this._hostCache.keys()]);
+    const keysToCheck = new Set<RowKey>([
+      ...this.expandedRows,
+      ...this._collapsingKeys,
+      ...this._hostCache.keys(),
+    ]);
     for (const cachedKey of keysToCheck) {
       const present = this._keyToRow.has(cachedKey);
-      const stillExpanded = this.expandedRows.has(cachedKey);
-      // A key needs purging when its row is gone (orphan) or it is cached but no
-      // longer expanded (normal collapse leftover). Keys currently animating
-      // their collapse are protected — cleanup happens on transitionend.
-      if (present && stillExpanded) continue;
-      if (this._collapsingKeys.has(cachedKey)) continue;
-
-      // Guard consumer cleanup against throws so our state stays consistent.
-      // `_safeCleanup` is idempotent (deletes after running) so no double-cleanup.
-      this._safeCleanup(cachedKey);
-      this._hostCache.delete(cachedKey);
-      this._mountedKeys.delete(cachedKey);
-      this._refCallbacks.delete(cachedKey);
+      // A key stays alive while its row exists AND it is either open or still
+      // animating shut. Anything else is a leftover: a removed row, or a key
+      // that left `expandedRows` without going through `toggleExpand`.
+      if (present && (this.expandedRows.has(cachedKey) || this._collapsingKeys.has(cachedKey))) {
+        continue;
+      }
+      // A removed row takes its DOM with it, so there is no animation left to
+      // wait for — tear down now instead of leaning on a transition that will
+      // never fire.
+      this._teardownKey(cachedKey);
       // If the row was REMOVED (not a normal collapse), purge it from `expandedRows`
       // so `isRowExpanded()` stops lying and a re-added row with the same key renders
       // COLLAPSED instead of spontaneously re-expanding. The normal-collapse path (via
       // `toggleExpand`, which clones the Set) already removed the key. The row is gone,
       // so mutate the Set in place to avoid an extra reactive cycle.
-      if (!present && !this._collapsingKeys.has(cachedKey)) {
+      if (!present) {
         this.expandedRows.delete(cachedKey);
       }
-    }
-
-    // Phase 2 of collapse animation: the browser has now painted the expanded
-    // state with the collapse class. Remove the key from expandedRows so the
-    // next render triggers the CSS transition (max-height 1fr → 0).
-    if (this._collapsingKeys.size > 0) {
-      const toCollapse = [...this._collapsingKeys];
-      requestAnimationFrame(() => {
-        const newSet = new Set(this.expandedRows);
-        for (const key of toCollapse) {
-          newSet.delete(key);
-        }
-        this.expandedRows = newSet;
-      });
     }
 
     // 2. Mount any expanded key that hasn't been mounted yet.
@@ -632,6 +636,13 @@ export class RekeTable extends RekeElement {
       this._mountedKeys.add(key);
     }
 
+    // 3. Arm the deterministic teardown for every row animating shut. Idempotent:
+    //    a key that already has a live token is left alone.
+    for (const key of this._collapsingKeys) {
+      if (this._collapseTokens.has(key)) continue;
+      this._scheduleCollapseTeardown(key);
+    }
+
     // Entering rows render collapsed (0fr) with their content mounted. A
     // freshly-inserted element has no painted baseline, so switching straight
     // to 1fr wouldn't transition. Force a reflow to commit the 0fr baseline,
@@ -640,10 +651,80 @@ export class RekeTable extends RekeElement {
       // Force layout so the collapsed 0fr state is the transition's start value.
       void this.offsetHeight;
       requestAnimationFrame(() => {
+        if (this._enteringKeys.size === 0) return;
         this._enteringKeys.clear();
         this.requestUpdate();
       });
     }
+  }
+
+  /**
+   * Wait for a collapsing row to finish animating, then tear it down.
+   *
+   * The wait resolves off `getAnimations()`, not `transitionend`: that event is
+   * never guaranteed (reduced motion, `display: none`, a backgrounded tab, a
+   * zero-duration override, the row being unmounted mid-flight), and when it
+   * failed to arrive the key stayed in `_collapsingKeys` forever, which in turn
+   * disabled the purge in `updated()`. If there is no animation at all,
+   * `Promise.allSettled([])` settles on the next microtask and teardown is
+   * immediate. `COLLAPSE_TEARDOWN_FALLBACK_MS` is the last resort for an
+   * animation that never finishes.
+   */
+  private _scheduleCollapseTeardown(key: RowKey): void {
+    this._collapseSeq += 1;
+    const token = this._collapseSeq;
+    this._collapseTokens.set(key, token);
+
+    // host -> .expand-inner -> .expand-grid (the element carrying the transition)
+    const grid = this._hostCache.get(key)?.parentElement?.parentElement ?? null;
+
+    let animations: Animation[] = [];
+    if (grid) {
+      // Reading a computed value flushes the pending style change, which is what
+      // actually creates the transition we are about to await. Without it,
+      // `getAnimations()` can legitimately return an empty list.
+      void getComputedStyle(grid).gridTemplateRows;
+      animations = grid.getAnimations({ subtree: true });
+    }
+
+    // Always burn at least one frame, even with nothing to animate. Tearing down
+    // synchronously would unmount content on a fast collapse→re-expand, and it
+    // would do it in the same task the collapse was requested in.
+    const nextFrame = new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
+    const settled = Promise.all([
+      Promise.allSettled(animations.map((animation) => animation.finished)),
+      nextFrame,
+    ]);
+    const fallback = new Promise<void>((resolve) => {
+      setTimeout(resolve, COLLAPSE_TEARDOWN_FALLBACK_MS);
+    });
+
+    void Promise.race([settled, fallback]).then(() => {
+      // Superseded by a re-expand, a row removal, or a later collapse.
+      if (this._collapseTokens.get(key) !== token) return;
+      this._teardownKey(key);
+      this.requestUpdate();
+    });
+  }
+
+  /**
+   * Release every resource held for a row key. Idempotent and safe to call at
+   * any point in the lifecycle — each step is a delete, and `_safeCleanup`
+   * drops its entry after running.
+   */
+  private _teardownKey(key: RowKey): void {
+    this._safeCleanup(key);
+    // Detach the host itself. The consumer cleanup only owns what IT mounted;
+    // the host div is ours, and `.expand-inner` may outlive this cycle.
+    this._hostCache.get(key)?.remove();
+    this._hostCache.delete(key);
+    this._mountedKeys.delete(key);
+    this._refCallbacks.delete(key);
+    this._collapsingKeys.delete(key);
+    this._collapseTokens.delete(key);
+    this._enteringKeys.delete(key);
   }
 
   /**
@@ -664,15 +745,10 @@ export class RekeTable extends RekeElement {
   }
 
   private _runAllCleanupsAndClear(): void {
-    // Cancel any pending collapse animations.
-    for (const [key, handler] of this._collapseEndHandlers) {
-      const host = this._hostCache.get(key);
-      // host -> .expand-inner -> .expand-grid (where the listener lives)
-      const grid = host?.parentElement?.parentElement as HTMLElement | null;
-      grid?.removeEventListener('transitionend', handler);
-    }
+    // Invalidate every pending collapse settle: the token check makes them no-ops.
     this._collapsingKeys.clear();
-    this._collapseEndHandlers.clear();
+    this._collapseTokens.clear();
+    this._enteringKeys.clear();
 
     for (const cleanup of this._cleanupMap.values()) {
       try {
@@ -682,6 +758,9 @@ export class RekeTable extends RekeElement {
       }
     }
     this._cleanupMap.clear();
+    for (const host of this._hostCache.values()) {
+      host.remove();
+    }
     this._hostCache.clear();
     this._mountedKeys.clear();
     this._refCallbacks.clear();
@@ -753,7 +832,32 @@ export class RekeTable extends RekeElement {
             <tbody part="body">
               ${this.rows.map((row, i) => {
                 const key = this._resolveKey(row, i);
-                return this._renderRow(row, i, key);
+                // `guard` makes each row its own reactive unit. Toggling one row
+                // used to re-invoke `column.render` for EVERY row (twice, with
+                // the old two-phase collapse); now only the rows whose inputs
+                // actually changed re-render.
+                //
+                // Deliberately NOT `repeat()`: duplicate `getRowKey` values are a
+                // warned-but-supported input here, and `repeat` corrupts its DOM
+                // mapping when keys collide. Row identity for expand state is
+                // already carried by `_hostCache`, not by DOM position.
+                //
+                // `this.rows` is a dependency on purpose: consumers who mutate a
+                // row in place and reassign the array still get a full re-render.
+                return guard(
+                  [
+                    row,
+                    i,
+                    this.rows,
+                    this.columns,
+                    this.expandable,
+                    this.expandedRowElement,
+                    this.expandedRows.has(key),
+                    this._collapsingKeys.has(key),
+                    this._enteringKeys.has(key),
+                  ],
+                  () => this._renderRow(row, i, key),
+                );
               })}
               ${
                 this.rows.length === 0
