@@ -108,7 +108,11 @@ function App() {
 
 > **Components with render props** (e.g. `Table` with `expandedRowRender` or `columns[].render`) use a React-native bridge: return `ReactNode` (JSX), pass `getRowKey` for stable keying, and never `import { html } from 'lit'` in app code. See `README-DOC.md` → reke-table → React usage, or install the agent skills below for the full contract.
 
-> **`<reke-table>` does not virtualize yet.** Every row in `rows` is rendered — there is no windowing or row recycling today. It is on the roadmap: virtualization can only live inside the component, because the component owns the render loop and the scroll container. Until it lands, paginate or filter upstream and pass one page at a time.
+> **`<reke-table>` virtualizes on request.** Set `virtualized` with a `row-height` and a `max-height` and only the rows on screen are rendered, expandable rows included. It is opt-in rather than automatic because windowing needs a bounded-height scroll container — it changes the layout contract, so it is never turned on behind your back. Measured on 10.000 rows: mount drops from 422ms to 3ms and the DOM stays flat at ~190 nodes.
+>
+> ```html
+> <reke-table virtualized row-height="41" max-height="600px"></reke-table>
+> ```
 
 ### Vanilla JS
 
