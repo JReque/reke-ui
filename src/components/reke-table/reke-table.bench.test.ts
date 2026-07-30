@@ -52,7 +52,15 @@ async function settle(el: RekeTable): Promise<void> {
   void el.offsetHeight;
 }
 
-async function measure(rowCount: number, renderCalls: { n: number }): Promise<BenchResult> {
+/** Row height declared to the virtualized table, matching the default cell padding. */
+const BENCH_ROW_HEIGHT = 41;
+const BENCH_VIEWPORT = '600px';
+
+async function measure(
+  rowCount: number,
+  renderCalls: { n: number },
+  virtualized: boolean,
+): Promise<BenchResult> {
   const wrapper = document.createElement('div');
   document.body.appendChild(wrapper);
   const el = document.createElement('reke-table') as RekeTable;
@@ -71,12 +79,21 @@ async function measure(rowCount: number, renderCalls: { n: number }): Promise<Be
   const rows = makeRows(rowCount);
   el.getRowKey = (row) => (row as { id: string }).id;
   el.expandable = true;
-  el.expandedRowElement = (host, row) => {
-    const panel = document.createElement('div');
-    panel.textContent = `${(row as { name: string }).name} detail`;
-    host.appendChild(panel);
-    return () => panel.remove();
-  };
+
+  if (virtualized) {
+    el.virtualized = true;
+    el.rowHeight = BENCH_ROW_HEIGHT;
+    el.maxHeight = BENCH_VIEWPORT;
+  } else {
+    // Expand is not supported alongside virtualization yet, so the interaction
+    // measured below differs per mode: toggle when windowed off, scroll when on.
+    el.expandedRowElement = (host, row) => {
+      const panel = document.createElement('div');
+      panel.textContent = `${(row as { name: string }).name} detail`;
+      host.appendChild(panel);
+      return () => panel.remove();
+    };
+  }
 
   // --- mount + first render ---
   el.columns = columns;
@@ -86,22 +103,36 @@ async function measure(rowCount: number, renderCalls: { n: number }): Promise<Be
   await settle(el);
   const mountMs = performance.now() - mountStart;
 
+  if (virtualized) {
+    // Let the ResizeObserver report the viewport so the window is the real one.
+    await new Promise((r) => requestAnimationFrame(r));
+    await settle(el);
+  }
+
   const idleElements = el.shadowRoot!.querySelectorAll('*').length;
 
-  // --- sort: reassigning `rows` re-renders every cell by design ---
+  // --- sort: reassigning `rows` re-renders every rendered cell ---
   const sortStart = performance.now();
   el.rows = [...rows].reverse();
   await settle(el);
   const sortMs = performance.now() - sortStart;
 
-  // --- toggle one row: must stay independent of row count ---
+  // --- interaction: expand toggle, or a scroll jump when windowed ---
   renderCalls.n = 0;
-  const toggleStart = performance.now();
-  el.toggleExpand('row-0');
-  await settle(el);
-  await new Promise((r) => requestAnimationFrame(r));
-  await settle(el);
-  const toggleMs = performance.now() - toggleStart;
+  const interactionStart = performance.now();
+  if (virtualized) {
+    const container = el.shadowRoot!.querySelector('.table-wrapper') as HTMLElement;
+    container.scrollTop = Math.floor(rowCount / 2) * BENCH_ROW_HEIGHT;
+    container.dispatchEvent(new Event('scroll'));
+    await new Promise((r) => requestAnimationFrame(r));
+    await settle(el);
+  } else {
+    el.toggleExpand('row-0');
+    await settle(el);
+    await new Promise((r) => requestAnimationFrame(r));
+    await settle(el);
+  }
+  const toggleMs = performance.now() - interactionStart;
   const toggleRenderCalls = renderCalls.n;
 
   wrapper.remove();
@@ -114,56 +145,84 @@ describe.skipIf(!BENCH_ENABLED)('reke-table sizing benchmark', () => {
     const renderCalls = { n: 0 };
 
     // Warm-up: the first mount pays for style sheet adoption and JIT.
-    await measure(100, renderCalls);
+    await measure(100, renderCalls, false);
 
-    const results: BenchResult[] = [];
+    const plain: BenchResult[] = [];
+    const windowed: BenchResult[] = [];
     for (const count of ROW_COUNTS) {
-      results.push(await measure(count, renderCalls));
+      plain.push(await measure(count, renderCalls, false));
+      windowed.push(await measure(count, renderCalls, true));
     }
 
     const columnsOut = [
       ['rows', (r: BenchResult) => String(r.rows)],
       ['mount ms', (r: BenchResult) => r.mountMs.toFixed(1)],
       ['sort ms', (r: BenchResult) => r.sortMs.toFixed(1)],
-      ['toggle ms', (r: BenchResult) => r.toggleMs.toFixed(1)],
-      ['render()/toggle', (r: BenchResult) => String(r.toggleRenderCalls)],
+      ['interact ms', (r: BenchResult) => r.toggleMs.toFixed(1)],
+      ['render()/interact', (r: BenchResult) => String(r.toggleRenderCalls)],
       ['idle nodes', (r: BenchResult) => String(r.idleElements)],
       ['us/row mount', (r: BenchResult) => ((r.mountMs / r.rows) * 1000).toFixed(0)],
     ] as const;
 
+    const all = [...plain, ...windowed];
     const widths = columnsOut.map(([head, get]) =>
-      Math.max(head.length, ...results.map((r) => get(r).length)),
+      Math.max(head.length, ...all.map((r) => get(r).length)),
     );
     const line = (cells: readonly string[]) =>
       cells.map((cell, i) => cell.padStart(widths[i])).join('  ');
+    const head = line(columnsOut.map(([label]) => label));
+    const rule = line(widths.map((w) => '-'.repeat(w)));
+    const body = (rows: BenchResult[]) =>
+      rows.map((r) => line(columnsOut.map(([, get]) => get(r))));
 
-    const overBudget = results.find((r) => r.mountMs > SLOW_RENDER_BUDGET_MS);
-    const report = [
-      '',
-      'reke-table sizing benchmark',
-      line(columnsOut.map(([head]) => head)),
-      line(widths.map((w) => '-'.repeat(w))),
-      ...results.map((r) => line(columnsOut.map(([, get]) => get(r)))),
-      '',
-      overBudget
-        ? `Mount crosses ${SLOW_RENDER_BUDGET_MS}ms at ${overBudget.rows} rows — windowing pays off from here up.`
-        : `Mount stayed under ${SLOW_RENDER_BUDGET_MS}ms at every size measured.`,
-      '',
-    ].join('\n');
+    const overBudget = plain.find((r) => r.mountMs > SLOW_RENDER_BUDGET_MS);
+    const speedup = plain.map((p, i) => ({
+      rows: p.rows,
+      mount: p.mountMs / Math.max(windowed[i].mountMs, 0.01),
+    }));
 
-    // The report IS the deliverable here, and `warn` is the only console level
-    // the vitest browser runner forwards to the terminal.
-    console.warn(report);
+    console.warn(
+      [
+        '',
+        'reke-table — every row rendered (virtualized: off)',
+        head,
+        rule,
+        ...body(plain),
+        '',
+        `reke-table — windowed (virtualized: on, row-height ${BENCH_ROW_HEIGHT}, viewport ${BENCH_VIEWPORT})`,
+        head,
+        rule,
+        ...body(windowed),
+        '',
+        overBudget
+          ? `Unwindowed mount crosses ${SLOW_RENDER_BUDGET_MS}ms at ${overBudget.rows} rows.`
+          : `Unwindowed mount stayed under ${SLOW_RENDER_BUDGET_MS}ms at every size measured.`,
+        `Mount speedup from windowing: ${speedup
+          .map((s) => `${s.rows}: ${s.mount.toFixed(1)}x`)
+          .join(', ')}`,
+        '',
+      ].join('\n'),
+    );
 
-    // The one deterministic guarantee: a toggle touches one row, not the table.
-    // Five columns, and the entering row renders twice (collapsed, then open).
-    for (const result of results) {
+    // A toggle touches one row, not the table: five columns, and the entering
+    // row renders twice (collapsed, then open).
+    for (const result of plain) {
       expect(result.toggleRenderCalls).toBeLessThanOrEqual(10);
     }
 
     // Nothing expanded at rest means no per-row expand scaffolding.
-    for (const result of results) {
+    for (const result of plain) {
       expect(result.idleElements).toBeLessThan(result.rows * 12);
     }
-  }, 120_000);
+
+    // The point of windowing: node count stops tracking dataset size.
+    for (const result of windowed) {
+      expect(result.idleElements).toBeLessThan(400);
+    }
+
+    // And mount cost stops growing with it.
+    const largest = windowed[windowed.length - 1];
+    const smallest = windowed[0];
+    expect(largest.idleElements).toBeLessThan(smallest.idleElements * 2);
+  }, 180_000);
 });

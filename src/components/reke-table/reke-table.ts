@@ -49,6 +49,13 @@ export type GetRowKey = (row: TableRow, index: number) => RowKey;
 const COLLAPSE_TEARDOWN_FALLBACK_MS = 400;
 
 /**
+ * Rows rendered on the very first virtualized paint, before the scroll
+ * container has been measured. Enough to fill a typical viewport so the table
+ * is never briefly blank, and to give the container something to size against.
+ */
+const INITIAL_WINDOW_ROWS = 20;
+
+/**
  * Detect dev mode without leaking bundler-specific types into the TS surface.
  * Supports Vite (`import.meta.env.DEV`/`MODE`) and Node (`process.env.NODE_ENV === 'development'`).
  * This is a RUNTIME check, NOT dead-code elimination: the warnings still ship in the bundle.
@@ -192,6 +199,51 @@ export class RekeTable extends RekeElement {
   @property({ type: Boolean, reflect: true, attribute: 'expand-on-row-click' })
   expandOnRowClick = false;
 
+  /**
+   * Opt-in row windowing: only the rows intersecting the viewport are rendered,
+   * with spacer rows standing in for the rest.
+   *
+   * This is NOT a transparent optimization — it changes the layout contract.
+   * A virtualized table needs a bounded scroll container, so `maxHeight` and
+   * `rowHeight` are both REQUIRED when this is `true` (dev error otherwise), and
+   * the table switches to `table-layout: fixed` so column widths stop depending
+   * on whichever rows happen to be rendered. That is also why this is a prop and
+   * not an automatic row-count threshold: silently changing a consumer's layout
+   * because their dataset grew past some boundary is worse than being slow.
+   *
+   * Not yet compatible with `expandedRowElement` — see the class JSDoc.
+   */
+  @property({ type: Boolean, reflect: true })
+  virtualized = false;
+
+  /**
+   * Height in px of a single COLLAPSED row, declared by the consumer. Required
+   * when `virtualized` is `true`.
+   *
+   * Declared rather than measured on purpose: it makes row offsets pure
+   * arithmetic (`index * rowHeight`) available on the very first frame, with no
+   * measure-then-render pass. The tradeoff is yours to honor — if your cell
+   * content is taller than this, rows will overlap. Keep it in sync with the
+   * `dense` modifier if you use it.
+   */
+  @property({ type: Number, attribute: 'row-height' })
+  rowHeight = 0;
+
+  /**
+   * CSS length capping the scroll container height (e.g. `'600px'`, `'70vh'`).
+   * Required when `virtualized` is `true` — without a bounded height there is
+   * no viewport to window against.
+   */
+  @property({ attribute: 'max-height' })
+  maxHeight = '';
+
+  /**
+   * Extra rows rendered above and below the viewport, absorbing fast scrolls
+   * before blank space can appear. Higher costs more per frame.
+   */
+  @property({ type: Number })
+  overscan = 4;
+
   @property({ reflect: true, attribute: 'sort-key' })
   sortKey = '';
 
@@ -280,6 +332,95 @@ export class RekeTable extends RekeElement {
 
   @state() private _hasToolbar = false;
   @state() private _hasFooter = false;
+
+  /** Live scroll offset of the scroll container, in px. Virtualized mode only. */
+  @state() private _scrollTop = 0;
+
+  /** Measured height of the scroll container, in px. Virtualized mode only. */
+  @state() private _viewportHeight = 0;
+
+  private _scrollContainer: HTMLElement | null = null;
+  private _viewportObserver: ResizeObserver | null = null;
+  private _scrollFrame: number | null = null;
+
+  /**
+   * Coalesce scroll into one update per frame. A trackpad fires scroll events
+   * far faster than the browser paints, and each one would otherwise queue a
+   * full window recompute.
+   */
+  private _onScroll = (): void => {
+    if (this._scrollFrame !== null) return;
+    this._scrollFrame = requestAnimationFrame(() => {
+      this._scrollFrame = null;
+      if (this._scrollContainer) {
+        this._scrollTop = this._scrollContainer.scrollTop;
+      }
+    });
+  };
+
+  /**
+   * Bind the scroll container. Called by lit's `ref` on every render, so it must
+   * be cheap and idempotent — it rebinds only when the element actually changes.
+   */
+  private _bindScrollContainer = (element: Element | undefined): void => {
+    const next = (element as HTMLElement | undefined) ?? null;
+    if (next === this._scrollContainer) return;
+
+    this._scrollContainer?.removeEventListener('scroll', this._onScroll);
+    this._viewportObserver?.disconnect();
+    this._viewportObserver = null;
+    this._scrollContainer = next;
+
+    if (!next) return;
+    next.addEventListener('scroll', this._onScroll, { passive: true });
+    // The initial measurement comes from the observer's first callback rather
+    // than a synchronous read here: this runs during Lit's commit phase, and
+    // assigning reactive state mid-commit schedules an update from inside an
+    // update. The observer fires right after observe(), so the cost is one frame.
+    //
+    // The viewport size drives how many rows are in the window, so a container
+    // resize has to recompute it — maxHeight can be relative (vh, %).
+    this._viewportObserver = new ResizeObserver(() => {
+      if (this._scrollContainer) {
+        this._viewportHeight = this._scrollContainer.clientHeight;
+      }
+    });
+    this._viewportObserver.observe(next);
+  };
+
+  /**
+   * The slice of `rows` to render, as absolute indices into `rows`.
+   * `end` is exclusive. Returns the full range when not virtualizing.
+   */
+  private _visibleRange(): { start: number; end: number } {
+    const total = this.rows.length;
+    if (!this.virtualized || this.rowHeight <= 0) return { start: 0, end: total };
+
+    // First paint: the container has not been measured yet. Render a slab rather
+    // than nothing, so the table has content (and a height) to measure against.
+    if (this._viewportHeight <= 0) {
+      return { start: 0, end: Math.min(total, this.overscan * 2 + INITIAL_WINDOW_ROWS) };
+    }
+
+    const start = Math.max(0, Math.floor(this._scrollTop / this.rowHeight) - this.overscan);
+    const count = Math.ceil(this._viewportHeight / this.rowHeight) + this.overscan * 2;
+    return { start, end: Math.min(total, start + count) };
+  }
+
+  /**
+   * A zero-content row standing in for the rows outside the window, holding the
+   * scroll height they would have occupied. `<tr>` height is honored as a
+   * minimum, and the cell is stripped of padding and borders so it contributes
+   * nothing beyond `height`.
+   */
+  private _renderSpacerRow(height: number, position: 'top' | 'bottom') {
+    if (height <= 0) return nothing;
+    return html`
+      <tr class="spacer-row" aria-hidden="true" data-position=${position} style=${`height: ${height}px`}>
+        <td class="spacer-cell" colspan=${this.columns.length + (this.expandable ? 1 : 0)}></td>
+      </tr>
+    `;
+  }
 
   private _resolveKey(row: TableRow, index: number): RowKey {
     if (this.getRowKey) return this.getRowKey(row, index);
@@ -474,6 +615,7 @@ export class RekeTable extends RekeElement {
       <tr
         part="row"
         class="row ${i % 2 === 1 ? 'row--even' : ''} ${isExpanded ? 'row--expanded' : ''}"
+        aria-rowindex=${this.virtualized ? i + 2 : nothing}
         @click=${() => this.handleRowClick(row, i)}
       >
         ${
@@ -550,6 +692,27 @@ export class RekeTable extends RekeElement {
       }
     }
 
+    // Dev-only one-shot errors for a virtualized setup that cannot work.
+    if (isDev && this.virtualized && !this._warnedVirtualConfig) {
+      const problems: string[] = [];
+      if (this.rowHeight <= 0) {
+        problems.push('`row-height` must be a positive number — row offsets are computed from it');
+      }
+      if (!this.maxHeight) {
+        problems.push('`max-height` is required — windowing needs a bounded scroll container');
+      }
+      if (this.expandedRowElement) {
+        problems.push(
+          '`expandedRowElement` is not supported with `virtualized` yet: an expanded row has a height the window math cannot predict. Paginate instead, or drop `virtualized` until measured expand rows land',
+        );
+      }
+      if (problems.length > 0) {
+        this._warnedVirtualConfig = true;
+        // eslint-disable-next-line no-console
+        console.error(`[reke-table] virtualized: ${problems.join('; ')}.`);
+      }
+    }
+
     // Rebuild the key→row map and warn about duplicates (one-shot per key).
     const seen = new Map<RowKey, TableRow>();
     for (let i = 0; i < this.rows.length; i += 1) {
@@ -571,6 +734,8 @@ export class RekeTable extends RekeElement {
   }
 
   private _warnedLegacyApi = false;
+
+  private _warnedVirtualConfig = false;
 
   override updated(_changed: PropertyValues): void {
     // Diff the expanded-key set against the host/cleanup maps:
@@ -769,6 +934,15 @@ export class RekeTable extends RekeElement {
   override disconnectedCallback() {
     super.disconnectedCallback();
     this._runAllCleanupsAndClear();
+
+    this._scrollContainer?.removeEventListener('scroll', this._onScroll);
+    this._scrollContainer = null;
+    this._viewportObserver?.disconnect();
+    this._viewportObserver = null;
+    if (this._scrollFrame !== null) {
+      cancelAnimationFrame(this._scrollFrame);
+      this._scrollFrame = null;
+    }
   }
 
   override render() {
@@ -778,7 +952,14 @@ export class RekeTable extends RekeElement {
       'table--dense': this.dense,
       'table--hoverable': this.hoverable,
       'table--bordered': this.bordered,
+      // Fixed layout is mandatory when windowing: with `auto`, column widths are
+      // derived from the rendered rows, so they would shift as you scroll.
+      'table--fixed-layout': this.virtualized,
     };
+
+    const { start, end } = this._visibleRange();
+    const total = this.rows.length;
+    const windowRows = this.virtualized ? this.rows.slice(start, end) : this.rows;
 
     return html`
       <div class="table-container">
@@ -792,8 +973,20 @@ export class RekeTable extends RekeElement {
             : html`<slot name="toolbar" @slotchange=${this._onToolbarSlotChange} style="display:none"></slot>`
         }
 
-        <div class="table-wrapper">
-          <table part="table" class=${classMap(tableClasses)} role="table">
+        <div
+          class="table-wrapper ${this.virtualized ? 'table-wrapper--virtualized' : ''}"
+          style=${this.virtualized && this.maxHeight ? `max-height: ${this.maxHeight}` : ''}
+          tabindex=${this.virtualized ? 0 : nothing}
+          role=${this.virtualized ? 'group' : nothing}
+          aria-label=${this.virtualized ? 'Scrollable table' : nothing}
+          ${ref(this._bindScrollContainer)}
+        >
+          <table
+            part="table"
+            class=${classMap(tableClasses)}
+            role="table"
+            aria-rowcount=${this.virtualized ? total : nothing}
+          >
             <thead part="header">
               <tr>
                 ${
@@ -830,7 +1023,12 @@ export class RekeTable extends RekeElement {
               </tr>
             </thead>
             <tbody part="body">
-              ${this.rows.map((row, i) => {
+              ${this._renderSpacerRow(start * this.rowHeight, 'top')}
+              ${windowRows.map((row, offset) => {
+                // Absolute index into `rows`, NOT the slice offset: striping,
+                // `reke-row-click`, and key resolution all key off the real
+                // position in the dataset.
+                const i = start + offset;
                 const key = this._resolveKey(row, i);
                 // `guard` makes each row its own reactive unit. Toggling one row
                 // used to re-invoke `column.render` for EVERY row (twice, with
@@ -859,6 +1057,7 @@ export class RekeTable extends RekeElement {
                   () => this._renderRow(row, i, key),
                 );
               })}
+              ${this._renderSpacerRow((total - end) * this.rowHeight, 'bottom')}
               ${
                 this.rows.length === 0
                   ? html`

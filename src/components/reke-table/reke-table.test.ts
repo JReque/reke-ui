@@ -968,6 +968,201 @@ describe('reke-table', () => {
     wrapper.remove();
   });
 
+  // --- BEHAVIOR: virtualization ---
+
+  const VIRTUAL_ROW_HEIGHT = 40;
+  const VIRTUAL_MAX_HEIGHT = 320;
+
+  function makeVirtualRows(count: number) {
+    return Array.from({ length: count }, (_, i) => ({
+      id: `v${i}`,
+      name: `Name ${i}`,
+      role: `Role ${i}`,
+    }));
+  }
+
+  /**
+   * Mount a virtualized table and wait for the ResizeObserver to report the
+   * container height, which is what the window math needs.
+   */
+  async function mountVirtual(rowCount: number): Promise<{ wrapper: HTMLElement; el: RekeTable }> {
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = makeVirtualRows(rowCount);
+    el.getRowKey = (row) => (row as { id: string }).id;
+    el.virtualized = true;
+    el.rowHeight = VIRTUAL_ROW_HEIGHT;
+    el.maxHeight = `${VIRTUAL_MAX_HEIGHT}px`;
+    await waitForUpdate(el);
+    await new Promise((r) => requestAnimationFrame(r));
+    await waitForUpdate(el);
+    return { wrapper, el };
+  }
+
+  function renderedRowNames(el: RekeTable): string[] {
+    return Array.from(el.shadowRoot!.querySelectorAll('tbody .row')).map((row) =>
+      row.querySelector('.cell')!.textContent!.trim(),
+    );
+  }
+
+  function scrollContainer(el: RekeTable): HTMLElement {
+    return el.shadowRoot!.querySelector('.table-wrapper') as HTMLElement;
+  }
+
+  it('virtualized: renders only the rows in the window, not the whole dataset', async () => {
+    const { wrapper, el } = await mountVirtual(1000);
+
+    const rendered = el.shadowRoot!.querySelectorAll('tbody .row');
+    // A 320px viewport at 40px per row is 8 rows, plus overscan on both sides.
+    expect(rendered.length).toBeGreaterThan(0);
+    expect(rendered.length).toBeLessThan(40);
+
+    // The first rows of the dataset are the ones on screen.
+    expect(renderedRowNames(el)[0]).toBe('Name 0');
+
+    wrapper.remove();
+  });
+
+  it('virtualized: spacer rows preserve the full scroll height', async () => {
+    const { wrapper, el } = await mountVirtual(1000);
+
+    const container = scrollContainer(el);
+    const headerHeight = el.shadowRoot!.querySelector('thead')!.getBoundingClientRect().height;
+    const expected = 1000 * VIRTUAL_ROW_HEIGHT;
+
+    // The scrollable content must measure as if every row were rendered,
+    // otherwise the scrollbar lies about the size of the dataset.
+    //
+    // Tolerance, not equality: spacers are exact, but the RENDERED rows are as
+    // tall as their real content, so any gap between the declared `rowHeight`
+    // and the actual height shows up here. Crucially that error is bounded by
+    // the window size, not the dataset size — it does not accumulate over 1000
+    // rows, which is what keeps the scrollbar honest.
+    const measured = container.scrollHeight - headerHeight;
+    expect(measured).toBeGreaterThan(expected * 0.98);
+    expect(measured).toBeLessThan(expected * 1.02);
+
+    wrapper.remove();
+  });
+
+  it('virtualized: scrolling swaps the rendered window', async () => {
+    const { wrapper, el } = await mountVirtual(1000);
+
+    expect(renderedRowNames(el)).toContain('Name 0');
+
+    const container = scrollContainer(el);
+    container.scrollTop = 400 * VIRTUAL_ROW_HEIGHT;
+    container.dispatchEvent(new Event('scroll'));
+    await new Promise((r) => requestAnimationFrame(r));
+    await waitForUpdate(el);
+
+    const names = renderedRowNames(el);
+    expect(names).toContain('Name 400');
+    expect(names).not.toContain('Name 0');
+
+    wrapper.remove();
+  });
+
+  it('virtualized: row events carry the absolute dataset index, not the window offset', async () => {
+    const { wrapper, el } = await mountVirtual(1000);
+
+    const detail: { index: number; row: Record<string, unknown> }[] = [];
+    el.addEventListener('reke-row-click', (e) => {
+      detail.push((e as CustomEvent<{ index: number; row: Record<string, unknown> }>).detail);
+    });
+
+    const container = scrollContainer(el);
+    container.scrollTop = 400 * VIRTUAL_ROW_HEIGHT;
+    container.dispatchEvent(new Event('scroll'));
+    await new Promise((r) => requestAnimationFrame(r));
+    await waitForUpdate(el);
+
+    const rows = Array.from(el.shadowRoot!.querySelectorAll('tbody .row'));
+    const target = rows.find(
+      (row) => row.querySelector('.cell')!.textContent!.trim() === 'Name 400',
+    )!;
+    (target as HTMLElement).click();
+
+    expect(detail).toHaveLength(1);
+    expect(detail[0].index).toBe(400);
+    expect((detail[0].row as { id: string }).id).toBe('v400');
+
+    wrapper.remove();
+  });
+
+  it('virtualized: exposes the real dataset size to assistive tech', async () => {
+    const { wrapper, el } = await mountVirtual(1000);
+
+    const table = el.shadowRoot!.querySelector('table')!;
+    expect(table.getAttribute('aria-rowcount')).toBe('1000');
+
+    const firstRow = el.shadowRoot!.querySelector('tbody .row')!;
+    // 1-based and header-inclusive, so dataset row 0 is aria-rowindex 2.
+    expect(firstRow.getAttribute('aria-rowindex')).toBe('2');
+
+    const results = await runAxe(wrapper);
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
+    expect(violations.map((v) => `${v.id}: ${v.nodes[0]?.html ?? ''}`)).toEqual([]);
+
+    wrapper.remove();
+  });
+
+  it('virtualized: renders every row when the dataset is smaller than the window', async () => {
+    const { wrapper, el } = await mountVirtual(3);
+
+    expect(el.shadowRoot!.querySelectorAll('tbody .row').length).toBe(3);
+    expect(el.shadowRoot!.querySelectorAll('.spacer-row').length).toBe(0);
+
+    wrapper.remove();
+  });
+
+  it('virtualized: dev error when row-height, max-height, or expand is misconfigured', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = makeVirtualRows(50);
+    el.virtualized = true;
+    el.expandedRowElement = (host) => {
+      host.appendChild(document.createElement('div'));
+      return () => {};
+    };
+    await waitForUpdate(el);
+
+    const messages = errorSpy.mock.calls.map((c) => String(c[0]));
+    const virtualError = messages.find((m) => m.includes('virtualized'));
+    expect(virtualError).toBeTruthy();
+    expect(virtualError).toContain('row-height');
+    expect(virtualError).toContain('max-height');
+    expect(virtualError).toContain('expandedRowElement');
+
+    // One-shot: a re-render does not repeat it.
+    const before = errorSpy.mock.calls.length;
+    el.striped = true;
+    await waitForUpdate(el);
+    expect(errorSpy.mock.calls.length).toBe(before);
+
+    errorSpy.mockRestore();
+    wrapper.remove();
+  });
+
+  it('virtualized off (default): renders every row and adds no spacers', async () => {
+    const wrapper = createElement('<reke-table></reke-table>');
+    const el = wrapper.querySelector('reke-table')! as RekeTable;
+    el.columns = testColumns;
+    el.rows = makeVirtualRows(60);
+    await waitForUpdate(el);
+
+    expect(el.virtualized).toBe(false);
+    expect(el.shadowRoot!.querySelectorAll('tbody .row').length).toBe(60);
+    expect(el.shadowRoot!.querySelectorAll('.spacer-row').length).toBe(0);
+    expect(el.shadowRoot!.querySelector('table')!.hasAttribute('aria-rowcount')).toBe(false);
+
+    wrapper.remove();
+  });
+
   it('reke-row-expand event detail includes row, index, key, expanded', async () => {
     const wrapper = createElement('<reke-table></reke-table>');
     const el = wrapper.querySelector('reke-table')! as RekeTable;
