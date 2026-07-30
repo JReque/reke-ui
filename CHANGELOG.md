@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. Releases are managed automatically by [release-please](https://github.com/googleapis/release-please) from Conventional Commits.
 
+## [0.4.2](https://github.com/JReque/reke-ui/compare/v0.4.1...v0.4.2) (2026-07-30)
+
+
+### Bug Fixes
+
+* **react-bridge:** align expand-collapse test helper with the new teardown ([eeae282](https://github.com/JReque/reke-ui/commit/eeae282bef0796022f3c552b520881bd35b88d0b))
+* **react-bridge:** align expand-collapse test helper with the new teardown ([9c30722](https://github.com/JReque/reke-ui/commit/9c30722ee2262646d7b7a4913e890953d89e7870))
+
 ## [0.4.1](https://github.com/JReque/reke-ui/compare/v0.4.0...v0.4.1) (2026-07-30)
 
 
