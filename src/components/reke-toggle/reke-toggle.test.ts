@@ -139,4 +139,65 @@ describe('reke-toggle', () => {
 
     wrapper.remove();
   });
+
+  // --- LABEL-HIDDEN ---
+
+  it('renders the visible label by default', async () => {
+    const wrapper = createElement('<reke-toggle label="Toggle me"></reke-toggle>');
+    const el = wrapper.querySelector('reke-toggle')! as RekeToggle;
+    await waitForUpdate(el);
+
+    expect(el.shadowRoot!.querySelector('.label')?.textContent).toBe('Toggle me');
+
+    wrapper.remove();
+  });
+
+  it('hides the visible label but keeps the accessible name', async () => {
+    const wrapper = createElement('<reke-toggle label="Toggle me" label-hidden></reke-toggle>');
+    const el = wrapper.querySelector('reke-toggle')! as RekeToggle;
+    await waitForUpdate(el);
+
+    // The whole point: no visible text, still a named switch.
+    expect(el.shadowRoot!.querySelector('.label')).toBeNull();
+    expect(el.shadowRoot!.querySelector('[role="switch"]')!.getAttribute('aria-label')).toBe(
+      'Toggle me',
+    );
+
+    wrapper.remove();
+  });
+
+  it('exposes the visible label as a part', async () => {
+    const wrapper = createElement('<reke-toggle label="Toggle me"></reke-toggle>');
+    const el = wrapper.querySelector('reke-toggle')! as RekeToggle;
+    await waitForUpdate(el);
+
+    expect(el.shadowRoot!.querySelector('[part="label"]')).toBeTruthy();
+
+    wrapper.remove();
+  });
+
+  it('passes axe-core a11y audit with a hidden label', async () => {
+    const wrapper = createElement('<reke-toggle label="Toggle me" label-hidden></reke-toggle>');
+    const el = wrapper.querySelector('reke-toggle')! as RekeToggle;
+    await waitForUpdate(el);
+
+    const results = await runAxe(wrapper);
+    expect(results.violations).toEqual([]);
+
+    wrapper.remove();
+  });
+
+  it('toggling labelHidden at runtime re-renders the label', async () => {
+    const wrapper = createElement('<reke-toggle label="Toggle me" label-hidden></reke-toggle>');
+    const el = wrapper.querySelector('reke-toggle')! as RekeToggle;
+    await waitForUpdate(el);
+    expect(el.shadowRoot!.querySelector('.label')).toBeNull();
+
+    // Reactive property, not a one-shot read at first render.
+    el.labelHidden = false;
+    await waitForUpdate(el);
+    expect(el.shadowRoot!.querySelector('.label')?.textContent).toBe('Toggle me');
+
+    wrapper.remove();
+  });
 });
