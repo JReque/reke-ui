@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. Releases are managed automatically by [release-please](https://github.com/googleapis/release-please) from Conventional Commits.
 
+## [0.4.3](https://github.com/JReque/reke-ui/compare/v0.4.2...v0.4.3) (2026-08-02)
+
+
+### Bug Fixes
+
+* **progress:** add reke-progress component ([20a10a1](https://github.com/JReque/reke-ui/commit/20a10a1aa0a2e65ce421cfd9490e2a70a1bf2c92))
+* **progress:** add reke-progress component ([06ba66f](https://github.com/JReque/reke-ui/commit/06ba66f847a03103160352c4a1816681052dcf20))
+
 ## [0.4.2](https://github.com/JReque/reke-ui/compare/v0.4.1...v0.4.2) (2026-07-30)
 
 
