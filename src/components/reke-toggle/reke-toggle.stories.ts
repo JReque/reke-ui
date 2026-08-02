@@ -6,6 +6,7 @@ type ToggleArgs = {
   checked: boolean;
   disabled: boolean;
   label: string;
+  labelHidden: boolean;
 };
 
 const meta: Meta<ToggleArgs> = {
@@ -16,11 +17,13 @@ const meta: Meta<ToggleArgs> = {
     checked: { control: 'boolean' },
     disabled: { control: 'boolean' },
     label: { control: 'text' },
+    labelHidden: { control: 'boolean' },
   },
   args: {
     checked: false,
     disabled: false,
     label: '',
+    labelHidden: false,
   },
 };
 
@@ -65,5 +68,27 @@ export const WithLabel: Story = {
       ?disabled=${args.disabled}
       label=${args.label}
     ></reke-toggle>
+  `,
+};
+
+/**
+ * Dense UIs (table rows, list items) need a bare switch, but a switch with no
+ * name is unusable with a screen reader. `label-hidden` keeps the name and drops
+ * the text — never omit `label` to hide it.
+ */
+export const HiddenLabel: Story = {
+  args: { label: 'Pause alert', labelHidden: true },
+  render: (args) => html`
+    <div style="display: flex; gap: 16px; align-items: center;">
+      <reke-toggle
+        ?checked=${args.checked}
+        ?disabled=${args.disabled}
+        label=${args.label}
+        ?label-hidden=${args.labelHidden}
+      ></reke-toggle>
+      <span style="color: #737373; font-size: 12px;">
+        Announced as “${args.label}”, rendered without text.
+      </span>
+    </div>
   `,
 };

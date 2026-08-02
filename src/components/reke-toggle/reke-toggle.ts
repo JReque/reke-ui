@@ -9,8 +9,12 @@ import { styles } from './reke-toggle.styles.js';
  *
  * @fires reke-change - Fired when the toggle state changes, with `{ checked: boolean }` detail.
  *
+ * @property label - Visible text next to the switch, and its accessible name.
+ * @property labelHidden - Keeps `label` as the accessible name without rendering it.
+ *
  * @csspart track - The outer track element.
  * @csspart thumb - The inner sliding thumb element.
+ * @csspart label - The visible label text.
  *
  * @cssprop [--reke-color-primary=#22C55E] - Track background when checked.
  * @cssprop [--reke-color-on-primary=#0A0A0B] - Thumb color when checked.
@@ -29,8 +33,18 @@ export class RekeToggle extends RekeElement {
   @property({ type: Boolean, reflect: true })
   disabled = false;
 
+  /** Visible text rendered next to the switch. Doubles as its accessible name. */
   @property()
   label = '';
+
+  /**
+   * Renders the switch on its own while keeping `label` as its accessible name.
+   *
+   * Without this, a bare toggle has no name at all: the `role="switch"` lives in
+   * the shadow DOM, so an `aria-label` set on the host never reaches it.
+   */
+  @property({ type: Boolean, reflect: true, attribute: 'label-hidden' })
+  labelHidden = false;
 
   private toggle() {
     if (this.disabled) return;
@@ -63,7 +77,11 @@ export class RekeToggle extends RekeElement {
         <div part="track" class="track ${this.checked ? 'track--checked' : ''}">
           <div part="thumb" class="thumb ${this.checked ? 'thumb--checked' : ''}"></div>
         </div>
-        ${this.label ? html`<span class="label">${this.label}</span>` : nothing}
+        ${
+          this.label && !this.labelHidden
+            ? html`<span part="label" class="label">${this.label}</span>`
+            : nothing
+        }
       </div>
     `;
   }
