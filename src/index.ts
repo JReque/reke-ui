@@ -27,6 +27,8 @@ export type {
   PieChartVariant,
 } from './components/reke-pie-chart/reke-pie-chart.js';
 export { RekePieChart } from './components/reke-pie-chart/reke-pie-chart.js';
+export type { RekeProgressSegment } from './components/reke-progress/reke-progress.js';
+export { RekeProgress } from './components/reke-progress/reke-progress.js';
 export type { SelectSize } from './components/reke-select/reke-select.js';
 export { RekeSelect } from './components/reke-select/reke-select.js';
 export type {
