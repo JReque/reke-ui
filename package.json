@@ -1,6 +1,6 @@
 {
   "name": "reke-ui",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "description": "Web Component library built with Lit 3 — dark & light themes",
   "type": "module",
   "main": "./dist/index.js",
