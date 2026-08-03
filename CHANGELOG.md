@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. Releases are managed automatically by [release-please](https://github.com/googleapis/release-please) from Conventional Commits.
 
+## [0.5.0](https://github.com/JReque/reke-ui/compare/v0.4.3...v0.5.0) (2026-08-02)
+
+
+### Features
+
+* **toggle:** add labelHidden for an accessible name without visible text ([074675c](https://github.com/JReque/reke-ui/commit/074675c7a232762579afccfdad56317df91b8e6f))
+* **toggle:** add labelHidden for an accessible name without visible text ([be289f1](https://github.com/JReque/reke-ui/commit/be289f125f3f5f4eab659c979fbbffe59d5f57ed))
+
 ## [0.4.3](https://github.com/JReque/reke-ui/compare/v0.4.2...v0.4.3) (2026-08-02)
 
 
