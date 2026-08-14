@@ -6,7 +6,6 @@ custom-elements.json
 .DS_Store
 CLAUDE.md
 .claude/
-README-DOC.md
 docs/dist/
 docs/node_modules/
 docs/.astro/

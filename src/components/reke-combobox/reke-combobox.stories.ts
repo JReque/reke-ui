@@ -276,3 +276,36 @@ export const TagsDisabled: Story = {
     return tpl;
   },
 };
+
+const descriptions: Record<string, string> = {
+  react: 'Meta — virtual DOM, hooks',
+  vue: 'Evan You — SFC, reactivity',
+  angular: 'Google — DI, RxJS',
+  svelte: 'Rich Harris — compiled',
+  lit: 'Google — web components',
+  solid: 'Ryan Carniato — signals',
+  qwik: 'Builder.io — resumability',
+};
+
+export const CustomOptionRender: Story = {
+  render: () => {
+    const tpl = html`
+      <div style="width: 320px;">
+        <reke-combobox label="Framework" placeholder="Search framework..."></reke-combobox>
+      </div>
+    `;
+    setTimeout(() => {
+      const el = document.querySelector('reke-combobox') as RekeCombobox | null;
+      if (el) {
+        el.options = sampleOptions;
+        el.optionRender = (opt) => html`
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <span>${opt.label}</span>
+            <small style="opacity: 0.6;">${descriptions[opt.value] ?? opt.value}</small>
+          </div>
+        `;
+      }
+    }, 0);
+    return tpl;
+  },
+};
