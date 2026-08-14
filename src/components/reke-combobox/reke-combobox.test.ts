@@ -1,3 +1,4 @@
+import { html } from 'lit';
 import { describe, expect, it, vi } from 'vitest';
 import './reke-combobox.js';
 import '../reke-chip/reke-chip.js';
@@ -48,6 +49,66 @@ describe('reke-combobox', () => {
 
     const input = el.shadowRoot!.querySelector('input')! as HTMLInputElement;
     expect(input.value).toBe('Option B');
+
+    wrapper.remove();
+  });
+
+  it('optionRender can return a TemplateResult', async () => {
+    const wrapper = createElement('<reke-combobox></reke-combobox>');
+    const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
+    el.options = testOptions;
+    el.optionRender = (opt, i) =>
+      html`<div class="custom-tpl" data-index=${i}><strong>${opt.label}</strong></div>`;
+    await waitForUpdate(el);
+
+    el.shadowRoot!.querySelector('input')!.click();
+    await waitForUpdate(el);
+
+    const custom = el.shadowRoot!.querySelectorAll('.option .custom-tpl');
+    expect(custom.length).toBe(3);
+    expect(custom[0]!.textContent).toBe('Option A');
+    expect(custom[2]!.getAttribute('data-index')).toBe('2');
+    // Default content is replaced, the li itself is still component-owned.
+    expect(el.shadowRoot!.querySelector('.option-label')).toBeNull();
+    expect(el.shadowRoot!.querySelector('.option')!.getAttribute('role')).toBe('option');
+
+    wrapper.remove();
+  });
+
+  it('optionRender can return a plain string', async () => {
+    const wrapper = createElement('<reke-combobox></reke-combobox>');
+    const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
+    el.options = testOptions;
+    el.optionRender = (opt) => `>> ${opt.value}`;
+    await waitForUpdate(el);
+
+    el.shadowRoot!.querySelector('input')!.click();
+    await waitForUpdate(el);
+
+    const options = el.shadowRoot!.querySelectorAll('.option');
+    expect(options[0]!.textContent!.trim()).toBe('>> a');
+
+    wrapper.remove();
+  });
+
+  it('optionRender can return a raw HTMLElement', async () => {
+    const wrapper = createElement('<reke-combobox></reke-combobox>');
+    const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
+    el.options = testOptions;
+    el.optionRender = (opt) => {
+      const node = document.createElement('span');
+      node.className = 'raw-node';
+      node.textContent = opt.label.toUpperCase();
+      return node;
+    };
+    await waitForUpdate(el);
+
+    el.shadowRoot!.querySelector('input')!.click();
+    await waitForUpdate(el);
+
+    const raw = el.shadowRoot!.querySelectorAll('.option .raw-node');
+    expect(raw.length).toBe(3);
+    expect(raw[1]!.textContent).toBe('OPTION B');
 
     wrapper.remove();
   });
@@ -230,6 +291,30 @@ describe('reke-combobox', () => {
 
     const dropdown = el.shadowRoot!.querySelector('.dropdown');
     expect(dropdown).toBeNull();
+
+    wrapper.remove();
+  });
+
+  it('selects when clicking custom-rendered option content', async () => {
+    const wrapper = createElement('<reke-combobox></reke-combobox>');
+    const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
+    el.options = testOptions;
+    el.optionRender = (opt) => html`<span class="custom-hit">${opt.label}</span>`;
+    await waitForUpdate(el);
+
+    const handler = vi.fn();
+    el.addEventListener('reke-change', handler);
+
+    el.shadowRoot!.querySelector('input')!.click();
+    await waitForUpdate(el);
+
+    // Click the inner custom node, not the li — the li handler must still catch it.
+    (el.shadowRoot!.querySelectorAll('.custom-hit')[1] as HTMLElement).click();
+    await waitForUpdate(el);
+
+    expect(el.value).toBe('b');
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect((handler.mock.calls[0]![0] as CustomEvent).detail).toEqual({ value: 'b' });
 
     wrapper.remove();
   });
@@ -501,6 +586,35 @@ describe('reke-combobox', () => {
   });
 
   // --- ACCESSIBILITY ---
+
+  it('passes axe-core with optionRender and keeps aria-activedescendant resolvable', async () => {
+    const wrapper = createElement('<reke-combobox label="Choose option"></reke-combobox>');
+    const el = wrapper.querySelector('reke-combobox')! as RekeCombobox;
+    el.options = testOptions;
+    el.optionRender = (opt) =>
+      html`<div class="rich"><span>${opt.label}</span><small>${opt.value}</small></div>`;
+    await waitForUpdate(el);
+
+    const input = el.shadowRoot!.querySelector('input')! as HTMLInputElement;
+    input.click();
+    await waitForUpdate(el);
+
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    await waitForUpdate(el);
+
+    const activeId = input.getAttribute('aria-activedescendant');
+    expect(activeId).toBe('reke-combobox-opt-1');
+    const activeOption = el.shadowRoot!.getElementById(activeId!);
+    expect(activeOption).toBeTruthy();
+    expect(activeOption!.getAttribute('role')).toBe('option');
+    expect(activeOption!.classList.contains('option--active')).toBe(true);
+
+    const results = await runAxe(wrapper);
+    const violations = results.violations.filter((v) => v.id !== 'color-contrast');
+    expect(violations).toEqual([]);
+
+    wrapper.remove();
+  });
 
   it('passes axe-core a11y audit', async () => {
     const wrapper = createElement('<reke-combobox label="Choose option"></reke-combobox>');

@@ -9,7 +9,11 @@ export { RekeCard } from './components/reke-card/reke-card.js';
 export { RekeCheckbox } from './components/reke-checkbox/reke-checkbox.js';
 export type { ChipColor } from './components/reke-chip/reke-chip.js';
 export { RekeChip } from './components/reke-chip/reke-chip.js';
-export type { ComboboxOption, ComboboxSize } from './components/reke-combobox/reke-combobox.js';
+export type {
+  ComboboxOption,
+  ComboboxOptionRender,
+  ComboboxSize,
+} from './components/reke-combobox/reke-combobox.js';
 export { RekeCombobox } from './components/reke-combobox/reke-combobox.js';
 export type { DatePickerMode } from './components/reke-date-range/reke-date-range.js';
 export { RekeDateRange } from './components/reke-date-range/reke-date-range.js';
