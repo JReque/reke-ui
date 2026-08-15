@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. Releases are managed automatically by [release-please](https://github.com/googleapis/release-please) from Conventional Commits.
 
+## [0.5.1](https://github.com/JReque/reke-ui/compare/v0.5.0...v0.5.1) (2026-08-15)
+
+
+### Features
+
+* **combobox:** add optionRender for custom dropdown option content ([b821901](https://github.com/JReque/reke-ui/commit/b821901cb73a8339a5f963cfc2446edb2045ff7d))
+* **combobox:** add optionRender for custom dropdown option content ([0c16427](https://github.com/JReque/reke-ui/commit/0c16427699da142d438af639946ca4855d5d61d5))
+* **react:** bridge combobox optionRender so React consumers can pass JSX ([ae3cfc9](https://github.com/JReque/reke-ui/commit/ae3cfc971e9225cb66ac7493a42e799885c3c7f1))
+* **react:** bridge combobox optionRender so React consumers can pass JSX ([61c630d](https://github.com/JReque/reke-ui/commit/61c630d99575ba74a711d040580c1dac8416fff7))
+* **react:** bridge combobox optionRender so React consumers can pass JSX ([5662517](https://github.com/JReque/reke-ui/commit/566251796299058260ba5b01a24e6252f222dc1f))
+
 ## [0.5.0](https://github.com/JReque/reke-ui/compare/v0.4.3...v0.5.0) (2026-08-02)
 
 
