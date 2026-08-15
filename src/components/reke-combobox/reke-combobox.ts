@@ -1,4 +1,4 @@
-import { html, nothing } from 'lit';
+import { html, nothing, type TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { RekeElement } from '../../shared/base-element.js';
@@ -15,10 +15,24 @@ export interface ComboboxOption {
 }
 
 /**
+ * Display-only custom render for a dropdown option. Receives the option and its
+ * index in the filtered list, and fills the inside of the component-owned `<li>`
+ * (which keeps its id, role, aria-selected, part and handlers).
+ * Filtering, the input value and the multi-select summary keep using `label`.
+ */
+export type ComboboxOptionRender = (
+  option: ComboboxOption,
+  index: number,
+) => TemplateResult | string | HTMLElement | Node;
+
+/**
  * @tag reke-combobox
  * @summary A searchable select. Type to filter options, navigate with the
  * keyboard. Unlike `reke-select`, it exposes a text query and is meant for long
  * option lists.
+ *
+ * Set `optionRender` to take over the content of each dropdown option
+ * (display only — `label` still drives filtering and the input value).
  *
  * @fires reke-change - Fired when the selection changes. Detail: `{ value: string }`
  * in single mode, `{ values: string[] }` when `multiple` is set.
@@ -54,6 +68,14 @@ export class RekeCombobox extends RekeElement {
 
   @property({ attribute: false })
   options: ComboboxOption[] = [];
+
+  /**
+   * Optional custom renderer for the content of each dropdown option.
+   * Display-only escape hatch: `label` is still required and still drives
+   * filtering, the input value and the multi-select summary.
+   */
+  @property({ attribute: false })
+  optionRender: ComboboxOptionRender | null = null;
 
   /** Enables multi-selection. In this mode use `values` instead of `value`. */
   @property({ type: Boolean, reflect: true })
@@ -389,13 +411,17 @@ export class RekeCombobox extends RekeElement {
                         }}
                       >
                         ${
-                          opt.image
-                            ? html`<img class="option-img" src=${opt.image} alt="" loading="lazy" />`
-                            : nothing
-                        }<span class="option-label">${opt.label}</span>${
-                          this.multiple && this.isSelected(opt)
-                            ? html`<span class="check" aria-hidden="true">&#10003;</span>`
-                            : nothing
+                          this.optionRender
+                            ? this.optionRender(opt, i)
+                            : html`${
+                                opt.image
+                                  ? html`<img class="option-img" src=${opt.image} alt="" loading="lazy" />`
+                                  : nothing
+                              }<span class="option-label">${opt.label}</span>${
+                                this.multiple && this.isSelected(opt)
+                                  ? html`<span class="check" aria-hidden="true">&#10003;</span>`
+                                  : nothing
+                              }`
                         }
                       </li>
                     `,
