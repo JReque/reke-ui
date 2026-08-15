@@ -88,7 +88,10 @@ function renderIntoRoot(root: Root, element: React.ReactNode, sync = true): void
   }
 }
 
-function ComboboxInner(props: ComboboxProps, ref: React.Ref<RekeComboboxClass>): React.ReactElement {
+function ComboboxInner(
+  props: ComboboxProps,
+  ref: React.Ref<RekeComboboxClass>,
+): React.ReactElement {
   const { optionRender, children, ...rest } = props;
 
   // Roots keyed by option `value` — a stable identity. Index would shift on
