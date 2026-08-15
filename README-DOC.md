@@ -393,6 +393,29 @@ combobox.optionRender = (opt) => html`
 `;
 ```
 
+**React usage:** import `Combobox` from `reke-ui/react` (a bridge, not a bare `createComponent`) and return JSX from `optionRender` — never `import { html } from 'lit'`. The bridge mounts React into a `display: contents` host and hands Lit the raw DOM node, keying roots by `option.value` so filtering does not remount them.
+
+```tsx
+import { Combobox, type ComboboxOption } from 'reke-ui/react';
+
+<Combobox
+  options={coins}
+  value={value}
+  placeholder="Search coin..."
+  onRekeChange={(e) => setValue(e.detail.value!)}
+  onRekeSearch={(e) => fetchRemote(e.detail.query)}
+  optionRender={(opt) => (
+    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <img src={opt.image} alt="" width={20} height={20} />
+      <span style={{ display: 'flex', flexDirection: 'column' }}>
+        <span>{opt.label}</span>
+        <small style={{ opacity: 0.6 }}>{opt.value.toUpperCase()}</small>
+      </span>
+    </span>
+  )}
+/>;
+```
+
 ```html
 <!-- Tags mode: selected values as dismissible chips -->
 <reke-combobox multiple tags placeholder="Add coins..."></reke-combobox>
@@ -916,4 +939,4 @@ npm run analyze      # Generate custom-elements.json
 ---
 
 <!-- DOC_UPDATE_MARKER: Do not remove. Used by automation to detect stale docs. -->
-<!-- Component count: 21 | Test count: 303 | Last sync: 2026-08-15 -->
+<!-- Component count: 21 | Test count: 307 | Last sync: 2026-08-15 -->

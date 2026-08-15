@@ -6,7 +6,6 @@ import { RekeButton } from './components/reke-button/reke-button.js';
 import { RekeCard } from './components/reke-card/reke-card.js';
 import { RekeCheckbox } from './components/reke-checkbox/reke-checkbox.js';
 import { RekeChip } from './components/reke-chip/reke-chip.js';
-import { RekeCombobox } from './components/reke-combobox/reke-combobox.js';
 import { RekeDateRange } from './components/reke-date-range/reke-date-range.js';
 import { RekeDialog } from './components/reke-dialog/reke-dialog.js';
 import { RekeFileUpload } from './components/reke-file-upload/reke-file-upload.js';
@@ -132,15 +131,13 @@ export const Select = createComponent({
   },
 });
 
-export const Combobox = createComponent({
-  tagName: 'reke-combobox',
-  elementClass: RekeCombobox,
-  react: React,
-  events: {
-    onRekeChange: 'reke-change' as EventName<CustomEvent<{ value: string }>>,
-    onRekeSearch: 'reke-search' as EventName<CustomEvent<{ query: string }>>,
-  },
-});
+export type {
+  ComboboxOption,
+  ComboboxProps,
+  ComboboxSize,
+  ReactComboboxOptionRender,
+} from './react-bridge/combobox.js';
+export { Combobox } from './react-bridge/combobox.js';
 
 export type {
   ReactExpandedRowRenderer,
