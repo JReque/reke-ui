@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. Releases are managed automatically by [release-please](https://github.com/googleapis/release-please) from Conventional Commits.
 
+## [0.5.2](https://github.com/JReque/reke-ui/compare/v0.5.1...v0.5.2) (2026-09-01)
+
+
+### Bug Fixes
+
+* **dialog:** implement focus management and scroll lock ([c1e34bb](https://github.com/JReque/reke-ui/commit/c1e34bb1a78ab2b7fb104b483926316d74f5bfd4))
+* **dialog:** implement focus management and scroll lock ([5856e84](https://github.com/JReque/reke-ui/commit/5856e8490d22ca82d1c5cab90599ac36e6d30392))
+
 ## [0.5.1](https://github.com/JReque/reke-ui/compare/v0.5.0...v0.5.1) (2026-08-15)
 
 
