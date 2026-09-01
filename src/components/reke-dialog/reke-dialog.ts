@@ -1,4 +1,4 @@
-import { html, nothing } from 'lit';
+import { html, nothing, type PropertyValues } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { RekeElement } from '../../shared/base-element.js';
@@ -7,9 +7,22 @@ import { styles } from './reke-dialog.styles.js';
 export type DialogVariant = 'modal' | 'drawer';
 export type DrawerPosition = 'right' | 'left';
 
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',');
+
 /**
  * @tag reke-dialog
  * @summary A dialog component with modal and drawer variants.
+ *
+ * Implements the ARIA dialog pattern: while open it takes focus, keeps Tab
+ * cycling inside the panel, restores focus to whatever opened it, and locks
+ * body scroll.
  *
  * @slot - Default slot for dialog body content.
  * @slot footer - Slot for action buttons.
@@ -39,9 +52,45 @@ export class RekeDialog extends RekeElement {
   @property({ reflect: true })
   position: DrawerPosition = 'right';
 
+  /** Element focused before the dialog opened, restored on close. */
+  private _previouslyFocused: HTMLElement | null = null;
+
+  /** Body `overflow` value to put back when the scroll lock is released. */
+  private _previousBodyOverflow = '';
+  private _scrollLocked = false;
+
   private _handleKeydown = (e: KeyboardEvent) => {
-    if (e.key === 'Escape' && this.open) {
+    if (!this.open) return;
+
+    if (e.key === 'Escape') {
       this.close();
+      return;
+    }
+
+    if (e.key !== 'Tab') return;
+
+    const focusable = this.getFocusableElements();
+    if (focusable.length === 0) {
+      // Nothing to cycle through — hold focus on the panel itself.
+      e.preventDefault();
+      this.getPanel()?.focus();
+      return;
+    }
+
+    // Focus inside our shadow root reads as the host from `document`, so ask
+    // the shadow root first and fall back to light-DOM slotted content.
+    const active = this.shadowRoot?.activeElement ?? document.activeElement;
+    const index = active ? focusable.indexOf(active as HTMLElement) : -1;
+
+    // index === -1 means focus escaped the dialog; either direction pulls it back.
+    if (e.shiftKey) {
+      if (index <= 0) {
+        e.preventDefault();
+        focusable[focusable.length - 1].focus();
+      }
+    } else if (index === -1 || index === focusable.length - 1) {
+      e.preventDefault();
+      focusable[0].focus();
     }
   };
 
@@ -53,6 +102,18 @@ export class RekeDialog extends RekeElement {
   override disconnectedCallback() {
     super.disconnectedCallback();
     document.removeEventListener('keydown', this._handleKeydown);
+    // A dialog torn down while open would otherwise leave the page unscrollable.
+    this.releaseScrollLock();
+  }
+
+  protected override updated(changed: PropertyValues<this>) {
+    if (!changed.has('open')) return;
+
+    if (this.open) {
+      this.handleOpened();
+    } else if (changed.get('open') === true) {
+      this.handleClosed();
+    }
   }
 
   show() {
@@ -62,6 +123,63 @@ export class RekeDialog extends RekeElement {
   close() {
     this.open = false;
     this.emit('reke-close');
+  }
+
+  private getPanel(): HTMLElement | null {
+    return this.shadowRoot?.querySelector<HTMLElement>('.dialog, .drawer') ?? null;
+  }
+
+  /**
+   * Focusable descendants in tab order: the shadow close button first, then
+   * the default slot, then the footer slot — matching how the panel reads.
+   */
+  private getFocusableElements(): HTMLElement[] {
+    const closeBtn = this.shadowRoot?.querySelector<HTMLElement>('.close-btn');
+    return [
+      ...(closeBtn ? [closeBtn] : []),
+      ...this.getSlottedFocusable(),
+      ...this.getSlottedFocusable('footer'),
+    ];
+  }
+
+  private getSlottedFocusable(name?: string): HTMLElement[] {
+    const selector = name ? `slot[name="${name}"]` : 'slot:not([name])';
+    const slot = this.shadowRoot?.querySelector<HTMLSlotElement>(selector);
+    if (!slot) return [];
+
+    const found: HTMLElement[] = [];
+    for (const node of slot.assignedElements()) {
+      if (!(node instanceof HTMLElement)) continue;
+      if (node.matches(FOCUSABLE_SELECTOR)) found.push(node);
+      found.push(...node.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+    }
+    return found;
+  }
+
+  private handleOpened() {
+    this._previouslyFocused = document.activeElement as HTMLElement | null;
+    this.lockScroll();
+    (this.getFocusableElements()[0] ?? this.getPanel())?.focus();
+  }
+
+  private handleClosed() {
+    this.releaseScrollLock();
+    const target = this._previouslyFocused;
+    this._previouslyFocused = null;
+    target?.focus();
+  }
+
+  private lockScroll() {
+    if (this._scrollLocked) return;
+    this._previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    this._scrollLocked = true;
+  }
+
+  private releaseScrollLock() {
+    if (!this._scrollLocked) return;
+    document.body.style.overflow = this._previousBodyOverflow;
+    this._scrollLocked = false;
   }
 
   override render() {
@@ -88,6 +206,7 @@ export class RekeDialog extends RekeElement {
           role="dialog"
           aria-modal="true"
           aria-label=${this.heading}
+          tabindex="-1"
           @click=${(e: Event) => e.stopPropagation()}
         >
           ${
