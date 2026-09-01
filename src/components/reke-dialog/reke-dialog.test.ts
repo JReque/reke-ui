@@ -162,6 +162,170 @@ describe('reke-dialog', () => {
     wrapper.remove();
   });
 
+  // --- FOCUS MANAGEMENT ---
+
+  it('moves focus into the dialog when it opens', async () => {
+    const wrapper = createElement(
+      '<button id="trigger">open</button><reke-dialog heading="Test Dialog"><button id="inner">ok</button></reke-dialog>',
+    );
+    const trigger = wrapper.querySelector('#trigger')! as HTMLButtonElement;
+    const el = wrapper.querySelector('reke-dialog')! as RekeDialog;
+    await waitForUpdate(el);
+
+    trigger.focus();
+    expect(document.activeElement).toBe(trigger);
+
+    el.show();
+    await waitForUpdate(el);
+
+    // Focus must land inside the dialog, not stay on the trigger behind it.
+    expect(document.activeElement).not.toBe(trigger);
+    expect(el.shadowRoot!.activeElement).toBe(el.shadowRoot!.querySelector('.close-btn'));
+
+    wrapper.remove();
+  });
+
+  it('focuses slotted content when there is no heading', async () => {
+    const wrapper = createElement('<reke-dialog><button id="inner">ok</button></reke-dialog>');
+    const el = wrapper.querySelector('reke-dialog')! as RekeDialog;
+    const inner = wrapper.querySelector('#inner')! as HTMLButtonElement;
+    await waitForUpdate(el);
+
+    el.show();
+    await waitForUpdate(el);
+
+    expect(document.activeElement).toBe(inner);
+
+    wrapper.remove();
+  });
+
+  it('restores focus to the trigger when it closes', async () => {
+    const wrapper = createElement(
+      '<button id="trigger">open</button><reke-dialog heading="Test Dialog"><button id="inner">ok</button></reke-dialog>',
+    );
+    const trigger = wrapper.querySelector('#trigger')! as HTMLButtonElement;
+    const el = wrapper.querySelector('reke-dialog')! as RekeDialog;
+    await waitForUpdate(el);
+
+    trigger.focus();
+    el.show();
+    await waitForUpdate(el);
+
+    el.close();
+    await waitForUpdate(el);
+
+    expect(document.activeElement).toBe(trigger);
+
+    wrapper.remove();
+  });
+
+  it('traps Tab from the last focusable back to the first', async () => {
+    const wrapper = createElement(
+      '<button id="trigger">open</button><reke-dialog heading="Test Dialog" open><button id="inner">ok</button></reke-dialog>',
+    );
+    const el = wrapper.querySelector('reke-dialog')! as RekeDialog;
+    const inner = wrapper.querySelector('#inner')! as HTMLButtonElement;
+    await waitForUpdate(el);
+
+    // `#inner` is the last focusable: close-btn (shadow header) comes before it.
+    inner.focus();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+    await waitForUpdate(el);
+
+    expect(el.shadowRoot!.activeElement).toBe(el.shadowRoot!.querySelector('.close-btn'));
+
+    wrapper.remove();
+  });
+
+  it('traps Shift+Tab from the first focusable back to the last', async () => {
+    const wrapper = createElement(
+      '<button id="trigger">open</button><reke-dialog heading="Test Dialog" open><button id="inner">ok</button></reke-dialog>',
+    );
+    const el = wrapper.querySelector('reke-dialog')! as RekeDialog;
+    const inner = wrapper.querySelector('#inner')! as HTMLButtonElement;
+    await waitForUpdate(el);
+
+    const closeBtn = el.shadowRoot!.querySelector('.close-btn')! as HTMLButtonElement;
+    closeBtn.focus();
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true }),
+    );
+    await waitForUpdate(el);
+
+    expect(document.activeElement).toBe(inner);
+
+    wrapper.remove();
+  });
+
+  it('pulls focus back in when Tab fires from outside the dialog', async () => {
+    const wrapper = createElement(
+      '<button id="trigger">open</button><reke-dialog heading="Test Dialog" open><button id="inner">ok</button></reke-dialog>',
+    );
+    const trigger = wrapper.querySelector('#trigger')! as HTMLButtonElement;
+    const el = wrapper.querySelector('reke-dialog')! as RekeDialog;
+    await waitForUpdate(el);
+
+    trigger.focus();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+    await waitForUpdate(el);
+
+    expect(document.activeElement).not.toBe(trigger);
+
+    wrapper.remove();
+  });
+
+  it('does not trap Tab while closed', async () => {
+    const wrapper = createElement(
+      '<button id="trigger">open</button><reke-dialog heading="Test Dialog"><button id="inner">ok</button></reke-dialog>',
+    );
+    const trigger = wrapper.querySelector('#trigger')! as HTMLButtonElement;
+    const el = wrapper.querySelector('reke-dialog')! as RekeDialog;
+    await waitForUpdate(el);
+
+    trigger.focus();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+    await waitForUpdate(el);
+
+    expect(document.activeElement).toBe(trigger);
+
+    wrapper.remove();
+  });
+
+  // --- SCROLL LOCK ---
+
+  it('locks body scroll while open and restores it on close', async () => {
+    const wrapper = createElement('<reke-dialog heading="Test Dialog"><p>Body</p></reke-dialog>');
+    const el = wrapper.querySelector('reke-dialog')! as RekeDialog;
+    await waitForUpdate(el);
+
+    expect(document.body.style.overflow).not.toBe('hidden');
+
+    el.show();
+    await waitForUpdate(el);
+    expect(document.body.style.overflow).toBe('hidden');
+
+    el.close();
+    await waitForUpdate(el);
+    expect(document.body.style.overflow).not.toBe('hidden');
+
+    wrapper.remove();
+  });
+
+  it('releases the scroll lock when removed while still open', async () => {
+    const wrapper = createElement(
+      '<reke-dialog heading="Test Dialog" open><p>Body</p></reke-dialog>',
+    );
+    const el = wrapper.querySelector('reke-dialog')! as RekeDialog;
+    await waitForUpdate(el);
+
+    expect(document.body.style.overflow).toBe('hidden');
+
+    wrapper.remove();
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(document.body.style.overflow).not.toBe('hidden');
+  });
+
   // --- ACCESSIBILITY ---
 
   it('passes axe-core a11y audit when open', async () => {
