@@ -72,6 +72,8 @@ describe('reke-dialog', () => {
 
     expect(el.open).toBe(false);
 
+    // The panel outlives `open` by the exit animation, then unmounts.
+    await new Promise((r) => setTimeout(r, 500));
     const backdropAfter = el.shadowRoot!.querySelector('.backdrop');
     expect(backdropAfter).toBeNull();
 
@@ -322,6 +324,127 @@ describe('reke-dialog', () => {
 
     wrapper.remove();
     await new Promise((r) => setTimeout(r, 0));
+
+    expect(document.body.style.overflow).not.toBe('hidden');
+  });
+
+  // --- TRANSITIONS ---
+
+  it('keeps the panel mounted while the exit animation runs', async () => {
+    const wrapper = createElement(
+      '<reke-dialog heading="Test Dialog" open><p>Body</p></reke-dialog>',
+    );
+    const el = wrapper.querySelector('reke-dialog')! as RekeDialog;
+    await waitForUpdate(el);
+
+    el.close();
+    await waitForUpdate(el);
+
+    // `open` is already false, but the panel survives so it can animate out.
+    expect(el.open).toBe(false);
+    const panel = el.shadowRoot!.querySelector('.dialog');
+    expect(panel).toBeTruthy();
+    expect(panel!.classList.contains('is-closing')).toBe(true);
+
+    wrapper.remove();
+  });
+
+  it('unmounts the panel once the exit animation finishes', async () => {
+    const wrapper = createElement(
+      '<reke-dialog heading="Test Dialog" open><p>Body</p></reke-dialog>',
+    );
+    const el = wrapper.querySelector('reke-dialog')! as RekeDialog;
+    await waitForUpdate(el);
+
+    el.close();
+    await waitForUpdate(el);
+    expect(el.shadowRoot!.querySelector('.dialog')).toBeTruthy();
+
+    await new Promise((r) => setTimeout(r, 500));
+
+    expect(el.shadowRoot!.querySelector('.backdrop')).toBeNull();
+    expect(el.shadowRoot!.querySelector('.dialog')).toBeNull();
+
+    wrapper.remove();
+  });
+
+  it('cancels the exit when reopened mid-animation', async () => {
+    const wrapper = createElement(
+      '<reke-dialog heading="Test Dialog" open><p>Body</p></reke-dialog>',
+    );
+    const el = wrapper.querySelector('reke-dialog')! as RekeDialog;
+    await waitForUpdate(el);
+
+    el.close();
+    await waitForUpdate(el);
+    expect(el.shadowRoot!.querySelector('.dialog.is-closing')).toBeTruthy();
+
+    el.show();
+    await waitForUpdate(el);
+
+    const panel = el.shadowRoot!.querySelector('.dialog');
+    expect(panel).toBeTruthy();
+    expect(panel!.classList.contains('is-closing')).toBe(false);
+
+    // The cancelled exit must not unmount the reopened dialog later.
+    await new Promise((r) => setTimeout(r, 500));
+    expect(el.shadowRoot!.querySelector('.dialog')).toBeTruthy();
+
+    wrapper.remove();
+  });
+
+  it('animates the drawer out as well', async () => {
+    const wrapper = createElement(
+      '<reke-dialog heading="Drawer" variant="drawer" open><p>Content</p></reke-dialog>',
+    );
+    const el = wrapper.querySelector('reke-dialog')! as RekeDialog;
+    await waitForUpdate(el);
+
+    el.close();
+    await waitForUpdate(el);
+
+    const drawer = el.shadowRoot!.querySelector('.drawer');
+    expect(drawer).toBeTruthy();
+    expect(drawer!.classList.contains('is-closing')).toBe(true);
+
+    wrapper.remove();
+  });
+
+  it('releases focus and scroll lock immediately, not after the animation', async () => {
+    const wrapper = createElement(
+      '<button id="trigger">open</button><reke-dialog heading="Test Dialog"><p>Body</p></reke-dialog>',
+    );
+    const trigger = wrapper.querySelector('#trigger')! as HTMLButtonElement;
+    const el = wrapper.querySelector('reke-dialog')! as RekeDialog;
+    await waitForUpdate(el);
+
+    trigger.focus();
+    el.show();
+    await waitForUpdate(el);
+
+    el.close();
+    await waitForUpdate(el);
+
+    // A keyboard user must get focus back right away, even while the panel
+    // is still on screen animating out.
+    expect(document.activeElement).toBe(trigger);
+    expect(document.body.style.overflow).not.toBe('hidden');
+
+    wrapper.remove();
+  });
+
+  it('drops the exit animation when the element is removed mid-close', async () => {
+    const wrapper = createElement(
+      '<reke-dialog heading="Test Dialog" open><p>Body</p></reke-dialog>',
+    );
+    const el = wrapper.querySelector('reke-dialog')! as RekeDialog;
+    await waitForUpdate(el);
+
+    el.close();
+    await waitForUpdate(el);
+    wrapper.remove();
+
+    await new Promise((r) => setTimeout(r, 500));
 
     expect(document.body.style.overflow).not.toBe('hidden');
   });

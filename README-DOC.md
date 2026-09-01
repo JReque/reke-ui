@@ -214,6 +214,11 @@ Implements the ARIA dialog pattern: on open it moves focus into the panel and
 locks body scroll, Tab and Shift+Tab cycle inside it, and on close focus returns
 to whatever opened it.
 
+Animates in and out — the modal fades and lifts, the drawer slides from its
+`position` edge. The panel stays mounted until the exit animation ends, while
+focus and scroll are handed back immediately. Both animations are dropped under
+`prefers-reduced-motion: reduce`. Below 480px the drawer goes full-bleed.
+
 | Property | Type | Default | Attribute |
 |----------|------|---------|-----------|
 | `open` | `boolean` | `false` | `open` |
@@ -926,7 +931,7 @@ npm run analyze      # Generate custom-elements.json
 | 6 | `reke-badge` | Display | 6 variants, 2 sizes | 5 | 5 |
 | 7 | `reke-card` | Layout | 3 variants, 4 paddings | 4 | 5 |
 | 8 | `reke-tooltip` | Overlay | 4 positions | 5 | 3 |
-| 9 | `reke-dialog` | Overlay | modal, drawer | 18 | 5 |
+| 9 | `reke-dialog` | Overlay | modal, drawer | 24 | 5 |
 | 10 | `reke-select` | Form | 3 sizes | 8 | 5 |
 | 11 | `reke-table` | Data | striped, dense, hoverable, bordered, expandable | 64 | 11 |
 | 12 | `reke-date-range` | Form | single, range | 23 | 9 |
