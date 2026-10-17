@@ -449,6 +449,62 @@ describe('reke-dialog', () => {
     expect(document.body.style.overflow).not.toBe('hidden');
   });
 
+  it('drops the panel transform once the enter animation settles', async () => {
+    const wrapper = createElement(
+      '<reke-dialog heading="Test Dialog" open><p>Body</p></reke-dialog>',
+    );
+    const el = wrapper.querySelector('reke-dialog')! as RekeDialog;
+    await waitForUpdate(el);
+
+    await new Promise((r) => setTimeout(r, 500));
+    await waitForUpdate(el);
+
+    // A transformed panel would become the containing block for position:fixed
+    // descendants and misplace every floating layer inside the dialog.
+    const panel = el.shadowRoot!.querySelector('.dialog') as HTMLElement;
+    expect(panel.classList.contains('is-settled')).toBe(true);
+    expect(getComputedStyle(panel).transform).toBe('none');
+
+    wrapper.remove();
+  });
+
+  it('settles the drawer as well', async () => {
+    const wrapper = createElement(
+      '<reke-dialog heading="Drawer" variant="drawer" open><p>Body</p></reke-dialog>',
+    );
+    const el = wrapper.querySelector('reke-dialog')! as RekeDialog;
+    await waitForUpdate(el);
+
+    await new Promise((r) => setTimeout(r, 500));
+    await waitForUpdate(el);
+
+    const panel = el.shadowRoot!.querySelector('.drawer') as HTMLElement;
+    expect(panel.classList.contains('is-settled')).toBe(true);
+    expect(getComputedStyle(panel).transform).toBe('none');
+
+    wrapper.remove();
+  });
+
+  it('replays the enter animation on reopen instead of staying settled', async () => {
+    const wrapper = createElement(
+      '<reke-dialog heading="Test Dialog" open><p>Body</p></reke-dialog>',
+    );
+    const el = wrapper.querySelector('reke-dialog')! as RekeDialog;
+    await waitForUpdate(el);
+    await new Promise((r) => setTimeout(r, 500));
+
+    el.close();
+    await waitForUpdate(el);
+    expect(el.shadowRoot!.querySelector('.dialog')!.classList.contains('is-settled')).toBe(false);
+
+    await new Promise((r) => setTimeout(r, 500));
+    el.open = true;
+    await waitForUpdate(el);
+    expect(el.shadowRoot!.querySelector('.dialog')!.classList.contains('is-settled')).toBe(false);
+
+    wrapper.remove();
+  });
+
   // --- ACCESSIBILITY ---
 
   it('passes axe-core a11y audit when open', async () => {

@@ -144,6 +144,19 @@ export const styles = [
       animation: reke-drawer-out-left 200ms ease-in both;
     }
 
+    /*
+     * At rest the panel must carry NO transform. animation-fill-mode both keeps
+     * the last keyframe applied, and a transformed element becomes the
+     * containing block for its position-fixed descendants, so every floating
+     * layer inside the dialog is silently relocated: combobox dropdowns and
+     * menus compute viewport coordinates that then resolve against the panel.
+     */
+    .dialog.is-settled,
+    .drawer.is-settled {
+      animation: none;
+      transform: none;
+    }
+
     /* === Shared parts === */
 
     .dialog-header {
