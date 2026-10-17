@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. Releases are managed automatically by [release-please](https://github.com/googleapis/release-please) from Conventional Commits.
 
+## [0.5.3](https://github.com/JReque/reke-ui/compare/v0.5.2...v0.5.3) (2026-10-17)
+
+
+### Features
+
+* **dialog:** animate open and close, full-bleed drawer on small screens ([4046c6f](https://github.com/JReque/reke-ui/commit/4046c6fc6691525426f1abfd33195dd0b7906195))
+* **dialog:** animate open and close, full-bleed drawer on small screens ([7e5ad23](https://github.com/JReque/reke-ui/commit/7e5ad2344fe6078eb792a09770acef0991aad4e6))
+* **pie-chart:** polish styling and donut center; fix dialog floating layers ([6f4415a](https://github.com/JReque/reke-ui/commit/6f4415ab3117bec9753360a1fb66acebc1f06ee2))
+* **pie-chart:** polish styling, donut center and theme-aware tokens ([69da056](https://github.com/JReque/reke-ui/commit/69da056257cef1b2981dc51fc48f74aba8cc67e0))
+* **react:** add PieChart bridge with typed select event ([aefceb1](https://github.com/JReque/reke-ui/commit/aefceb1c7534da6d6fbe33a88a639d4bd99952cc))
+
+
+### Bug Fixes
+
+* **dialog:** drop the panel transform once the enter animation settles ([4efbb46](https://github.com/JReque/reke-ui/commit/4efbb46fa22e578db688f34687a04642ef097035))
+
 ## [0.5.2](https://github.com/JReque/reke-ui/compare/v0.5.1...v0.5.2) (2026-09-01)
 
 
