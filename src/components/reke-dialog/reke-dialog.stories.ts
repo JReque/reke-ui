@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/web-components';
 import { html } from 'lit';
 import './reke-dialog.js';
+import '../reke-combobox/reke-combobox.js';
 
 type DialogArgs = {
   open: boolean;
@@ -103,6 +104,25 @@ export const Closed: Story = {
   render: (args) => html`
     <reke-dialog .open=${args.open} heading=${args.heading}>
       <p style="margin: 0; color: #A3A3A3;">This dialog is not visible.</p>
+    </reke-dialog>
+  `,
+};
+
+/** Floating layers inside the panel must anchor to the viewport, not the panel. */
+export const WithCombobox: Story = {
+  render: (args) => html`
+    <reke-dialog .open=${args.open} heading="Pick a framework">
+      <reke-combobox
+        label="Framework"
+        placeholder="Search..."
+        .options=${[
+          { value: 'react', label: 'React' },
+          { value: 'vue', label: 'Vue' },
+          { value: 'angular', label: 'Angular' },
+          { value: 'svelte', label: 'Svelte' },
+          { value: 'lit', label: 'Lit' },
+        ]}
+      ></reke-combobox>
     </reke-dialog>
   `,
 };

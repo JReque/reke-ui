@@ -1,5 +1,5 @@
 import { html, nothing, type PropertyValues } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { customElement, property, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { RekeElement } from '../../shared/base-element.js';
 import { styles } from './reke-dialog.styles.js';
@@ -15,6 +15,17 @@ const FOCUSABLE_SELECTOR = [
   'textarea:not([disabled])',
   '[tabindex]:not([tabindex="-1"])',
 ].join(',');
+
+/**
+ * Safety net for unmounting after the exit animation. `animationend` is the
+ * primary trigger; this covers the cases where it never fires — no animation
+ * applied, the tab backgrounded mid-close, a consumer overriding the styles.
+ */
+const EXIT_FALLBACK_MS = 400;
+
+function prefersReducedMotion(): boolean {
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+}
 
 /**
  * @tag reke-dialog
@@ -51,6 +62,25 @@ export class RekeDialog extends RekeElement {
   /** Drawer slide direction. Only applies when variant="drawer". */
   @property({ reflect: true })
   position: DrawerPosition = 'right';
+
+  /**
+   * Kept rendering after `open` flips to false so the panel can animate out.
+   * Without it `render()` would return `nothing` and the exit would be instant.
+   */
+  @state()
+  private _closing = false;
+
+  /**
+   * Set once the enter animation has finished so the resting panel can drop its
+   * `transform`. `animation-fill-mode: both` otherwise keeps the final keyframe
+   * applied forever, and a transformed element becomes the containing block for
+   * its `position: fixed` descendants — which silently relocates every floating
+   * layer inside the dialog (combobox dropdowns, menus) because their
+   * viewport-based coordinates are suddenly resolved against the panel.
+   */
+  private _settled = false;
+
+  private _exitTimer: ReturnType<typeof setTimeout> | null = null;
 
   /** Element focused before the dialog opened, restored on close. */
   private _previouslyFocused: HTMLElement | null = null;
@@ -104,15 +134,28 @@ export class RekeDialog extends RekeElement {
     document.removeEventListener('keydown', this._handleKeydown);
     // A dialog torn down while open would otherwise leave the page unscrollable.
     this.releaseScrollLock();
+    this.cancelExit();
+  }
+
+  protected override willUpdate(changed: PropertyValues<this>) {
+    // A new open cycle replays the enter animation, so the panel is transformed
+    // again until its `animationend` settles it. Reset before render: doing it
+    // in `updated()` would paint the reopened panel as already settled, and
+    // `.is-settled` sets `animation: none`, so the enter animation never runs.
+    if (changed.has('open') && this.open) this._settled = false;
   }
 
   protected override updated(changed: PropertyValues<this>) {
     if (!changed.has('open')) return;
 
     if (this.open) {
+      this.cancelExit();
       this.handleOpened();
     } else if (changed.get('open') === true) {
+      // Focus and scroll are handed back straight away — a keyboard user must
+      // not wait for an animation to regain control of the page.
       this.handleClosed();
+      this.startExit();
     }
   }
 
@@ -169,6 +212,34 @@ export class RekeDialog extends RekeElement {
     target?.focus();
   }
 
+  private startExit() {
+    if (prefersReducedMotion()) return;
+    this._closing = true;
+    this._exitTimer = setTimeout(() => this.cancelExit(), EXIT_FALLBACK_MS);
+  }
+
+  private cancelExit() {
+    if (this._exitTimer !== null) {
+      clearTimeout(this._exitTimer);
+      this._exitTimer = null;
+    }
+    this._closing = false;
+  }
+
+  private handleExitAnimationEnd = (e: AnimationEvent) => {
+    // Only the panel's own animations count — those on slotted content bubble
+    // through here too.
+    if (e.target !== e.currentTarget) return;
+    if (this._closing) {
+      this.cancelExit();
+      return;
+    }
+    if (!this._settled) {
+      this._settled = true;
+      this.requestUpdate();
+    }
+  };
+
   private lockScroll() {
     if (this._scrollLocked) return;
     this._previousBodyOverflow = document.body.style.overflow;
@@ -183,7 +254,7 @@ export class RekeDialog extends RekeElement {
   }
 
   override render() {
-    if (!this.open) return nothing;
+    if (!this.open && !this._closing) return nothing;
 
     const isDrawer = this.variant === 'drawer';
 
@@ -191,12 +262,15 @@ export class RekeDialog extends RekeElement {
       backdrop: true,
       'backdrop--drawer': isDrawer,
       [`backdrop--${this.position}`]: isDrawer,
+      'is-closing': this._closing,
     };
 
     const panelClasses = {
       dialog: !isDrawer,
       drawer: isDrawer,
       [`drawer--${this.position}`]: isDrawer,
+      'is-closing': this._closing,
+      'is-settled': this._settled && !this._closing,
     };
 
     return html`
@@ -208,6 +282,7 @@ export class RekeDialog extends RekeElement {
           aria-label=${this.heading}
           tabindex="-1"
           @click=${(e: Event) => e.stopPropagation()}
+          @animationend=${this.handleExitAnimationEnd}
         >
           ${
             this.heading
