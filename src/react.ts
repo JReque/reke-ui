@@ -12,6 +12,10 @@ import { RekeFileUpload } from './components/reke-file-upload/reke-file-upload.j
 import { RekeInput } from './components/reke-input/reke-input.js';
 import { RekeMenu } from './components/reke-menu/reke-menu.js';
 import { RekeMenuItem } from './components/reke-menu-item/reke-menu-item.js';
+import {
+  type PieChartSelectDetail,
+  RekePieChart,
+} from './components/reke-pie-chart/reke-pie-chart.js';
 import { RekeProgress } from './components/reke-progress/reke-progress.js';
 import { RekeSelect } from './components/reke-select/reke-select.js';
 import { RekeTextarea } from './components/reke-textarea/reke-textarea.js';
@@ -79,6 +83,11 @@ export const Progress = createComponent({
   elementClass: RekeProgress,
   react: React,
 });
+export type {
+  PieChartDatum,
+  PieChartSelectDetail,
+  PieChartVariant,
+} from './components/reke-pie-chart/reke-pie-chart.js';
 // Re-exported so React consumers can type a segments array without reaching
 // past the bridge into the element module.
 export type { RekeProgressSegment } from './components/reke-progress/reke-progress.js';
@@ -196,5 +205,14 @@ export const Chip = createComponent({
   events: {
     onRekeClick: 'reke-click' as EventName<CustomEvent>,
     onRekeDismiss: 'reke-dismiss' as EventName<CustomEvent>,
+  },
+});
+
+export const PieChart = createComponent({
+  tagName: 'reke-pie-chart',
+  elementClass: RekePieChart,
+  react: React,
+  events: {
+    onRekePieChartSelect: 'reke-pie-chart-select' as EventName<CustomEvent<PieChartSelectDetail>>,
   },
 });
