@@ -8,6 +8,8 @@ type PieChartArgs = {
   showLegend: boolean;
   loading: boolean;
   size: number;
+  centerLabel: string;
+  hideCenter: boolean;
 };
 
 const SAMPLE: PieChartDatum[] = [
@@ -26,12 +28,16 @@ const meta: Meta<PieChartArgs> = {
     showLegend: { control: 'boolean' },
     loading: { control: 'boolean' },
     size: { control: { type: 'number', min: 160, max: 480, step: 20 } },
+    centerLabel: { control: 'text' },
+    hideCenter: { control: 'boolean' },
   },
   args: {
     variant: 'donut',
     showLegend: true,
     loading: false,
     size: 280,
+    centerLabel: 'Total',
+    hideCenter: false,
   },
 };
 
@@ -45,6 +51,8 @@ export const Default: Story = {
       ?show-legend=${args.showLegend}
       ?loading=${args.loading}
       size=${args.size}
+      center-label=${args.centerLabel}
+      ?hide-center=${args.hideCenter}
       label="Browser share"
       .data=${SAMPLE}
     ></reke-pie-chart>
@@ -87,5 +95,19 @@ export const CustomPalette: Story = {
       .palette=${['#F472B6', '#818CF8', '#34D399', '#FBBF24']}
       .data=${SAMPLE}
     ></reke-pie-chart>
+  `,
+};
+
+export const LightTheme: Story = {
+  render: (args) => html`
+    <div data-reke-theme="light" style="background:#FFFFFF;padding:16px;">
+      <reke-pie-chart
+        variant=${args.variant}
+        ?show-legend=${args.showLegend}
+        size=${args.size}
+        label="Browser share"
+        .data=${SAMPLE}
+      ></reke-pie-chart>
+    </div>
   `,
 };

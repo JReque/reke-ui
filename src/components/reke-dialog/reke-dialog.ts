@@ -70,6 +70,16 @@ export class RekeDialog extends RekeElement {
   @state()
   private _closing = false;
 
+  /**
+   * Set once the enter animation has finished so the resting panel can drop its
+   * `transform`. `animation-fill-mode: both` otherwise keeps the final keyframe
+   * applied forever, and a transformed element becomes the containing block for
+   * its `position: fixed` descendants — which silently relocates every floating
+   * layer inside the dialog (combobox dropdowns, menus) because their
+   * viewport-based coordinates are suddenly resolved against the panel.
+   */
+  private _settled = false;
+
   private _exitTimer: ReturnType<typeof setTimeout> | null = null;
 
   /** Element focused before the dialog opened, restored on close. */
@@ -125,6 +135,14 @@ export class RekeDialog extends RekeElement {
     // A dialog torn down while open would otherwise leave the page unscrollable.
     this.releaseScrollLock();
     this.cancelExit();
+  }
+
+  protected override willUpdate(changed: PropertyValues<this>) {
+    // A new open cycle replays the enter animation, so the panel is transformed
+    // again until its `animationend` settles it. Reset before render: doing it
+    // in `updated()` would paint the reopened panel as already settled, and
+    // `.is-settled` sets `animation: none`, so the enter animation never runs.
+    if (changed.has('open') && this.open) this._settled = false;
   }
 
   protected override updated(changed: PropertyValues<this>) {
@@ -209,10 +227,17 @@ export class RekeDialog extends RekeElement {
   }
 
   private handleExitAnimationEnd = (e: AnimationEvent) => {
-    // Only the panel's own exit animation ends the closing state — animations
-    // on slotted content bubble through here too.
-    if (e.target !== e.currentTarget || !this._closing) return;
-    this.cancelExit();
+    // Only the panel's own animations count — those on slotted content bubble
+    // through here too.
+    if (e.target !== e.currentTarget) return;
+    if (this._closing) {
+      this.cancelExit();
+      return;
+    }
+    if (!this._settled) {
+      this._settled = true;
+      this.requestUpdate();
+    }
   };
 
   private lockScroll() {
@@ -245,6 +270,7 @@ export class RekeDialog extends RekeElement {
       drawer: isDrawer,
       [`drawer--${this.position}`]: isDrawer,
       'is-closing': this._closing,
+      'is-settled': this._settled && !this._closing,
     };
 
     return html`

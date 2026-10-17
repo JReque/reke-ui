@@ -1,3 +1,4 @@
+import * as echarts from 'echarts/core';
 import { describe, expect, it } from 'vitest';
 import './reke-pie-chart.js';
 import { runAxe } from '../../test-utils/a11y.js';
@@ -25,6 +26,12 @@ function createChart(data: PieChartDatum[] = SAMPLE): { wrapper: HTMLElement; el
 async function waitForUpdate(el: RekePieChart): Promise<void> {
   await el.updateComplete;
   await new Promise((r) => setTimeout(r, 0));
+}
+
+// biome-ignore lint/suspicious/noExplicitAny: ECharts' resolved option is loosely typed.
+function chartOption(el: RekePieChart): any {
+  const container = el.shadowRoot!.querySelector('.chart') as HTMLElement;
+  return echarts.getInstanceByDom(container)!.getOption();
 }
 
 describe('reke-pie-chart', () => {
@@ -68,7 +75,98 @@ describe('reke-pie-chart', () => {
     wrapper.remove();
   });
 
+  it('shows the total and center label inside a donut', async () => {
+    const { wrapper, el } = createChart();
+    el.centerLabel = 'Visits';
+    await waitForUpdate(el);
+
+    const center = el.shadowRoot!.querySelector('.center')!;
+    expect(center).toBeTruthy();
+    expect(center.getAttribute('aria-hidden')).toBe('true');
+    expect(center.querySelector('.center-value')!.textContent).toBe('100');
+    expect(center.querySelector('.center-caption')!.textContent).toBe('Visits');
+
+    wrapper.remove();
+  });
+
+  it('renders no center content for the pie variant or with hide-center', async () => {
+    const { wrapper, el } = createChart();
+    el.variant = 'pie';
+    await waitForUpdate(el);
+    expect(el.shadowRoot!.querySelector('.center')).toBeNull();
+
+    el.variant = 'donut';
+    el.hideCenter = true;
+    await waitForUpdate(el);
+    expect(el.shadowRoot!.querySelector('.center')).toBeNull();
+
+    wrapper.remove();
+  });
+
+  it('separates slices and styles the legend from tokens', async () => {
+    const { wrapper, el } = createChart();
+    wrapper.style.setProperty('--reke-color-text-label', '#123456');
+    el.showLegend = true;
+    await waitForUpdate(el);
+
+    const option = chartOption(el);
+    expect(option.series[0].padAngle).toBeGreaterThan(0);
+    expect(option.series[0].itemStyle.borderRadius).toBeGreaterThan(0);
+    expect(option.legend[0].textStyle.color).toBe('#123456');
+    expect(option.legend[0].icon).toBe('circle');
+
+    wrapper.remove();
+  });
+
+  it('escapes slice names in the tooltip', async () => {
+    const { wrapper, el } = createChart([{ name: '<img src=x>', value: 1 }]);
+    el.variant = 'pie';
+    await waitForUpdate(el);
+
+    const html = chartOption(el).tooltip[0].formatter({
+      name: '<img src=x>',
+      value: 1,
+      percent: 100,
+      color: '#22C55E',
+    });
+    expect(html).not.toContain('<img');
+    expect(html).toContain('&lt;img');
+
+    wrapper.remove();
+  });
+
   // --- BEHAVIOR ---
+
+  it('excludes legend-hidden slices from the center total', async () => {
+    const { wrapper, el } = createChart();
+    el.showLegend = true;
+    await waitForUpdate(el);
+
+    const container = el.shadowRoot!.querySelector('.chart') as HTMLElement;
+    echarts.getInstanceByDom(container)!.dispatchAction({ type: 'legendUnSelect', name: 'Chrome' });
+    await waitForUpdate(el);
+
+    expect(el.shadowRoot!.querySelector('.center-value')!.textContent).toBe('40');
+
+    wrapper.remove();
+  });
+
+  it('repaints with fresh tokens when the theme changes', async () => {
+    const { wrapper, el } = createChart();
+    el.showLegend = true;
+    await waitForUpdate(el);
+
+    const root = document.documentElement;
+    root.style.setProperty('--reke-color-text-label', '#ABCDEF');
+    root.setAttribute('data-reke-theme', 'light');
+    await waitForUpdate(el);
+
+    expect(chartOption(el).legend[0].textStyle.color).toBe('#ABCDEF');
+
+    root.removeAttribute('data-reke-theme');
+    root.style.removeProperty('--reke-color-text-label');
+    wrapper.remove();
+  });
 
   it('toggles the native loader without throwing', async () => {
     const { wrapper, el } = createChart();

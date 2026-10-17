@@ -751,10 +751,16 @@ Circular (pie / donut) chart rendered with ECharts, fully isolated in Shadow DOM
 | `showLegend` | `boolean` | `false` | `show-legend` |
 | `loading` | `boolean` | `false` | `loading` |
 | `palette` | `string[]` | `--reke-chart-*` tokens | JS only |
+| `centerLabel` | `string` | `'Total'` | `center-label` |
+| `hideCenter` | `boolean` | `false` | `hide-center` |
+| `animationDuration` | `number` | `700` | `animation-duration` |
 
 **Types:** `PieChartDatum = { name: string; value: number; color?: string }`, `PieChartVariant = 'pie' | 'donut'`, `PieChartSelectDetail = { name: string; value: number; percent: number }`
 **Events:** `reke-pie-chart-select` (`{ name, value, percent }` — fired when a slice is clicked)
-**Parts:** `chart`
+**Parts:** `chart`, `center`
+**Donut center:** shows the total of the visible slices (legend-hidden slices are excluded) with `centerLabel` as caption; on hover it shows the slice percent and name. The tooltip is disabled while the center is shown. Use `hide-center` to turn it off.
+**Styling:** slices are separated with transparent gaps (`padAngle`) and rounded corners; hover scales the slice and dims the rest. Legend, labels, tooltip (glass) and loading mask read the `--reke-color-*` and `--reke-font-mono` tokens, and the chart repaints when `data-reke-theme` or the OS color scheme changes. Height defaults to `--reke-pie-chart-height` (240px) unless `size` is set.
+**Motion:** staggered entry animation that plays when the chart scrolls into view; respects `prefers-reduced-motion`.
 **A11y:** `role="img"` + generated `aria-label`, a visually-hidden data list (canvas is opaque to screen readers), and ECharts `aria.enabled`.
 **Colors:** defaults to the `--reke-chart-1..6` tokens (resolved at runtime, respects theme). Override the tokens, pass `palette`, or set `color` per datum.
 
@@ -931,7 +937,7 @@ npm run analyze      # Generate custom-elements.json
 | 6 | `reke-badge` | Display | 6 variants, 2 sizes | 5 | 5 |
 | 7 | `reke-card` | Layout | 3 variants, 4 paddings | 4 | 5 |
 | 8 | `reke-tooltip` | Overlay | 4 positions | 5 | 3 |
-| 9 | `reke-dialog` | Overlay | modal, drawer | 24 | 5 |
+| 9 | `reke-dialog` | Overlay | modal, drawer | 27 | 6 |
 | 10 | `reke-select` | Form | 3 sizes | 8 | 5 |
 | 11 | `reke-table` | Data | striped, dense, hoverable, bordered, expandable | 64 | 11 |
 | 12 | `reke-date-range` | Form | single, range | 23 | 9 |
@@ -940,7 +946,7 @@ npm run analyze      # Generate custom-elements.json
 | 15 | `reke-toast` | Feedback | 4 variants | 11 | 4 |
 | 16 | `reke-chip` | Selection | 4 colors, active, dismissible, prefix slot | 15 | 9 |
 | 17 | `reke-combobox` | Form | 3 sizes, searchable, images, multiple/tags, optionRender | 37 | 12 |
-| 18 | `reke-pie-chart` | Data | pie, donut, legend, loading | 6 | 4 |
+| 18 | `reke-pie-chart` | Data | pie, donut, legend, loading, center | 12 | 5 |
 | 19 | `reke-menu` | Overlay | coords or anchor, context menu, keyboard nav | 11 | 3 |
 | 20 | `reke-menu-item` | Overlay | 2 variants (default/danger), disabled | 5 | 2 |
 | 21 | `reke-progress` | Feedback | single value, up to 3 segments, indeterminate | 17 | 4 |
@@ -948,4 +954,4 @@ npm run analyze      # Generate custom-elements.json
 ---
 
 <!-- DOC_UPDATE_MARKER: Do not remove. Used by automation to detect stale docs. -->
-<!-- Component count: 21 | Test count: 307 | Last sync: 2026-08-15 -->
+<!-- Component count: 21 | Test count: 331 | Last sync: 2026-10-17 -->
