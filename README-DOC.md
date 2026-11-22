@@ -777,6 +777,45 @@ chart.data = [
 <reke-pie-chart variant="donut" size="280" show-legend label="Browser share"></reke-pie-chart>
 ```
 
+### reke-bar-chart
+
+Categorical bar chart (grouped or stacked) rendered with ECharts, fully isolated in Shadow DOM. Series can be bars or overlaid lines, bars accept negative values, and long axes become scrollable.
+
+| Property | Type | Default | Attribute |
+|----------|------|---------|-----------|
+| `categories` | `string[]` | `[]` | JS only |
+| `series` | `BarChartSeries[]` | `[]` | JS only |
+| `label` | `string` | `'Bar chart'` | `label` |
+| `stacked` | `boolean` | `false` | `stacked` |
+| `showLegend` | `boolean` | `false` | `show-legend` |
+| `loading` | `boolean` | `false` | `loading` |
+| `palette` | `string[]` | `--reke-chart-*` tokens | JS only |
+| `animationDuration` | `number` | `700` | `animation-duration` |
+| `maxVisible` | `number` | `0` (show all) | `max-visible` |
+
+**Types:** `BarChartSeries = { name: string; data: number[]; color?: string; type?: 'bar' \| 'line' }` (`data` is aligned with `categories`), `BarChartSelectDetail = { category: string; series: string; value: number; index: number }`
+**Events:** `reke-bar-chart-select` (`{ category, series, value, index }` — fired when a bar is clicked)
+**Parts:** `chart`
+**Stacking:** `stacked` stacks every bar series into one bar per category; positives and negatives stack on their own side of zero. `type: 'line'` series are never stacked (use them for running totals) and are left out of the tooltip total. Each bar is rounded at its far end from zero; stacked, only the outermost segment on each side.
+**Scrolling:** past `max-visible` categories the chart opens on the latest ones and scrolls (wheel / drag) and zooms (Shift + wheel, or the slider under the axis).
+**Styling:** axes, grid, legend, slider, tooltip (glass) and loading mask read the `--reke-color-*` and `--reke-font-mono` tokens and repaint when `data-reke-theme` or the OS color scheme changes. Height defaults to `--reke-bar-chart-height` (280px).
+**Motion:** staggered entry animation; respects `prefers-reduced-motion`.
+**A11y:** `role="img"` + generated `aria-label`, a visually-hidden list with one line per category and every series value (canvas is opaque to screen readers), and ECharts `aria.enabled`.
+
+```ts
+const chart = document.querySelector('reke-bar-chart');
+chart.categories = ['2026-01', '2026-02', '2026-03'];
+chart.series = [
+  { name: 'USDC', data: [100, -40, 50] },
+  { name: 'USDT', data: [20, 30, 0] },
+  { name: 'Cumulative', data: [120, 110, 160], type: 'line' },
+];
+```
+
+```html
+<reke-bar-chart stacked show-legend max-visible="24" label="Monthly net inflows"></reke-bar-chart>
+```
+
 ---
 
 ### reke-progress
@@ -950,6 +989,7 @@ npm run analyze      # Generate custom-elements.json
 | 19 | `reke-menu` | Overlay | coords or anchor, context menu, keyboard nav | 11 | 3 |
 | 20 | `reke-menu-item` | Overlay | 2 variants (default/danger), disabled | 5 | 2 |
 | 21 | `reke-progress` | Feedback | single value, up to 3 segments, indeterminate | 17 | 4 |
+| 22 | `reke-bar-chart` | Data | grouped, stacked, line overlay, negatives, scrollable (max-visible), legend, loading | 18 | 6 |
 
 ---
 
