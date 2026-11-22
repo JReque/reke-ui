@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. Releases are managed automatically by [release-please](https://github.com/googleapis/release-please) from Conventional Commits.
 
+## [0.5.4](https://github.com/JReque/reke-ui/compare/v0.5.3...v0.5.4) (2026-11-22)
+
+
+### Features
+
+* **bar-chart:** add reke-bar-chart with stacking, line overlay and scrollable axis ([01b895f](https://github.com/JReque/reke-ui/commit/01b895fa6f4fb6a414b670f207524fd1aa8bfd53))
+* **bar-chart:** add reke-bar-chart with stacking, line overlay and scrollable axis ([2a8f2d8](https://github.com/JReque/reke-ui/commit/2a8f2d8562ab2e88089760c9f4a2741c4fd57116))
+
 ## [0.5.3](https://github.com/JReque/reke-ui/compare/v0.5.2...v0.5.3) (2026-10-17)
 
 
