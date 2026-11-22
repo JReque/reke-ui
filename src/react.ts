@@ -2,6 +2,10 @@ import { createComponent, type EventName } from '@lit/react';
 import React from 'react';
 import { RekeAlert } from './components/reke-alert/reke-alert.js';
 import { RekeBadge } from './components/reke-badge/reke-badge.js';
+import {
+  type BarChartSelectDetail,
+  RekeBarChart,
+} from './components/reke-bar-chart/reke-bar-chart.js';
 import { RekeButton } from './components/reke-button/reke-button.js';
 import { RekeCard } from './components/reke-card/reke-card.js';
 import { RekeCheckbox } from './components/reke-checkbox/reke-checkbox.js';
@@ -83,6 +87,10 @@ export const Progress = createComponent({
   elementClass: RekeProgress,
   react: React,
 });
+export type {
+  BarChartSelectDetail,
+  BarChartSeries,
+} from './components/reke-bar-chart/reke-bar-chart.js';
 export type {
   PieChartDatum,
   PieChartSelectDetail,
@@ -205,6 +213,15 @@ export const Chip = createComponent({
   events: {
     onRekeClick: 'reke-click' as EventName<CustomEvent>,
     onRekeDismiss: 'reke-dismiss' as EventName<CustomEvent>,
+  },
+});
+
+export const BarChart = createComponent({
+  tagName: 'reke-bar-chart',
+  elementClass: RekeBarChart,
+  react: React,
+  events: {
+    onRekeBarChartSelect: 'reke-bar-chart-select' as EventName<CustomEvent<BarChartSelectDetail>>,
   },
 });
 

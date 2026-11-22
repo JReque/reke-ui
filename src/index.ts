@@ -2,6 +2,11 @@ export type { AlertVariant } from './components/reke-alert/reke-alert.js';
 export { RekeAlert } from './components/reke-alert/reke-alert.js';
 export type { BadgeShape, BadgeSize, BadgeVariant } from './components/reke-badge/reke-badge.js';
 export { RekeBadge } from './components/reke-badge/reke-badge.js';
+export type {
+  BarChartSelectDetail,
+  BarChartSeries,
+} from './components/reke-bar-chart/reke-bar-chart.js';
+export { RekeBarChart } from './components/reke-bar-chart/reke-bar-chart.js';
 export type { ButtonSize, ButtonVariant } from './components/reke-button/reke-button.js';
 export { RekeButton } from './components/reke-button/reke-button.js';
 export type { CardAccent, CardPadding, CardVariant } from './components/reke-card/reke-card.js';
